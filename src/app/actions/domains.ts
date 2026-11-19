@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/lib/auth";
+import { audit, requireAdmin } from "@/lib/auth";
 import { domainService, invalidateDomains } from "@/lib/domains";
 import { runMigrations } from "@/lib/migrate";
 import type { FormState } from "@/components/client";
@@ -67,7 +67,7 @@ export async function runMigrationsAction(): Promise<FormState> {
     const applied = await runMigrations({ includePhase2: process.env.FEATURE_PHASE2 !== "0" && process.env.FEATURE_PHASE2 !== "false" });
     invalidateDomains();
     revalidatePath("/admin", "layout");
-    await domainService().audit({ actor: me.id, action: "db.migrate", meta: { applied } }).catch(() => {});
+    await audit(me.id, "db.migrate", undefined, { applied }).catch(() => {});
     return { ok: true, message: applied.length ? `Applied: ${applied.join(", ")}` : "Database is already up to date." };
   } catch (e) {
     return { errors: { form: `Migration failed: ${(e as Error).message}` } };
