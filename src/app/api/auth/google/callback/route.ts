@@ -9,6 +9,7 @@ import { ensurePage } from "@/lib/services/pages";
 import { validateNewSlug } from "@/lib/slug-service";
 import { rateLimit } from "@/lib/ratelimit";
 import { fromHeaders } from "@/lib/request";
+import { guardApi } from "@/lib/host-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,7 @@ async function freeUsername(email: string): Promise<string> {
 }
 
 export async function GET(req: Request) {
+  { const blocked = await guardApi(); if (blocked) return blocked; } // domain rules: API only on the main and API domains
   const brand = await getBrand();
   const bad = (code: string) => NextResponse.redirect(`${brand.url}/login?error=${code}`);
   const url = new URL(req.url);

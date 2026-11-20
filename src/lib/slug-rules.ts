@@ -22,6 +22,7 @@ export const DEFAULT_RESERVED_WORDS = [
   "www", "mail", "smtp", "ftp", "ns1", "ns2", "cdn", "app", "support", "help", "status", "security", "abuse",
   "postmaster", "webmaster", "root", "administrator", "official", "verify", "confirm", "account", "accounts",
   "wallet", "payment", "payments", "checkout", "invoice", "signin", "signup", "logout", "reset", "password",
+  "link", "links", "api", "dashboard", "admin",
 ];
 export const DEFAULT_BRANDS = ["paypal", "google", "facebook", "instagram", "whatsapp", "apple", "microsoft", "amazon", "netflix", "binance", "stripe", "bank"];
 export const DEFAULT_SENSITIVE = ["login", "signin", "verify", "secure", "security", "support", "account", "update", "wallet", "payment", "billing", "recovery", "reset", "password"];

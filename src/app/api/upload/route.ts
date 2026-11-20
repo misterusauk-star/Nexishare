@@ -3,10 +3,12 @@ import { currentUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/ratelimit";
 import { MAX_UPLOAD, sniffImage, storeImage } from "@/lib/uploads";
 import { sameOrigin } from "@/lib/request";
+import { guardApi } from "@/lib/host-guard";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
+  { const blocked = await guardApi(); if (blocked) return blocked; } // domain rules: API only on the main and API domains
   if (!sameOrigin(req, process.env.APP_URL || "http://localhost:3000")) return NextResponse.json({ error: "Bad origin." }, { status: 403 });
   const user = await currentUser();
   if (!user) return NextResponse.json({ error: "Sign in first." }, { status: 401 });

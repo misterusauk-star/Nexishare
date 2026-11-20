@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import { apiError, authApi, jsonBody, linkJson, num } from "@/lib/api";
 import { getBrand } from "@/lib/brand";
 import { createLink, listLinks } from "@/lib/services/links";
+import { guardApi } from "@/lib/host-guard";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
+  { const blocked = await guardApi(); if (blocked) return blocked; } // domain rules: API only on the main and API domains
   const a = await authApi(req);
   if ("res" in a) return a.res;
   const b = await getBrand();
@@ -17,6 +19,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  { const blocked = await guardApi(); if (blocked) return blocked; } // domain rules: API only on the main and API domains
   const a = await authApi(req);
   if ("res" in a) return a.res;
   const body = await jsonBody(req);

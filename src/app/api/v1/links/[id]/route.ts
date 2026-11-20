@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { apiError, authApi, jsonBody, linkJson } from "@/lib/api";
 import { getBrand } from "@/lib/brand";
 import { deleteLink, getLinkForUser, updateLink } from "@/lib/services/links";
+import { guardApi } from "@/lib/host-guard";
 
 export const dynamic = "force-dynamic";
 type Ctx = { params: Promise<{ id: string }> };
@@ -12,6 +13,7 @@ async function parse(ctx: Ctx) {
 }
 
 export async function GET(req: Request, ctx: Ctx) {
+  { const blocked = await guardApi(); if (blocked) return blocked; } // domain rules: API only on the main and API domains
   const a = await authApi(req);
   if ("res" in a) return a.res;
   const id = await parse(ctx);
@@ -21,6 +23,7 @@ export async function GET(req: Request, ctx: Ctx) {
 }
 
 export async function PATCH(req: Request, ctx: Ctx) {
+  { const blocked = await guardApi(); if (blocked) return blocked; } // domain rules: API only on the main and API domains
   const a = await authApi(req);
   if ("res" in a) return a.res;
   const id = await parse(ctx);
@@ -34,6 +37,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
 }
 
 export async function DELETE(req: Request, ctx: Ctx) {
+  { const blocked = await guardApi(); if (blocked) return blocked; } // domain rules: API only on the main and API domains
   const a = await authApi(req);
   if ("res" in a) return a.res;
   const id = await parse(ctx);

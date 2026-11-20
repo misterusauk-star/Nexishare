@@ -10,8 +10,12 @@ export interface DomainState {
   defaultHost: string;
   /** Origin (scheme + host) of the current default domain. Every public URL is built from this at render time. */
   defaultUrl: string;
-  /** Hosts of all ACTIVE domains. */
+  /** Hosts of all ACTIVE site domains (main, link and others). */
   activeHosts: string[];
+  /** Hosts of ACTIVE API domains. They serve /api/v1 only. */
+  apiHosts: string[];
+  /** Origin the REST API is documented on: the first active API domain, otherwise the main domain. */
+  apiUrl: string;
   /** Host and origin of APP_URL. Always allowed so nobody is locked out. */
   appHost: string;
   appUrl: string;
@@ -48,14 +52,17 @@ export async function getDomainState(): Promise<DomainState> {
   const hit = cache.get("s");
   if (hit) return hit;
   const a = appOrigin();
-  let state: DomainState = { defaultHost: a.host, defaultUrl: a.url, activeHosts: [a.host], appHost: a.host, appUrl: a.url };
+  let state: DomainState = { defaultHost: a.host, defaultUrl: a.url, activeHosts: [a.host], apiHosts: [], apiUrl: a.url, appHost: a.host, appUrl: a.url };
   if (dbConfigured()) {
     try {
       if (!g.__domSeeded) { await domainService().ensureSeed(a.host); g.__domSeeded = true; }
-      const rows = await query<{ hostname: string; status: string; is_default: number }>("SELECT hostname, status, is_default FROM site_domains");
+      const rows = await query<{ hostname: string; status: string; purpose: string; is_default: number }>("SELECT hostname, status, purpose, is_default FROM site_domains");
       const def = rows.find((r) => r.is_default && r.status === "active") ?? rows.find((r) => r.is_default);
       if (def) state = { ...state, defaultHost: def.hostname, defaultUrl: originFor(def.hostname) };
-      state.activeHosts = rows.filter((r) => r.status === "active").map((r) => r.hostname);
+      const active = rows.filter((r) => r.status === "active");
+      state.activeHosts = active.filter((r) => r.purpose !== "api").map((r) => r.hostname);
+      state.apiHosts = active.filter((r) => r.purpose === "api").map((r) => r.hostname);
+      if (state.apiHosts[0]) state.apiUrl = originFor(state.apiHosts[0]);
     } catch {
       /* table missing (before install/migration): keep the APP_URL fallback */
     }
@@ -67,7 +74,7 @@ export async function getDomainState(): Promise<DomainState> {
 /** Every host this install answers on. Short links must never point at one of these (redirect loops). */
 export async function ownHostList(extra?: string): Promise<string[]> {
   const s = await getDomainState();
-  return [...new Set([s.defaultHost, s.appHost, ...s.activeHosts, ...(extra ? [extra] : [])].map(normalizeHost))];
+  return [...new Set([s.defaultHost, s.appHost, ...s.activeHosts, ...s.apiHosts, ...(extra ? [extra] : [])].map(normalizeHost))];
 }
 
 export { normalizeHostname };

@@ -4,12 +4,16 @@
  * "Check & activate" only verifies that https://<domain>/api/health answers with a valid certificate.
  */
 export type DomainStatus = "pending" | "active" | "disabled";
+/** "site": main, link and other domains. "api": serves the REST API (/api/v1) only and can never be the default. */
+export type DomainPurpose = "site" | "api";
+export const isPurpose = (v: unknown): v is DomainPurpose => v === "site" || v === "api";
 
 export interface DomainRow {
   id: number;
   hostname: string;
   label: string | null;
   status: DomainStatus;
+  purpose: DomainPurpose;
   is_default: boolean;
   note: string | null;
   last_check_at: Date | null;
@@ -23,7 +27,7 @@ export interface DomainStore {
   list(): Promise<DomainRow[]>;
   get(id: number): Promise<DomainRow | null>;
   getByHost(host: string): Promise<DomainRow | null>;
-  insert(v: { hostname: string; label: string | null; status: DomainStatus; is_default?: boolean; note?: string | null }): Promise<DomainRow>;
+  insert(v: { hostname: string; label: string | null; status: DomainStatus; purpose?: DomainPurpose; is_default?: boolean; note?: string | null }): Promise<DomainRow>;
   update(id: number, patch: Partial<Omit<DomainRow, "id" | "is_default">>): Promise<void>;
   remove(id: number): Promise<void>;
   /** One transaction: clear the current default, set the new one, write the audit entry. */
@@ -59,21 +63,25 @@ export function createDomainService({ store, check, now = () => new Date() }: Se
   return {
     list: () => store.list(),
 
-    async add(actor: number, rawHost: string, label?: string): Promise<Res> {
+    async add(actor: number, rawHost: string, label?: string, purpose: DomainPurpose = "site"): Promise<Res> {
       const h = normalizeHostname(rawHost);
       if (!h.ok) return h;
       if (await store.getByHost(h.data)) return fail("That domain is already in the list.");
-      const row = await store.insert({ hostname: h.data, label: (label ?? "").trim().slice(0, 80) || null, status: "pending" });
-      await store.audit({ actor, action: "domain.add", target: row.hostname });
+      const row = await store.insert({ hostname: h.data, label: (label ?? "").trim().slice(0, 80) || null, status: "pending", purpose: isPurpose(purpose) ? purpose : "site" });
+      await store.audit({ actor, action: "domain.add", target: row.hostname, meta: { purpose: row.purpose } });
       return { ok: true, data: row };
     },
 
     /** Label and note can always change. A new hostname resets the domain to pending and is refused for the default. */
-    async edit(actor: number, id: number, v: { hostname?: string; label?: string }): Promise<Res> {
+    async edit(actor: number, id: number, v: { hostname?: string; label?: string; purpose?: DomainPurpose }): Promise<Res> {
       const cur = await store.get(id);
       if (!cur) return fail("Domain not found.");
       const patch: Partial<DomainRow> = {};
       if (v.label !== undefined) patch.label = v.label.trim().slice(0, 80) || null;
+      if (v.purpose !== undefined && isPurpose(v.purpose) && v.purpose !== cur.purpose) {
+        if (cur.is_default) return fail("The default domain must stay a site domain. Make another domain the default first.");
+        patch.purpose = v.purpose;
+      }
       if (v.hostname !== undefined) {
         const h = normalizeHostname(v.hostname);
         if (!h.ok) return h;
@@ -137,6 +145,7 @@ export function createDomainService({ store, check, now = () => new Date() }: Se
     async makeDefault(actor: number, id: number): Promise<Res<{ previous: string | null; next: string }>> {
       const cur = await store.get(id);
       if (!cur) return fail("Domain not found.");
+      if (cur.purpose === "api") return fail("An API domain cannot be the default. It serves the REST API only.");
       if (cur.status !== "active") return fail("Only an active domain can become the default. Run Check & activate first.");
       const all = await store.list();
       const prev = all.find((d) => d.is_default) ?? null;

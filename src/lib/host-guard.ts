@@ -1,26 +1,49 @@
 import { headers } from "next/headers";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { dbConfigured } from "./db";
 import { getDomainState } from "./domains";
 import { decideHost, effectiveHost, trustProxyEnabled, type HostDecision } from "./host-policy.ts";
 
-async function decide(host: string, pathname: string): Promise<HostDecision> {
-  if (!dbConfigured()) return "allow"; // nothing to compare against before the first setup
+async function decide(host: string, pathname: string): Promise<{ d: HostDecision; appUrl: string }> {
+  if (!dbConfigured()) return { d: { kind: "allow" }, appUrl: "" }; // nothing to compare against before the first setup
   const s = await getDomainState();
-  return decideHost({ host, pathname, defaultHost: s.defaultHost, activeHosts: s.activeHosts, appHost: s.appHost });
+  return {
+    d: decideHost({ host, pathname, defaultHost: s.defaultHost, activeHosts: s.activeHosts, apiHosts: s.apiHosts, appHost: s.appHost }),
+    appUrl: s.appUrl,
+  };
 }
 
-/** Server components and actions: 404 unless this host may serve this path. */
+/**
+ * Server components and actions. Unknown hosts and public content on the wrong host are a plain 404.
+ * App pages opened on a link or API domain redirect to the same path on the main domain (APP_URL).
+ */
 export async function enforceHost(): Promise<void> {
   const h = await headers();
-  const d = await decide(effectiveHost((n) => h.get(n), trustProxyEnabled()), h.get("x-ob-path") || "/");
-  if (d === "notfound") notFound();
+  const path = h.get("x-ob-path") || "/";
+  const { d, appUrl } = await decide(effectiveHost((n) => h.get(n), trustProxyEnabled()), path);
+  if (d.kind === "notfound") notFound();
+  if (d.kind === "redirect") redirect(`${appUrl}${path}${h.get("x-ob-search") || ""}`);
 }
 
-/** Route handlers: returns a bare 404 response, or null when the request may proceed. */
+const plain404 = () => new Response("Not found", { status: 404, headers: { "Cache-Control": "no-store" } });
+
+async function guardPath(host: string, pathname: string, search: string): Promise<Response | null> {
+  const { d, appUrl } = await decide(host, pathname);
+  if (d.kind === "notfound") return plain404();
+  if (d.kind === "redirect") return Response.redirect(`${appUrl}${pathname}${search}`, 308);
+  return null;
+}
+
+/** Route handlers that know their Request: a bare 404 (or redirect), or null when the request may proceed. */
 export async function guardRequest(req: Request): Promise<Response | null> {
-  const d = await decide(effectiveHost((n) => req.headers.get(n), trustProxyEnabled()), new URL(req.url).pathname);
-  return d === "notfound" ? new Response("Not found", { status: 404, headers: { "Cache-Control": "no-store" } }) : null;
+  const u = new URL(req.url);
+  return guardPath(effectiveHost((n) => req.headers.get(n), trustProxyEnabled()), u.pathname, u.search);
+}
+
+/** Same check for API route handlers, without needing the Request: reads host and path from the request headers. */
+export async function guardApi(): Promise<Response | null> {
+  const h = await headers();
+  return guardPath(effectiveHost((n) => h.get(n), trustProxyEnabled()), h.get("x-ob-path") || "/api", h.get("x-ob-search") || "");
 }
 
 /** True when the current request arrived on the default domain. */

@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { fromHeaders } from "@/lib/request";
 import { submitReport } from "@/lib/services/reports";
+import { guardApi } from "@/lib/host-guard";
 
 export const dynamic = "force-dynamic";
 
 /** Public, unauthenticated, rate limited. Body: {"target":"slug or URL","reason":"phishing","details":"..."} (JSON or form). */
 export async function POST(req: Request) {
+  { const blocked = await guardApi(); if (blocked) return blocked; } // domain rules: API only on the main and API domains
   let body: unknown = null;
   const type = req.headers.get("content-type") || "";
   try {

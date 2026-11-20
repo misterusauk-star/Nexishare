@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getBrand } from "@/lib/brand";
 import { SiteShell } from "@/components/site-shell";
+import { getDomainState } from "@/lib/domains";
 
 export const metadata: Metadata = { title: "API reference" };
 
@@ -15,7 +16,8 @@ function Endpoint({ id, method, path, children }: { id: string; method: "get" | 
 
 export default async function Docs() {
   const b = await getBrand();
-  const base = `${b.url}/api/v1`;
+  const apiOrigin = (await getDomainState()).apiUrl; // the API domain once one is active, otherwise the main domain
+  const base = `${apiOrigin}/api/v1`;
   return (
     <SiteShell wide>
       <div className="docs">

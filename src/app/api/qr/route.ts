@@ -6,6 +6,7 @@ import { rateLimit } from "@/lib/ratelimit";
 import { fromHeaders } from "@/lib/request";
 import { ipHash } from "@/lib/crypto";
 import { safeImageUrl } from "@/lib/validation";
+import { guardApi } from "@/lib/host-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,7 @@ export const dynamic = "force-dynamic";
  * GET /api/qr?slug=name&format=svg|png&fg=%23000000&bg=%23ffffff&size=512&logo=https://...
  */
 export async function GET(req: Request) {
+  { const blocked = await guardApi(); if (blocked) return blocked; } // domain rules: API only on the main and API domains
   const info = fromHeaders(req.headers);
   if (!(await rateLimit(`qr:${ipHash(info.ip)}`, 120, 60))) return new NextResponse("Too many requests", { status: 429 });
   const u = new URL(req.url);

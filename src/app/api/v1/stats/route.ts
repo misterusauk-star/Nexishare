@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { authApi, num } from "@/lib/api";
 import { getStats } from "@/lib/analytics";
+import { guardApi } from "@/lib/host-guard";
 
 export const dynamic = "force-dynamic";
 
 /** Account-wide stats. Query: kind=clicks (default) or views, days=1..365. */
 export async function GET(req: Request) {
+  { const blocked = await guardApi(); if (blocked) return blocked; } // domain rules: API only on the main and API domains
   const a = await authApi(req);
   if ("res" in a) return a.res;
   const u = new URL(req.url);

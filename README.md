@@ -135,13 +135,21 @@ To add a domain:
 
 The host of `APP_URL` is added as an active domain and as the default automatically, on fresh installs and on upgrades, so nobody can be locked out. Set `TRUST_PROXY=true` behind Hostinger so the real host is read from `X-Forwarded-Host`.
 
-What each kind of domain serves:
+Three kinds of address, each with one job:
 
-| Route | Default domain | Other active domains and the `APP_URL` host | Unknown hosts |
-| --- | --- | --- | --- |
-| Short links `/<slug>`, bio pages, `/out/*`, vCard | Served | 404 | 404 |
-| Dashboard, admin, API, installer, login | Served | Served | 404 |
-| `/api/health` | Served | Served | Served |
+- **Main domain** (the host of `APP_URL`, for example `nexishare.com`): dashboard, admin, sign-in, installer and the dashboard's own endpoints (QR, export, upload, Google sign-in).
+- **Link domain** (for example `link.nexishare.com`, added as "Short links and bio pages"): the default domain serves short links and bio pages. Opening an app page there, such as `/`, `/login` or `/dashboard`, redirects to the same path on the main domain. Its `/api/*` is 404.
+- **API domain** (for example `api.nexishare.com`, added as "REST API only"): serves `/api/v1/*` and `/api/health` only. Its other pages redirect to the main domain. Once an API domain is active, `/api/v1` is accepted **only** there: the main domain and every other domain return 404 for it. Until then `/api/v1` keeps working on the main domain so existing keys do not break. An API domain can never be the default.
+
+| Route | Main domain | Default link domain | Other link domains | API domain | Unknown hosts |
+| --- | --- | --- | --- | --- | --- |
+| Short links `/<slug>`, bio pages, `/out/*`, vCard | 404 (unless it is the default) | Served | 404 | 404 | 404 |
+| Dashboard, admin, login, home, installer | Served | Redirect to main | Redirect to main | Redirect to main | 404 |
+| Dashboard endpoints (`/api/qr`, export, upload) | Served | 404 | 404 | 404 | 404 |
+| REST API `/api/v1/*` | Only while no API domain is active | 404 | 404 | Served | 404 |
+| `/api/health`, static assets | Served | Served | Served | Served | health only |
+
+When the main domain is also the default (the usual starting point), it serves everything.
 
 There are no aliases and no redirects. Links and bio pages store only the slug or username, so no data changes when the default changes: every URL (copy link, QR targets, canonical and Open Graph tags, sitemap, emails, API responses) is built from the current default domain when it is rendered.
 
