@@ -30,8 +30,10 @@ export interface LinkRow {
   created_at: Date;
 }
 
+// Truly optional: key may be missing, null or "" (all mean "no date").
 const optionalDate = z
-  .union([z.string(), z.null(), z.undefined()])
+  .string()
+  .nullish()
   .transform((v, ctx) => {
     if (!v) return null;
     const d = new Date(v);

@@ -55,7 +55,15 @@ curl -X POST https://your-domain/api/v1/links \
 
 Returns `201` with the link. A taken slug, a blocked destination or a private address returns `422`.
 
-Optional fields: `slug`, `title`, `password`, `starts_at`, `expires_at` (UTC, ISO 8601), `enabled`.
+Only `target_url` is required. Optional fields: `slug`, `title`, `password`, `starts_at`, `expires_at`, `enabled`, `group_id`, `team_id`. Leave a field out (or send `null` for the dates) to skip it. Dates are ISO 8601, e.g. `2026-12-31T23:59:00Z`; without an offset they are read as UTC. `expires_at` must be later than `starts_at`.
+
+Minimal request:
+
+```bash
+curl -X POST $BASE/links -H "Authorization: Bearer ob_your_key" -H "Content-Type: application/json" -d '{"target_url":"https://example.com"}'
+```
+
+Examples in JavaScript, Python, PHP, Go and Ruby are on the `/docs` page of your install.
 
 ### Update a link
 

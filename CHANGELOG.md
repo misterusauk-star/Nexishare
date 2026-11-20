@@ -4,6 +4,12 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+### Fixed
+- API: `starts_at` and `expires_at` are now truly optional on create (missing, `null` or empty all mean no date), matching the docs.
+
+### Docs
+- `/docs` now has a field table (required vs optional), more curl examples and samples in JavaScript, Python, PHP, Go and Ruby.
+
 ### Changed
 - **Breaking:** user-owned custom domains are gone. Domains are now managed by the Super Admin in Admin > Domains. Run `npm run migrate`: migration 004 is additive and copies old user domains in as *pending* admin domains, 005 drops the old `domains` table. Remove `APP_SERVER_IP` and `APP_CNAME_TARGET` from your environment if you set them.
 - Links and bio pages are served only on the default domain. Every other host returns 404 for them. App pages (home, login, dashboard, admin) run on the main domain (`APP_URL` host); other domains redirect them there. The REST API (`/api/v1`) is accepted only on an API domain once one is active. Unknown hosts return 404.
