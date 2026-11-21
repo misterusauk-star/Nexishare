@@ -65,3 +65,16 @@ export function safeNext(next: string | null | undefined, fallback = "/dashboard
   return next;
 }
 
+
+export const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"] as const;
+export type UtmTags = Partial<Record<(typeof UTM_KEYS)[number], string | null | undefined>>;
+
+/** Adds the given campaign tags to a destination URL. Empty tags are skipped, a tag already in the URL is replaced. Anything that is not a parseable URL comes back unchanged (the URL check rejects it next). */
+export function applyUtm(raw: string, tags: UtmTags): string {
+  const given = UTM_KEYS.filter((k) => (tags[k] ?? "").trim() !== "");
+  if (given.length === 0) return raw;
+  let u: URL;
+  try { u = new URL(raw.trim()); } catch { return raw; }
+  for (const k of given) u.searchParams.set(k, (tags[k] as string).trim());
+  return u.toString();
+}

@@ -64,6 +64,7 @@ export async function createLinkAction(_: FormState, fd: FormData): Promise<Form
     target_url: s(fd, "target_url"), slug: s(fd, "slug"), title: s(fd, "title"), password: s(fd, "password"),
     expires_at: s(fd, "expires_at"), starts_at: s(fd, "starts_at"), group_id: s(fd, "group_id") || null,
     domain_id: s(fd, "domain_id") || null,
+    utm_source: s(fd, "utm_source"), utm_medium: s(fd, "utm_medium"), utm_campaign: s(fd, "utm_campaign"),
   });
   if (!r.ok) return fail(r.errors);
   revalidatePath("/dashboard/links");

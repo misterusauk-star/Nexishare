@@ -78,6 +78,15 @@ export default async function Domains() {
           </ol>
         </section>
 
+        <section aria-labelledby="ideas-h">
+          <h2 id="ideas-h" className="section-h">Name ideas for link domains</h2>
+          <p className="small muted">Short, easy to say and type. Create the subdomain in hPanel first, then add it above as &ldquo;Short links and bio pages&rdquo;.</p>
+          <p className="chips">
+            {["go", "to", "s", "u", "bio", "me", "qr", "hi"].map((n) => <span key={n} className="chip mono" style={{ paddingRight: 8, minHeight: 32 }}>{n}.{appHost.replace(/^www\./, "")}</span>)}
+          </p>
+          <p className="small muted">Each name you add also becomes a reserved name, so nobody can claim it as a short link or bio page. Names such as link, links, api, dashboard and admin are already reserved.</p>
+        </section>
+
         <section aria-labelledby="list-h">
           <h2 id="list-h" className="section-h">Your domains</h2>
           {rows.length === 0 ? (

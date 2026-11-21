@@ -52,6 +52,15 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
             <Field label="Starts (UTC)" name="starts_at" type="datetime-local" />
             <Field label="Expires (UTC)" name="expires_at" type="datetime-local" />
           </div>
+          <details className="utm">
+            <summary className="small link-like">Campaign tags (optional)</summary>
+            <p className="small muted">Added to the destination as utm_source, utm_medium and utm_campaign so your analytics can tell where visits came from.</p>
+            <div className="grid2">
+              <Field label="Source" name="utm_source" placeholder="newsletter" maxLength={100} />
+              <Field label="Medium" name="utm_medium" placeholder="email" maxLength={100} />
+            </div>
+            <Field label="Campaign" name="utm_campaign" placeholder="spring-launch" maxLength={100} />
+          </details>
           <Field label="Password" name="password" type="text" autoComplete="off" hint="Visitors must enter it before they are redirected." maxLength={100} />
         </ActionForm>
       </details>

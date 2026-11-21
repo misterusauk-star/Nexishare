@@ -9,6 +9,7 @@ import { invalidateSlug } from "../slug-cache";
 import { fromHeaders } from "../request";
 import { getBrand } from "../brand";
 import { getDomainState } from "../domains";
+import { applyUtm } from "../url-check";
 import { rateLimit } from "../ratelimit";
 
 export type Result<T> = { ok: true; data: T } | { ok: false; errors: Record<string, string> };
@@ -60,6 +61,12 @@ export const linkInput = z.object({
   // Where the short link lives: an active site domain by id or by host name. Missing or null = follow the default domain.
   domain_id: z.coerce.number().int().positive().nullish(),
   domain: z.string().trim().toLowerCase().max(190).nullish(),
+  // Campaign tags, added to the destination URL as utm_* parameters.
+  utm_source: z.string().trim().max(100).nullish(),
+  utm_medium: z.string().trim().max(100).nullish(),
+  utm_campaign: z.string().trim().max(100).nullish(),
+  utm_term: z.string().trim().max(100).nullish(),
+  utm_content: z.string().trim().max(100).nullish(),
 });
 export type LinkInput = z.infer<typeof linkInput>;
 
@@ -110,7 +117,7 @@ export async function createLink(userId: number, ownHost: string, raw: unknown):
   }
   const dom = await resolveDomain(v);
   if (!dom.ok) return { ok: false, errors: { domain_id: dom.error } };
-  const u = await assessDestination(v.target_url, ownHost);
+  const u = await assessDestination(applyUtm(v.target_url, v), ownHost);
   if (!u.ok) return { ok: false, errors: { target_url: u.error } };
   const appName = (await getBrand()).name;
   let slug = v.slug;
@@ -151,7 +158,7 @@ export async function updateLink(userId: number, id: number, ownHost: string, ra
   const sets: string[] = [];
   const vals: unknown[] = [];
   if (v.target_url !== undefined) {
-    const u = await assessDestination(v.target_url, ownHost);
+    const u = await assessDestination(applyUtm(v.target_url, v), ownHost);
     if (!u.ok) return { ok: false, errors: { target_url: u.error } };
     sets.push("target_url = ?"); vals.push(u.url); sets.push("checked_at = UTC_TIMESTAMP()");
   }

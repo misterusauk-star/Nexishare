@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { LRU } from "../src/lib/lru.ts";
 import { ClickBuffer } from "../src/lib/click-buffer.ts";
 import { classifyPath, decideHost, effectiveHost, effectiveProto, isPublicContentPath, linkHostFor, normalizeHost } from "../src/lib/host-policy.ts";
-import { checkTargetUrl } from "../src/lib/url-check.ts";
+import { applyUtm, checkTargetUrl } from "../src/lib/url-check.ts";
 
 test("LRU evicts least recently used and honours TTL", () => {
   let t = 0;
@@ -124,4 +124,11 @@ test("destination safety: schemes, credentials, IPs, loops, shorteners", () => {
     assert.equal(checkTargetUrl(u, own).ok, false, u);
   }
   assert.equal(checkTargetUrl("https://example.org/a?b=1", own).ok, true);
+});
+
+test("applyUtm: adds given tags, replaces existing ones, skips empty, leaves junk alone", () => {
+  assert.equal(applyUtm("https://example.com/a", {}), "https://example.com/a");
+  assert.equal(applyUtm("https://example.com/a", { utm_source: "news", utm_medium: "", utm_campaign: " spring " }), "https://example.com/a?utm_source=news&utm_campaign=spring");
+  assert.equal(applyUtm("https://example.com/a?x=1&utm_source=old", { utm_source: "new" }), "https://example.com/a?x=1&utm_source=new");
+  assert.equal(applyUtm("not a url", { utm_source: "x" }), "not a url");
 });
