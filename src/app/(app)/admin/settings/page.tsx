@@ -71,7 +71,7 @@ export default async function Settings() {
         <p className="small muted">Both are optional. Secrets are stored encrypted and are never shown again.</p>
         <ActionForm action={saveIntegrationsAction} submit="Save integrations" pendingLabel="Saving...">
           <h3>Google sign-in</h3>
-          <p className="small muted">Redirect URI: <code>{b.url}/api/auth/google/callback</code></p>
+          <p className="small muted">Redirect URI: <code>{b.appUrl}/api/auth/google/callback</code></p>
           <div className="cols">
             <Field label="Client ID" name="google_client_id" defaultValue={s.google_client_id ?? ""} autoComplete="off" />
             <Field label="Client secret" name="google_client_secret" type="password" autoComplete="new-password" hint={s.google_client_secret ? "A secret is saved. Type a new one to replace it." : undefined} />

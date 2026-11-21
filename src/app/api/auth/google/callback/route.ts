@@ -16,7 +16,7 @@ interface GoogleUser { sub?: string; email?: string; email_verified?: boolean; n
 export async function GET(req: Request) {
   { const blocked = await guardApi(); if (blocked) return blocked; } // domain rules: API only on the main and API domains
   const brand = await getBrand();
-  const bad = (code: string) => NextResponse.redirect(`${brand.url}/login?error=${code}`);
+  const bad = (code: string) => NextResponse.redirect(`${brand.appUrl}/login?error=${code}`);
   const url = new URL(req.url);
   const cookies = Object.fromEntries((req.headers.get("cookie") ?? "").split(/;\s*/).map((c) => c.split("=") as [string, string]));
   const state = url.searchParams.get("state") ?? "";
@@ -36,7 +36,7 @@ export async function GET(req: Request) {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
-        code, client_id: clientId, client_secret: decrypt(enc), redirect_uri: `${brand.url}/api/auth/google/callback`, grant_type: "authorization_code",
+        code, client_id: clientId, client_secret: decrypt(enc), redirect_uri: `${brand.appUrl}/api/auth/google/callback`, grant_type: "authorization_code",
       }),
       signal: AbortSignal.timeout(10_000),
     });
@@ -75,7 +75,7 @@ export async function GET(req: Request) {
   if (user.status !== "active") return bad("suspended");
   await exec("UPDATE users SET last_login_at = UTC_TIMESTAMP() WHERE id = ?", [user.id]);
   await createSession(user.id);
-  const res = NextResponse.redirect(`${brand.url}${safeNext(cookies.g_next ? decodeURIComponent(cookies.g_next) : null)}`);
+  const res = NextResponse.redirect(`${brand.appUrl}${safeNext(cookies.g_next ? decodeURIComponent(cookies.g_next) : null)}`);
   res.cookies.delete({ name: "g_state", path: "/api/auth/google" });
   res.cookies.delete({ name: "g_next", path: "/api/auth/google" });
   return res;

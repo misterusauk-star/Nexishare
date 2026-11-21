@@ -80,7 +80,7 @@ export async function forgotAction(_: FormState, fd: FormData): Promise<FormStat
       subject: `Reset your ${brand.name} password`,
       heading: "Choose a new password",
       paragraphs: ["Someone asked to reset the password for this account. The link below works for one hour.", "If that was not you, nothing will change and you can ignore this email."],
-      button: { label: "Reset password", url: `${brand.url}/reset-password?token=${token}` },
+      button: { label: "Reset password", url: `${brand.appUrl}/reset-password?token=${token}` },
     });
   }
   return { message: t("auth.forgot.sent"), ok: true };

@@ -10,11 +10,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const b = await getBrand();
   const st = await getDomainState();
   const host = await currentHost();
-  // A sitemap may only list URLs of its own host: site pages on the default domain, bio pages on the bio host.
-  const onDefault = host === st.defaultHost.toLowerCase();
+  // A sitemap may only list URLs of its own host: site pages on the main domain, bio pages on the bio host.
+  const onApp = host === st.appHost.toLowerCase();
   const onBio = host === st.bioHost.toLowerCase();
-  if (!onDefault && !onBio) return [];
-  const out: MetadataRoute.Sitemap = onDefault ? ["", "/terms", "/privacy", "/docs"].map((p) => ({ url: `${b.url}${p}` })) : [];
+  if (!onApp && !onBio) return [];
+  const out: MetadataRoute.Sitemap = onApp ? ["", "/terms", "/privacy", "/docs"].map((p) => ({ url: `${b.appUrl}${p}` })) : [];
   if (!onBio) return out;
   try {
     // Published bio pages only. Short links are never listed.

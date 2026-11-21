@@ -13,11 +13,11 @@ const serif = Fraunces({ subsets: ["latin"], variable: "--f-serif", display: "sw
 export async function generateMetadata(): Promise<Metadata> {
   const b = await getBrand();
   return {
-    metadataBase: new URL(b.url),
+    metadataBase: new URL(b.appUrl),
     title: { default: b.name, template: `%s | ${b.name}` },
     description: b.tagline,
     applicationName: b.name,
-    openGraph: { siteName: b.name, title: b.name, description: b.tagline, type: "website", url: b.url },
+    openGraph: { siteName: b.name, title: b.name, description: b.tagline, type: "website", url: b.appUrl },
     twitter: { card: "summary", title: b.name, description: b.tagline },
     icons: b.faviconUrl ? { icon: b.faviconUrl } : { icon: "/icon.svg" },
   };

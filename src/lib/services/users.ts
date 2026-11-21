@@ -31,7 +31,7 @@ export async function sendVerification(user: { id: number; email: string }): Pro
   if (!(await emailAvailable("verification"))) return false;
   const brand = await getBrand();
   const token = await issueToken(user.id, "verify_email", 60 * 24);
-  const url = `${brand.url}/verify?token=${token}`;
+  const url = `${brand.appUrl}/verify?token=${token}`;
   const r = await sendEmail("verification", user.email, {
     subject: `Confirm your email for ${brand.name}`,
     heading: "Confirm your email address",
@@ -50,7 +50,7 @@ export async function sendWelcome(user: { email: string; username?: string | nul
     paragraphs: user.username
       ? [`Your account is ready. Your public page address is ${brand.url}/${user.username}.`, "Add your first links from the dashboard, then share the page or its QR code."]
       : ["Your account is ready. Create short links from the dashboard.", "Want a bio page too? Open Bio page in the dashboard and pick a name for it."],
-    button: { label: "Open dashboard", url: `${brand.url}/dashboard` },
+    button: { label: "Open dashboard", url: `${brand.appUrl}/dashboard` },
   });
 }
 
