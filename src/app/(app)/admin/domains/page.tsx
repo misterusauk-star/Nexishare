@@ -1,4 +1,5 @@
 import { domainService, appOrigin } from "@/lib/domains";
+import { query } from "@/lib/db";
 import { ActionForm, ActionButton, ConfirmDialog, ConfirmButton, Field } from "@/components/client";
 import {
   addDomainAction, editDomainAction, checkDomainAction, overrideActivateAction,
@@ -37,6 +38,14 @@ export default async function Domains() {
   }
   const current = rows.find((d) => d.is_default);
   const appHost = appOrigin().host;
+  // How many links are placed on each domain; links with no domain chosen follow the default. Tolerates a missing column before migration 007.
+  const used: Record<number, number> = {};
+  let following = 0;
+  try {
+    for (const r of await query<{ domain_id: number | null; n: number }>("SELECT domain_id, COUNT(*) AS n FROM links GROUP BY domain_id")) {
+      if (r.domain_id) used[Number(r.domain_id)] = Number(r.n); else following = Number(r.n);
+    }
+  } catch { /* migration 007 not run yet */ }
   return (
     <>
       <div className="page-head">
@@ -89,6 +98,12 @@ export default async function Domains() {
                       </span>
                     </div>
                     {d.label && <p className="small muted dom-line">{d.label}</p>}
+                    {d.purpose !== "api" && (
+                      <p className="small muted dom-line">
+                        {(used[d.id] ?? 0).toLocaleString("en-US")} {(used[d.id] ?? 0) === 1 ? "link is" : "links are"} placed on this domain
+                        {d.is_default ? `, and ${following.toLocaleString("en-US")} follow the default.` : ". If you disable or delete it, they move to the default domain."}
+                      </p>
+                    )}
                     <p className="small muted dom-line">
                       {d.last_check_at ? `Last check ${when(d.last_check_at)}: ${d.last_check_ok ? "passed" : "failed"}.` : "Not checked yet."}
                       {d.override_by ? " Activated by admin override." : ""}
@@ -108,15 +123,15 @@ export default async function Domains() {
                           trigger="Make default" title={`Make ${d.hostname} the default domain?`} confirmLabel="Make default"
                           action={makeDefaultAction.bind(null, d.id)} triggerClass="btn btn-sm btn-primary"
                         >
-                          <p>Short links and bio pages will be served only on <b className="mono">{d.hostname}</b> from now on.</p>
-                          <p><b>Old URLs and printed QR codes on {current ? <span className="mono">{current.hostname}</span> : "the previous domain"} will stop working</b> and show a 404. Nothing is redirected and no links are changed or deleted.</p>
+                          <p>Bio pages, and every link that has no domain chosen, will be served on <b className="mono">{d.hostname}</b> from now on. Links that were placed on a specific domain stay there.</p>
+                          <p><b>Old URLs and printed QR codes of bio pages and of links without a chosen domain on {current ? <span className="mono">{current.hostname}</span> : "the previous domain"} will stop working</b> and show a 404. Nothing is redirected and no links are changed or deleted.</p>
                           <p>Dashboard, admin and API stay reachable on every active domain.</p>
                         </ConfirmDialog>
                       )}
                       {d.status === "active" && !d.is_default && <ActionButton action={disableDomainAction.bind(null, d.id)}>Disable</ActionButton>}
                       {d.status === "active" && <ActionButton action={checkDomainAction.bind(null, d.id)}>Re-check</ActionButton>}
                       {!d.is_default && (
-                        <ConfirmButton action={deleteDomainAction.bind(null, d.id)} label={`Delete ${d.hostname}`} confirm={`Delete ${d.hostname}? Links and pages are not affected.`}>Delete</ConfirmButton>
+                        <ConfirmButton action={deleteDomainAction.bind(null, d.id)} label={`Delete ${d.hostname}`} confirm={`Delete ${d.hostname}? Links placed on it move to the default domain. Nothing is deleted.`}>Delete</ConfirmButton>
                       )}
                     </div>
                     {d.is_default && <p className="small muted dom-line">The default domain cannot be disabled or deleted. Make another active domain the default first.</p>}
