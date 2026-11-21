@@ -37,7 +37,7 @@ export default async function Overview() {
           <div className="row">
             <span className="slug">{b.host}<b>/</b>{user.username}</span>
             <CopyButton value={page} label="Copy page address" />
-            <Link className="btn" href={`/${user.username}`} target="_blank">View page</Link>
+            <a className="btn" href={page} target="_blank" rel="noopener">View page</a>
           </div>
         ) : (
           <Link className="btn" href="/dashboard/page">Create bio page</Link>

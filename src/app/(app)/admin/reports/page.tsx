@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { query } from "@/lib/db";
+import { getBrand, shortUrl } from "@/lib/brand";
+import { getDomainState, linkUrl } from "@/lib/domains";
 import { ActionButton, ConfirmButton } from "@/components/client";
 import { resolveReportAction, takeDownReportedAction } from "@/app/actions/admin";
 import { blocklistDestinationAction, suspendOwnerAction } from "@/app/actions/slugs";
@@ -7,19 +9,21 @@ import { blocklistDestinationAction, suspendOwnerAction } from "@/app/actions/sl
 export const metadata = { title: "Abuse reports" };
 export const dynamic = "force-dynamic";
 
-interface R { id: number; target_type: "link" | "page"; target_slug: string; reason: string; details: string | null; status: string; created_at: Date; link_id: number | null; owner_id: number | null; owner: string | null; target_url: string | null }
+interface R { id: number; target_type: "link" | "page"; target_slug: string; reason: string; details: string | null; status: string; created_at: Date; link_id: number | null; domain_id: number | null; owner_id: number | null; owner: string | null; target_url: string | null }
 
 export default async function Reports({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
   const status = (await searchParams).status === "all" ? "all" : "open";
   const rows = await query<R>(
     `SELECT r.id, r.target_type, r.target_slug, r.reason, r.details, r.status, r.created_at,
-            l.id AS link_id, COALESCE(l.user_id, u.id) AS owner_id, COALESCE(lu.username, u.username) AS owner, l.target_url
+            l.id AS link_id, l.domain_id, COALESCE(l.user_id, u.id) AS owner_id, COALESCE(lu.username, u.username) AS owner, l.target_url
        FROM reports r
        LEFT JOIN links l ON r.target_type = 'link' AND l.slug = r.target_slug
        LEFT JOIN users lu ON lu.id = l.user_id
        LEFT JOIN users u ON r.target_type = 'page' AND u.username = r.target_slug
       ${status === "open" ? "WHERE r.status = 'open'" : ""} ORDER BY r.id DESC LIMIT 200`,
   );
+  const brand = await getBrand();
+  const st = await getDomainState();
   return (
     <>
       <div className="page-head">
@@ -38,7 +42,7 @@ export default async function Reports({ searchParams }: { searchParams: Promise<
             {rows.map((r) => (
               <tr key={r.id}>
                 <td>
-                  <Link href={`/${r.target_slug}`} className="slug"><b>/</b>{r.target_slug}</Link>
+                  <a href={r.target_type === "link" ? linkUrl(st, r.domain_id, r.target_slug) : shortUrl(brand, r.target_slug)} className="slug" target="_blank" rel="noopener"><b>/</b>{r.target_slug}</a>
                   <div className="small muted">{r.target_type === "link" ? "Short link" : "Bio page"}</div>
                 </td>
                 <td style={{ maxWidth: 360 }}>{r.reason}{r.details && <div className="small muted" style={{ overflowWrap: "anywhere" }}>{r.details}</div>}</td>

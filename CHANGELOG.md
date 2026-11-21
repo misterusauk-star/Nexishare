@@ -10,6 +10,9 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 - Admin > Domains shows how many links sit on each domain. Deleting a domain moves its links back to following the default. The links table shows each link's full address.
 
+### Fixed (links in the app)
+- "View page", the header page link and the bio/link/report links in Admin now open the public address on the right domain (the default domain, or the link's own domain) instead of a relative path on the main domain, which returned 404.
+
 ### Changed (accounts)
 - Registration asks only for email and password. The bio page is created later from Dashboard > Bio page, where the person picks a name. Google sign-up works the same way. `users.username` may be empty.
 - API keys page shows the API domain (for example api.example.com) as the request address.

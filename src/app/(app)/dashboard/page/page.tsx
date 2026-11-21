@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { query } from "@/lib/db";
-import { getBrand } from "@/lib/brand";
+import { getBrand, shortUrl } from "@/lib/brand";
 import { ensurePage, getBlocks, BLOCK_TYPES_P1, BLOCK_TYPES_P2 } from "@/lib/services/pages";
 import { totalsFor } from "@/lib/analytics";
 import { SOCIALS, THEMES } from "@/lib/themes";
@@ -47,7 +47,7 @@ export default async function BioEditor() {
         <div className="row">
           <span className="slug">{b.host}<b>/</b>{user.username}</span>
           <CopyButton value={address} label="Copy page address" />
-          <Link className="btn" href={`/${user.username}`} target="_blank">View page</Link>
+          <a className="btn" href={shortUrl(b, user.username)} target="_blank" rel="noopener">View page</a>
         </div>
       </div>
       {page.moderated ? <div className="notice bad" role="alert">An administrator has taken this page offline. Contact {b.supportEmail} if you think this is a mistake.</div> : null}

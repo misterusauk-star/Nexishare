@@ -2,7 +2,7 @@ import "../editor.css";
 import Link from "next/link";
 import { ensureInstalled } from "@/lib/install";
 import { requireUser } from "@/lib/auth";
-import { getBrand } from "@/lib/brand";
+import { getBrand, shortUrl } from "@/lib/brand";
 import { getT } from "@/lib/i18n";
 import { NavLinks, type NavItem } from "@/components/nav";
 import { NavToggle, ThemeToggle } from "@/components/client";
@@ -48,7 +48,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </nav>
         <div className="side-foot stack-sm">
           <div className="row" style={{ justifyContent: "space-between" }}>
-            {user.username ? <Link href={`/${user.username}`} className="small mono">/{user.username}</Link> : <Link href="/dashboard/page" className="small">Create bio page</Link>}
+            {user.username ? <a href={shortUrl(b, user.username)} className="small mono" target="_blank" rel="noopener">/{user.username}</a> : <Link href="/dashboard/page" className="small">Create bio page</Link>}
             <ThemeToggle />
           </div>
           <form action={logoutAction}><button className="btn btn-sm" style={{ width: "100%" }}>{t("nav.signout")}</button></form>
