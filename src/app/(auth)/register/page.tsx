@@ -28,7 +28,6 @@ export default async function RegisterPage() {
     <AuthShell title={t("auth.register.title")}>
       <ActionForm action={registerAction} submit={t("auth.register.submit")} pendingLabel="Creating account...">
         <>
-            <Field label={t("auth.register.username")} name="username" prefix={`${b.host}/`} autoComplete="username" required hint={t("auth.register.usernameHint")} maxLength={40} />
             <Field label={t("auth.email")} name="email" type="email" autoComplete="email" required />
             <Field label={t("auth.password")} name="password" type="password" autoComplete="new-password" required hint={t("auth.passwordHint")} />
           </>

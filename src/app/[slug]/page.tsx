@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getBrand } from "@/lib/brand";
-import { enforceHost } from "@/lib/host-guard";
+import { currentHost, enforceHost } from "@/lib/host-guard";
+import { getDomainState, linkHost } from "@/lib/domains";
 import { reqInfo } from "@/lib/request";
 import { recordClick } from "@/lib/analytics";
 import { isBlocked } from "@/lib/validation";
@@ -44,7 +45,10 @@ export default async function SlugPage({ params, searchParams }: Props) {
 
   const link = await getLinkBySlug(slug); // cached, so most redirects never reach MySQL
   const data = link ? null : await getPublicPage(slug);
+  const host = await currentHost();
+  const st = await getDomainState();
   if (data) {
+    if (host !== st.defaultHost.toLowerCase()) notFound(); // bio pages live on the default domain only
     const info = await reqInfo();
     await recordClick({
       type: "page", id: data.page.id, userId: data.user.id, info, ownHost: b.host,
@@ -54,6 +58,7 @@ export default async function SlugPage({ params, searchParams }: Props) {
   }
 
   if (!link) notFound();
+  if (host !== linkHost(st, link.domain_id)) notFound(); // a link answers only on its own domain
 
   const state = !link.owner_active ? "moderated" : linkState(link);
   if (state !== "active") return <Gone state={state} slug={slug} />;

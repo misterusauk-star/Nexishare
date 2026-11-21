@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { apiError, authApi, jsonBody, linkJson } from "@/lib/api";
 import { getBrand } from "@/lib/brand";
+import { getDomainState } from "@/lib/domains";
 import { deleteLink, getLinkForUser, updateLink } from "@/lib/services/links";
 import { guardApi } from "@/lib/host-guard";
 
@@ -19,7 +20,7 @@ export async function GET(req: Request, ctx: Ctx) {
   const id = await parse(ctx);
   const l = id ? await getLinkForUser(a.user.id, id) : null;
   if (!l) return apiError(404, "Link not found.");
-  return NextResponse.json({ data: linkJson(l, (await getBrand()).url) });
+  return NextResponse.json({ data: linkJson(l, await getDomainState()) });
 }
 
 export async function PATCH(req: Request, ctx: Ctx) {
@@ -33,7 +34,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
   const b = await getBrand();
   const r = await updateLink(a.user.id, id, b.host, body);
   if (!r.ok) return r.errors.form ? apiError(404, r.errors.form) : apiError(422, "Validation failed.", { fields: r.errors });
-  return NextResponse.json({ data: linkJson(r.data, b.url) });
+  return NextResponse.json({ data: linkJson(r.data, await getDomainState()) });
 }
 
 export async function DELETE(req: Request, ctx: Ctx) {

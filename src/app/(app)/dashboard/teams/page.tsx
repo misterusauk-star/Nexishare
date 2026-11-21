@@ -10,7 +10,7 @@ export const metadata = { title: "Teams" };
 export const dynamic = "force-dynamic";
 
 interface T { id: number; name: string; role: "owner" | "editor" | "viewer" }
-interface Mem { user_id: number; username: string; email: string; role: string }
+interface Mem { user_id: number; username: string | null; email: string; role: string }
 
 export default async function Teams() {
   if (!phase2Enabled()) notFound();
@@ -51,7 +51,7 @@ export default async function Teams() {
                 <tbody>
                   {members.filter((m) => m.team_id === t.id).map((m) => (
                     <tr key={m.user_id}>
-                      <td>{m.username}<div className="small muted">{m.email}</div></td><td>{m.role}</td>
+                      <td>{m.username ?? m.email}<div className="small muted">{m.email}</div></td><td>{m.role}</td>
                       <td style={{ textAlign: "right" }}>{t.role === "owner" && m.role !== "owner" && <ConfirmButton action={removeMemberAction.bind(null, t.id, m.user_id)} label="Remove" confirm={`Remove ${m.username}?`} />}</td>
                     </tr>
                   ))}

@@ -4,6 +4,16 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+### Added
+- Links can live on any active site domain. Dashboard: a Domain dropdown on new and existing links, with the default domain preselected. API: `domain_id` / `domain` on create and update, `GET /api/v1/domains`, and `domain` / `domain_id` in every link response. A link answers only on its own domain; bio pages stay on the default domain. Migration 007.
+- Abuse limits: 500 links per account per day (50 unverified), 5 new API keys per hour, wrong-key throttle per IP, email confirmation required for keys when verification is on.
+
+- Admin > Domains shows how many links sit on each domain. Deleting a domain moves its links back to following the default. The links table shows each link's full address.
+
+### Changed (accounts)
+- Registration asks only for email and password. The bio page is created later from Dashboard > Bio page, where the person picks a name. Google sign-up works the same way. `users.username` may be empty.
+- API keys page shows the API domain (for example api.example.com) as the request address.
+
 ### Fixed
 - API: `starts_at` and `expires_at` are now truly optional on create (missing, `null` or empty all mean no date), matching the docs.
 

@@ -9,7 +9,7 @@ import { reqInfo } from "./request";
 export interface User {
   id: number;
   email: string;
-  username: string;
+  username: string | null;
   role: "super_admin" | "user";
   status: "active" | "suspended";
   email_verified_at: Date | null;

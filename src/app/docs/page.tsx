@@ -242,6 +242,7 @@ export default async function Docs() {
         <nav aria-label="API sections">
           <a href="#auth">Authentication</a>
           <a href="#errors">Errors and limits</a>
+          <a href="#domains">Domains</a>
           <a href="#list">List links</a>
           <a href="#fields">Link fields</a>
           <a href="#create">Create a link</a>
@@ -268,7 +269,28 @@ export default async function Docs() {
             <p>Failures return a non-2xx status and a body shaped like this:</p>
             <pre className="code">{`{ "error": { "message": "Validation failed.", "fields": { "slug": "That short name is already taken." } } }`}</pre>
             <p>Each key gets a fixed number of requests per minute (the server owner sets it; the default is 60). Past that you get <code>429</code> with a <code>Retry-After</code> header.</p>
+            <p>Abuse protection: an account can create up to 500 links per day (50 until its email is confirmed), you can hold 10 active keys, and repeated wrong keys from one address are blocked for ten minutes. Links with look-alike names or unsafe destinations are held for review or refused.</p>
           </section>
+
+          <Endpoint id="domains" method="get" path="/domains">
+            <p>The domains you can put a link on. A link answers only on its own domain, so <code>short_url</code> always shows the right one. Every link in a response also carries <code>domain</code> and <code>domain_id</code>.</p>
+            <pre className="code">{`curl ${base}/domains -H "Authorization: Bearer ob_your_key"`}</pre>
+            <pre className="code">{`{ "data": [
+  { "id": 1, "domain": "${b.host}", "is_default": true },
+  { "id": 3, "domain": "go.example.com", "is_default": false }
+] }`}</pre>
+            <pre className="code">{`# put a new link on a specific domain
+curl -X POST ${base}/links \\
+  -H "Authorization: Bearer ob_your_key" \\
+  -H "Content-Type: application/json" \\
+  -d '{ "target_url": "https://example.com", "domain_id": 3 }'
+
+# move an existing link (by host name)
+curl -X PATCH ${base}/links/12 \\
+  -H "Authorization: Bearer ob_your_key" \\
+  -H "Content-Type: application/json" \\
+  -d '{ "domain": "go.example.com" }'`}</pre>
+          </Endpoint>
 
           <Endpoint id="list" method="get" path="/links">
             <p>Your links, newest first. Query: <code>q</code> (search), <code>page</code>, <code>limit</code> (max 100).</p>
@@ -305,6 +327,8 @@ export default async function Docs() {
                   <Field name="starts_at" type="string | null">When the link goes live. Leave it out, or send <code>null</code>, to start at once. Before this time visitors see a not-live-yet page.</Field>
                   <Field name="expires_at" type="string | null">When the link stops working. Leave it out, or send <code>null</code>, for no expiry. Must be later than <code>starts_at</code>.</Field>
                   <Field name="enabled" type="boolean">Default <code>true</code>. <code>false</code> pauses the link.</Field>
+                  <Field name="domain_id" type="number | null">Which domain the short link lives on, by id from <code>GET /domains</code>. Leave it out, or send <code>null</code>, to use the default domain.</Field>
+                  <Field name="domain" type="string | null">Same thing by host name, for example <code>go.example.com</code>. Use either this or <code>domain_id</code>.</Field>
                   <Field name="group_id" type="number | null">Id of one of your link groups.</Field>
                   <Field name="team_id" type="number | null">Id of a team you belong to.</Field>
                 </tbody>
@@ -347,6 +371,8 @@ export default async function Docs() {
     "id": 12,
     "slug": "launch",
     "short_url": "${b.url}/launch",
+    "domain": "${b.host}",
+    "domain_id": null,
     "target_url": "https://example.com/launch-day",
     "title": null,
     "password_protected": false,

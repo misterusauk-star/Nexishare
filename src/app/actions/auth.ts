@@ -4,13 +4,12 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { exec, queryOne } from "@/lib/db";
 import { createSession, destroySession, destroyAllSessions, currentUser, hashPassword, verifyPassword, requireUser } from "@/lib/auth";
-import { emailSchema, passwordSchema, slugSchema, fieldErrors, safeNext } from "@/lib/validation";
+import { emailSchema, passwordSchema, fieldErrors, safeNext } from "@/lib/validation";
 import { rateLimit } from "@/lib/ratelimit";
 import { ipHash } from "@/lib/crypto";
 import { reqInfo } from "@/lib/request";
 import { flag } from "@/lib/settings";
 import { getBrand } from "@/lib/brand";
-import { validateNewSlug, slugRateOk, SLUG_RATE_MESSAGE } from "@/lib/slug-service";
 import { consumeToken, createUser, issueToken, sendVerification, sendWelcome } from "@/lib/services/users";
 import { emailAvailable, sendEmail } from "@/lib/email/mailer";
 import { getT } from "@/lib/i18n";
@@ -41,23 +40,20 @@ export async function loginAction(_: FormState, fd: FormData): Promise<FormState
   redirect(safeNext(str(fd, "next")));
 }
 
-const registerSchema = z.object({ email: emailSchema, username: slugSchema, password: passwordSchema });
+const registerSchema = z.object({ email: emailSchema, password: passwordSchema });
 
 export async function registerAction(_: FormState, fd: FormData): Promise<FormState> {
   const t = await getT();
   if (!(await flag("registration_enabled", true))) return { errors: { form: t("auth.register.closed") } };
   const info = await reqInfo();
   if (!(await rateLimit(`register:ip:${ipHash(info.ip)}`, 5, 3600))) return { errors: { form: t("error.ratelimit") } };
-  const p = registerSchema.safeParse({ email: str(fd, "email"), username: str(fd, "username"), password: str(fd, "password") });
+  const p = registerSchema.safeParse({ email: str(fd, "email"), password: str(fd, "password") });
   if (!p.success) return { errors: fieldErrors(p.error) };
-  const { email, username, password } = p.data;
-  if (!(await slugRateOk(null, info.ip))) return { errors: { username: SLUG_RATE_MESSAGE } };
-  const named = await validateNewSlug(username, { appName: (await getBrand()).name });
-  if (!named.ok) return { errors: { username: named.error } };
+  const { email, password } = p.data;
   if (await queryOne("SELECT id FROM users WHERE email = ?", [email])) return { errors: { email: "An account with this email already exists." } };
-  const id = await createUser({ email, username, password, reviewReason: named.review });
+  const id = await createUser({ email, password }); // no username: a bio page is created later from the dashboard
   void sendVerification({ id, email }).catch(() => {});
-  void sendWelcome({ email, username }).catch(() => {});
+  void sendWelcome({ email }).catch(() => {});
   await createSession(id);
   redirect("/dashboard");
 }

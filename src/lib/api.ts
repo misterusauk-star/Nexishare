@@ -5,8 +5,9 @@ import { rateLimit } from "./ratelimit";
 import { getSetting } from "./settings";
 import { fromHeaders } from "./request";
 import type { LinkRow } from "./services/links";
+import { linkHost, linkUrl, type DomainState } from "./domains";
 
-export interface ApiUser { id: number; username: string; role: "super_admin" | "user"; keyId: number }
+export interface ApiUser { id: number; username: string | null; role: "super_admin" | "user"; keyId: number }
 
 export function apiError(status: number, message: string, extra?: Record<string, unknown>, headers?: Record<string, string>) {
   return NextResponse.json({ error: { message, ...extra } }, { status, headers });
@@ -26,12 +27,16 @@ export async function authApi(req: Request): Promise<{ user: ApiUser } | { res: 
   }
   const m = /^Bearer\s+(ob_[A-Za-z0-9_-]{20,})$/.exec(req.headers.get("authorization") ?? "");
   if (!m) return { res: apiError(401, "Send your key as an Authorization: Bearer ob_... header.", undefined, { "WWW-Authenticate": "Bearer" }) };
-  const row = await queryOne<{ id: number; user_id: number; username: string; role: "super_admin" | "user"; status: string }>(
+  const row = await queryOne<{ id: number; user_id: number; username: string | null; role: "super_admin" | "user"; status: string }>(
     `SELECT k.id, k.user_id, u.username, u.role, u.status FROM api_keys k JOIN users u ON u.id = k.user_id
       WHERE k.key_hash = ? AND k.revoked_at IS NULL`,
     [sha256(m[1])],
   );
-  if (!row || row.status !== "active") return { res: apiError(401, "That key is invalid or has been revoked.") };
+  if (!row || row.status !== "active") {
+    // Wrong keys count against the caller's IP: 30 misses in 10 minutes locks guessing out for the rest of the window.
+    if (!(await rateLimit(`api:bad:${ipHash(info.ip)}`, 30, 600))) return { res: apiError(429, "Too many failed attempts.", undefined, { "Retry-After": "600" }) };
+    return { res: apiError(401, "That key is invalid or has been revoked.") };
+  }
   const limit = num(await getSetting("api_rate_limit"), 60);
   if (!(await rateLimit(`api:key:${row.id}`, limit, 60))) {
     return { res: apiError(429, `Rate limit of ${limit} requests per minute reached.`, undefined, { "Retry-After": "60" }) };
@@ -40,11 +45,13 @@ export async function authApi(req: Request): Promise<{ user: ApiUser } | { res: 
   return { user: { id: row.user_id, username: row.username, role: row.role, keyId: row.id } };
 }
 
-export function linkJson(l: LinkRow, base: string) {
+export function linkJson(l: LinkRow, st: DomainState) {
   return {
     id: l.id,
     slug: l.slug,
-    short_url: `${base}/${l.slug}`,
+    short_url: linkUrl(st, l.domain_id, l.slug),
+    domain: linkHost(st, l.domain_id),
+    domain_id: l.domain_id ?? null,
     target_url: l.target_url,
     title: l.title,
     password_protected: !!l.password_hash,

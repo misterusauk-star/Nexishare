@@ -42,25 +42,25 @@ export async function sendVerification(user: { id: number; email: string }): Pro
   return r.queued;
 }
 
-export async function sendWelcome(user: { email: string; username: string }): Promise<void> {
+export async function sendWelcome(user: { email: string; username?: string | null }): Promise<void> {
   const brand = await getBrand();
   await sendEmail("welcome", user.email, {
     subject: `Welcome to ${brand.name}`,
-    heading: `Your page is live at /${user.username}`,
-    paragraphs: [
-      `Your account is ready. Your public page address is ${brand.url}/${user.username}.`,
-      "Add your first links from the dashboard, then share the page or its QR code.",
-    ],
+    heading: user.username ? `Your page is live at /${user.username}` : "Your account is ready",
+    paragraphs: user.username
+      ? [`Your account is ready. Your public page address is ${brand.url}/${user.username}.`, "Add your first links from the dashboard, then share the page or its QR code."]
+      : ["Your account is ready. Create short links from the dashboard.", "Want a bio page too? Open Bio page in the dashboard and pick a name for it."],
     button: { label: "Open dashboard", url: `${brand.url}/dashboard` },
   });
 }
 
-export async function createUser(input: { email: string; username: string; password: string; role?: "super_admin" | "user"; verified?: boolean; reviewReason?: string | null }): Promise<number> {
+export async function createUser(input: { email: string; username?: string | null; password: string; role?: "super_admin" | "user"; verified?: boolean; reviewReason?: string | null }): Promise<number> {
   const hash = await hashPassword(input.password);
   const res = await exec(
     "INSERT INTO users (email, username, password_hash, role, email_verified_at) VALUES (?, ?, ?, ?, ?)",
-    [input.email, input.username, hash, input.role ?? "user", input.verified ? new Date() : null],
+    [input.email, input.username ?? null, hash, input.role ?? "user", input.verified ? new Date() : null],
   );
+  if (!input.username) return res.insertId; // no bio page until the person creates one in the dashboard
   await ensurePage(res.insertId, input.username);
   // A suspicious username keeps the account but its public page waits for admin approval.
   if (input.reviewReason) await exec("UPDATE pages SET review_status = 'pending', review_reason = ? WHERE user_id = ?", [input.reviewReason.slice(0, 190), res.insertId]);

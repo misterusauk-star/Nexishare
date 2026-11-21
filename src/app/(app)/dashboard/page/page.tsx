@@ -8,7 +8,7 @@ import { SOCIALS, THEMES } from "@/lib/themes";
 import { phase2Enabled } from "@/lib/features";
 import { ActionForm, Field, CopyButton } from "@/components/client";
 import { AvatarField, BlockList, NewBlock, ThemePicker, type BlockItem } from "@/components/bio-editor";
-import { saveProfileAction, saveSocialsAction, saveThemeAction } from "@/app/actions/app";
+import { claimBioAction, saveProfileAction, saveSocialsAction, saveThemeAction } from "@/app/actions/app";
 
 export const metadata = { title: "Bio page" };
 const local = (d: Date | null) => (d ? new Date(d).toISOString().slice(0, 16) : "");
@@ -16,6 +16,19 @@ const local = (d: Date | null) => (d ? new Date(d).toISOString().slice(0, 16) : 
 export default async function BioEditor() {
   const user = await requireUser();
   const b = await getBrand();
+  if (!user.username) {
+    // No bio page yet: the person picks a name when they want one.
+    return (
+      <>
+        <div className="page-head"><div><h1>Bio page</h1><p>One address for everything you share. Pick a name to create yours.</p></div></div>
+        <section className="panel" style={{ maxWidth: 520 }}>
+          <ActionForm action={claimBioAction} submit="Create bio page" pendingLabel="Creating...">
+            <Field label="Page name" name="username" prefix={`${b.host}/`} autoComplete="off" required maxLength={32} hint="3 to 32 characters: letters, numbers, hyphens and underscores. You can add links and change the look right after." />
+          </ActionForm>
+        </section>
+      </>
+    );
+  }
   const page = await ensurePage(user.id, user.username);
   const blocks = await getBlocks(page.id);
   const totals = await totalsFor("block", blocks.map((x) => x.id));

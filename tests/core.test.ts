@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { LRU } from "../src/lib/lru.ts";
 import { ClickBuffer } from "../src/lib/click-buffer.ts";
-import { classifyPath, decideHost, effectiveHost, effectiveProto, isPublicContentPath, normalizeHost } from "../src/lib/host-policy.ts";
+import { classifyPath, decideHost, effectiveHost, effectiveProto, isPublicContentPath, linkHostFor, normalizeHost } from "../src/lib/host-policy.ts";
 import { checkTargetUrl } from "../src/lib/url-check.ts";
 
 test("LRU evicts least recently used and honours TTL", () => {
@@ -37,12 +37,15 @@ const base = { defaultHost: "link.example.com", activeHosts: ["link.example.com"
 const d = (host: string, pathname: string) => decideHost({ ...base, host, pathname });
 const allow = { kind: "allow" }, nf = { kind: "notfound" }, toMain = { kind: "redirect", host: "example.com" };
 
-test("host policy: public content only on the default domain", () => {
-  assert.deepEqual(d("link.example.com", "/promo"), allow);
-  assert.deepEqual(d("link.example.com", "/out/5"), allow);
-  for (const h of ["old.example.com", "example.com", "api.example.com"]) {
-    for (const p of ["/promo", "/out/5", "/api/vcard/5"]) assert.deepEqual(d(h, p), nf, `${h}${p}`);
-  }
+test("host policy: public content is served on active site domains only (links pick their domain, bio pages use the default)", () => {
+  for (const h of ["link.example.com", "old.example.com"]) for (const p of ["/promo", "/out/5", "/api/vcard/5"]) assert.deepEqual(d(h, p), allow, `${h}${p}`);
+  for (const h of ["example.com", "api.example.com", "evil.example.net"]) for (const p of ["/promo", "/out/5", "/api/vcard/5"]) assert.deepEqual(d(h, p), nf, `${h}${p}`);
+});
+
+test("linkHostFor: a link answers on its own domain, otherwise on the default", () => {
+  assert.equal(linkHostFor(null, "Link.Example.com"), "link.example.com");
+  assert.equal(linkHostFor(undefined, "link.example.com"), "link.example.com");
+  assert.equal(linkHostFor("OLD.example.com", "link.example.com"), "old.example.com");
 });
 
 test("host policy: the main domain serves the app, dashboard, admin, login and API", () => {

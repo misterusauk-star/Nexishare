@@ -5,8 +5,6 @@ import { getSetting } from "@/lib/settings";
 import { decrypt, safeEqual } from "@/lib/crypto";
 import { createSession } from "@/lib/auth";
 import { safeNext } from "@/lib/validation";
-import { ensurePage } from "@/lib/services/pages";
-import { validateNewSlug } from "@/lib/slug-service";
 import { rateLimit } from "@/lib/ratelimit";
 import { fromHeaders } from "@/lib/request";
 import { guardApi } from "@/lib/host-guard";
@@ -14,16 +12,6 @@ import { guardApi } from "@/lib/host-guard";
 export const dynamic = "force-dynamic";
 
 interface GoogleUser { sub?: string; email?: string; email_verified?: boolean; name?: string }
-
-async function freeUsername(email: string): Promise<string> {
-  const base = (email.split("@")[0].toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 28) || "user").replace(/^[-_]+/, "") || "user";
-  for (let i = 0; i < 20; i++) {
-    const cand = i === 0 ? base : `${base}${Math.floor(1000 + Math.random() * 9000)}`;
-    const v = await validateNewSlug(cand, { appName: (await getBrand()).name });
-    if (v.ok && !v.review) return v.slug;
-  }
-  return `user${Date.now().toString(36)}`;
-}
 
 export async function GET(req: Request) {
   { const blocked = await guardApi(); if (blocked) return blocked; } // domain rules: API only on the main and API domains
@@ -77,12 +65,10 @@ export async function GET(req: Request) {
     } else {
       const reg = await getSetting("registration_enabled");
       if (reg === "0") return bad("closed");
-      const username = await freeUsername(email);
       const res = await exec(
-        "INSERT INTO users (email, username, google_id, role, email_verified_at) VALUES (?, ?, ?, 'user', UTC_TIMESTAMP())",
-        [email, username, profile.sub],
+        "INSERT INTO users (email, username, google_id, role, email_verified_at) VALUES (?, NULL, ?, 'user', UTC_TIMESTAMP())",
+        [email, profile.sub],
       );
-      await ensurePage(res.insertId, profile.name || username);
       user = { id: res.insertId, status: "active" };
     }
   }

@@ -24,7 +24,7 @@ export default async function Overview() {
       WHERE l.user_id = ? GROUP BY l.id, l.slug, l.title ORDER BY n DESC LIMIT 5`,
     [user.id],
   );
-  const page = shortUrl(b, user.username);
+  const page = user.username ? shortUrl(b, user.username) : null;
   const fresh = !Number(counts?.links) && !Number(counts?.blocks);
   return (
     <>
@@ -33,11 +33,15 @@ export default async function Overview() {
           <h1>Overview</h1>
           <p>Last 30 days.</p>
         </div>
-        <div className="row">
-          <span className="slug">{b.host}<b>/</b>{user.username}</span>
-          <CopyButton value={page} label="Copy page address" />
-          <Link className="btn" href={`/${user.username}`} target="_blank">View page</Link>
-        </div>
+        {user.username && page ? (
+          <div className="row">
+            <span className="slug">{b.host}<b>/</b>{user.username}</span>
+            <CopyButton value={page} label="Copy page address" />
+            <Link className="btn" href={`/${user.username}`} target="_blank">View page</Link>
+          </div>
+        ) : (
+          <Link className="btn" href="/dashboard/page">Create bio page</Link>
+        )}
       </div>
 
       {fresh && (

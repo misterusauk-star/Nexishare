@@ -52,3 +52,14 @@ export async function onDefaultHost(): Promise<boolean> {
   const s = await getDomainState();
   return effectiveHost((n) => h.get(n), trustProxyEnabled()) === s.defaultHost.toLowerCase();
 }
+
+/** Host of the current request (forwarded headers honoured only with TRUST_PROXY=true). */
+export async function currentHost(): Promise<string> {
+  const h = await headers();
+  return effectiveHost((n) => h.get(n), trustProxyEnabled());
+}
+
+/** 404 unless this request arrived on the default domain. Bio pages, block redirects and vCards live there only. */
+export async function requireDefaultHost(): Promise<void> {
+  if (!(await onDefaultHost())) notFound();
+}

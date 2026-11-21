@@ -44,7 +44,7 @@ export function LinksTable({ rows }: { rows: LinkItem[] }) {
                 <td><input type="checkbox" aria-label={`Select ${r.slug}`} checked={sel.includes(r.id)} onChange={() => setSel(sel.includes(r.id) ? sel.filter((x) => x !== r.id) : [...sel, r.id])} /></td>
                 <td>
                   <Link href={`/dashboard/links/${r.id}`} className="title">{r.title || r.slug}</Link>
-                  <div className="mono small muted">/{r.slug}{r.locked && <Lock className="icon" style={{ width: 12, height: 12, marginLeft: 6 }} aria-label="Password protected" />}</div>
+                  <div className="mono small muted">{r.short.replace(/^https?:\/\//, "")}{r.locked && <Lock className="icon" style={{ width: 12, height: 12, marginLeft: 6 }} aria-label="Password protected" />}</div>
                 </td>
                 <td className="dest" title={r.target}>{r.target}</td>
                 <td><span className={`badge ${BADGE[r.state] ?? ""}`}>{r.state}</span></td>

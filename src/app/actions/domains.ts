@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { audit, requireAdmin } from "@/lib/auth";
 import { domainService, invalidateDomains } from "@/lib/domains";
 import { runMigrations } from "@/lib/migrate";
+import { exec } from "@/lib/db";
+import { clearSlugCache } from "@/lib/slug-cache";
 import type { FormState } from "@/components/client";
 
 const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
@@ -47,7 +49,13 @@ export async function disableDomainAction(id: number): Promise<void> {
 
 export async function deleteDomainAction(id: number): Promise<void> {
   const me = await requireAdmin();
+  const row = (await domainService().list()).find((d) => d.id === id);
   await domainService().remove(me.id, id);
+  // Links that were placed on this domain go back to following the default, so no link points at a deleted domain.
+  if (row && !row.is_default) {
+    await exec("UPDATE links SET domain_id = NULL WHERE domain_id = ?", [id]);
+    clearSlugCache();
+  }
   refresh();
 }
 

@@ -51,7 +51,8 @@ const NOT_FOUND: HostDecision = { kind: "notfound" };
  * One rule set for every host:
  * - /api/health answers everywhere (it is how a new domain proves it reaches this app).
  * - Unknown hosts: 404 for everything.
- * - Public content (short links, bio pages): only on the default domain, 404 anywhere else. No aliases.
+ * - Public content (short links, bio pages): only on active site domains, and then only on the right one: a link
+ *   answers on its own domain (the default when none is chosen), bio pages on the default domain. No aliases.
  * - The main domain (APP_URL host): dashboard, admin, login, API, installer.
  * - The REST API (/api/v1/*) is accepted only on the API domain (on the main domain until one is active). Main, link and
  *   other domains return 404 for it. The API domain serves nothing else: its pages redirect to the main domain.
@@ -70,7 +71,9 @@ export function decideHost(c: HostCtx): HostDecision {
   if (!(h === main || h === def || api.has(h) || site.has(h))) return NOT_FOUND;
   switch (classifyPath(c.pathname)) {
     case "static": return ALLOW;
-    case "public": return h === def && !api.has(h) ? ALLOW : NOT_FOUND;
+    // Any active site domain may serve public content; the page then checks the exact host (see linkHostFor):
+    // a link only answers on its own domain, bio pages only on the default domain.
+    case "public": return (h === def || site.has(h)) && !api.has(h) ? ALLOW : NOT_FOUND;
     // The REST API (/api/v1) is accepted ONLY on the API domain. Until an API domain is active it stays on the main
     // domain, so existing API keys keep working and nobody is locked out.
     case "api-v1": return api.size ? (api.has(h) ? ALLOW : NOT_FOUND) : h === main ? ALLOW : NOT_FOUND;
@@ -92,3 +95,8 @@ export function effectiveProto(get: (name: string) => string | null | undefined,
   return p === "http" || p === "https" ? p : fallback;
 }
 export const trustProxyEnabled = () => (process.env.TRUST_PROXY || "").toLowerCase() === "true";
+
+/** The host a link answers on: its chosen active domain, otherwise the default domain. */
+export function linkHostFor(linkDomainHost: string | null | undefined, defaultHost: string): string {
+  return normalizeHost(linkDomainHost || defaultHost);
+}

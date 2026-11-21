@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { query } from "@/lib/db";
-import { getBrand, shortUrl } from "@/lib/brand";
+import { getBrand } from "@/lib/brand";
+import { getDomainState, linkUrl, linkHost } from "@/lib/domains";
 import { listLinks, linkState } from "@/lib/services/links";
 import { totalsFor } from "@/lib/analytics";
-import { ActionForm, Field } from "@/components/client";
+import { ActionForm, DomainSelect, Field } from "@/components/client";
 import { LinksTable } from "@/components/links-table";
 import { createLinkAction } from "@/app/actions/app";
 import { phase2Enabled } from "@/lib/features";
@@ -16,6 +17,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
   const user = await requireUser();
   const sp = await searchParams;
   const b = await getBrand();
+  const st = await getDomainState();
   const page = Math.max(1, Number(sp.page) || 1);
   let teamIds: number[] = [];
   if (phase2Enabled()) {
@@ -24,7 +26,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
   const { rows, total } = await listLinks({ userId: user.id, q: sp.q?.slice(0, 100), status: sp.status, limit: PER, offset: (page - 1) * PER, teamIds });
   const totals = await totalsFor("link", rows.map((r) => r.id));
   const items = rows.map((r) => ({
-    id: r.id, slug: r.slug, title: r.title, target: r.target_url, short: shortUrl(b, r.slug), state: linkState(r),
+    id: r.id, slug: r.slug, title: r.title, target: r.target_url, short: linkUrl(st, r.domain_id, r.slug), state: linkState(r),
     locked: !!r.password_hash, clicks: totals[r.id]?.total ?? 0, unique: totals[r.id]?.unique ?? 0,
     created: new Date(r.created_at).toISOString(), expires: r.expires_at ? new Date(r.expires_at).toISOString() : null,
   }));
@@ -41,8 +43,9 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
         <summary className="btn btn-primary" style={{ display: "inline-flex" }}>New short link</summary>
         <ActionForm action={createLinkAction} submit="Create link" pendingLabel="Creating..." resetOnSuccess>
           <Field label="Destination URL" name="target_url" type="url" placeholder="https://example.com/a/very/long/address" required />
+          <DomainSelect domains={st.linkDomains} />
           <div className="grid2">
-            <Field label="Short name" name="slug" prefix={`${b.host}/`} hint="Leave empty for a random one. Letters, numbers, hyphens." maxLength={64} />
+            <Field label="Short name" name="slug" prefix={`${st.defaultHost}/`} hint="Leave empty for a random one. Letters, numbers, hyphens." maxLength={64} />
             <Field label="Label" name="title" hint="Only you see this." maxLength={160} />
           </div>
           <div className="grid2">

@@ -55,7 +55,7 @@ curl -X POST https://your-domain/api/v1/links \
 
 Returns `201` with the link. A taken slug, a blocked destination or a private address returns `422`.
 
-Only `target_url` is required. Optional fields: `slug`, `title`, `password`, `starts_at`, `expires_at`, `enabled`, `group_id`, `team_id`. Leave a field out (or send `null` for the dates) to skip it. Dates are ISO 8601, e.g. `2026-12-31T23:59:00Z`; without an offset they are read as UTC. `expires_at` must be later than `starts_at`.
+Only `target_url` is required. Optional fields: `slug`, `title`, `password`, `starts_at`, `expires_at`, `enabled`, `group_id`, `team_id`, `domain_id` / `domain`. Leave a field out (or send `null` for the dates) to skip it. Dates are ISO 8601, e.g. `2026-12-31T23:59:00Z`; without an offset they are read as UTC. `expires_at` must be later than `starts_at`.
 
 Minimal request:
 
@@ -83,3 +83,14 @@ Set `password` to an empty string to remove protection, `expires_at` to `null` t
   "campaigns": [{ "label": "spring", "n": 15 }]
 }
 ```
+
+
+## Domains
+
+`GET /domains` lists the domains a link can live on: `[{ "id": 1, "domain": "example.com", "is_default": true }]`.
+Send `domain_id` (or `domain`, the host name) on `POST /links` or `PATCH /links/{id}` to place a link. Leave it out for the default domain.
+Responses include `domain`, `domain_id` and a `short_url` built from that domain. A link answers only on its own domain.
+
+## Abuse limits
+
+500 new links per account per day (50 until the email is confirmed), 10 active keys, 5 new keys per hour, and 30 wrong-key attempts per 10 minutes per IP.

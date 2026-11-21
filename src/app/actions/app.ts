@@ -6,14 +6,18 @@ import { audit, createSession, destroyAllSessions, destroySession, hashPassword,
 import { redirect } from "next/navigation";
 import { LANGUAGES } from "@/lib/i18n";
 import { getBrand } from "@/lib/brand";
+import { getDomainState, linkHost } from "@/lib/domains";
 import { randomToken, sha256 } from "@/lib/crypto";
 import { rateLimit } from "@/lib/ratelimit";
 import { phase2Enabled } from "@/lib/features";
 import { emailSchema, passwordSchema } from "@/lib/validation";
 import { createLink, deleteLink, updateLink } from "@/lib/services/links";
-import { sendVerification } from "@/lib/services/users";
+import { sendVerification, verificationRequired } from "@/lib/services/users";
+import { validateNewSlug, slugRateOk, SLUG_RATE_MESSAGE } from "@/lib/slug-service";
+import { reqInfo } from "@/lib/request";
+import { slugSchema } from "@/lib/validation";
 import {
-  BLOCK_TYPES_P1, BLOCK_TYPES_P2, deleteBlock, reorderBlocks, saveBlock, toggleBlock, updateCustom, updateProfile, updateSocials,
+  BLOCK_TYPES_P1, BLOCK_TYPES_P2, deleteBlock, ensurePage, reorderBlocks, saveBlock, toggleBlock, updateCustom, updateProfile, updateSocials,
 } from "@/lib/services/pages";
 import { SOCIALS } from "@/lib/themes";
 import type { FormState } from "@/components/client";
@@ -22,6 +26,32 @@ const s = (fd: FormData, k: string) => String(fd.get(k) ?? "");
 
 function fail(errors: Record<string, string>): FormState {
   return { errors };
+}
+
+/* ---------- Bio page ---------- */
+
+/** Creates the person's bio page by claiming a name. Registration no longer does this. */
+export async function claimBioAction(_: FormState, fd: FormData): Promise<FormState> {
+  const u = await requireUser();
+  if (u.username) return { ok: true, message: "You already have a bio page." };
+  const p = slugSchema.safeParse(s(fd, "username"));
+  if (!p.success) return fail({ username: p.error.issues[0].message });
+  const info = await reqInfo();
+  if (!(await slugRateOk(u.id, info.ip))) return fail({ username: SLUG_RATE_MESSAGE });
+  const named = await validateNewSlug(p.data, { appName: (await getBrand()).name });
+  if (!named.ok) return fail({ username: named.error });
+  // The WHERE guard keeps two tabs from claiming twice; a unique-key clash means someone took the name a moment ago.
+  try {
+    const r = await exec("UPDATE users SET username = ? WHERE id = ? AND username IS NULL", [named.slug, u.id]);
+    if (!r.affectedRows) return { ok: true, message: "You already have a bio page." };
+  } catch {
+    return fail({ username: "This name is not available." });
+  }
+  await ensurePage(u.id, named.slug);
+  if (named.review) await exec("UPDATE pages SET review_status = 'pending', review_reason = ? WHERE user_id = ?", [named.review.slice(0, 190), u.id]);
+  await audit(u.id, "bio.create", named.slug);
+  revalidatePath("/dashboard", "layout");
+  redirect("/dashboard/page");
 }
 
 /* ---------- Links ---------- */
@@ -33,10 +63,12 @@ export async function createLinkAction(_: FormState, fd: FormData): Promise<Form
   const r = await createLink(u.id, b.host, {
     target_url: s(fd, "target_url"), slug: s(fd, "slug"), title: s(fd, "title"), password: s(fd, "password"),
     expires_at: s(fd, "expires_at"), starts_at: s(fd, "starts_at"), group_id: s(fd, "group_id") || null,
+    domain_id: s(fd, "domain_id") || null,
   });
   if (!r.ok) return fail(r.errors);
   revalidatePath("/dashboard/links");
-  return { ok: true, message: `Created ${b.host}/${r.data.slug}` };
+  const st = await getDomainState();
+  return { ok: true, message: `Created ${linkHost(st, r.data.domain_id)}/${r.data.slug}` };
 }
 
 export async function updateLinkAction(id: number, _: FormState, fd: FormData): Promise<FormState> {
@@ -47,6 +79,7 @@ export async function updateLinkAction(id: number, _: FormState, fd: FormData): 
     expires_at: s(fd, "expires_at"), starts_at: s(fd, "starts_at"), enabled: fd.get("enabled") === "on",
   };
   if (fd.has("group_id")) raw.group_id = s(fd, "group_id") || null;
+  if (fd.has("domain_id")) raw.domain_id = s(fd, "domain_id") || null;
   if (fd.get("remove_password") === "on") raw.password = "";
   else if (s(fd, "password")) raw.password = s(fd, "password");
   const r = await updateLink(u.id, id, b.host, raw, u.role === "super_admin");
@@ -90,7 +123,7 @@ export async function saveProfileAction(_: FormState, fd: FormData): Promise<For
   });
   if (!r.ok) return fail(r.errors);
   revalidatePath("/dashboard/page");
-  revalidatePath(`/${u.username}`);
+  if (u.username) revalidatePath(`/${u.username}`);
   return { ok: true, message: "Profile saved." };
 }
 
@@ -104,7 +137,7 @@ export async function saveThemeAction(_: FormState, fd: FormData): Promise<FormS
   const c = await updateCustom(u.id, custom);
   if (!c.ok) return fail(c.errors);
   revalidatePath("/dashboard/page");
-  revalidatePath(`/${u.username}`);
+  if (u.username) revalidatePath(`/${u.username}`);
   return { ok: true, message: "Appearance saved." };
 }
 
@@ -115,7 +148,7 @@ export async function saveSocialsAction(_: FormState, fd: FormData): Promise<For
   const r = await updateSocials(u.id, raw);
   if (!r.ok) return fail(Object.fromEntries(Object.entries(r.errors).map(([k, v]) => [`social_${k}`, v])));
   revalidatePath("/dashboard/page");
-  revalidatePath(`/${u.username}`);
+  if (u.username) revalidatePath(`/${u.username}`);
   return { ok: true, message: "Social links saved." };
 }
 
@@ -132,7 +165,7 @@ export async function saveBlockAction(blockId: number | null, _: FormState, fd: 
   }, allowedBlocks());
   if (!r.ok) return fail(r.errors);
   revalidatePath("/dashboard/page");
-  revalidatePath(`/${u.username}`);
+  if (u.username) revalidatePath(`/${u.username}`);
   return { ok: true, message: blockId ? "Saved." : "Added to your page." };
 }
 
@@ -140,20 +173,20 @@ export async function deleteBlockAction(id: number): Promise<void> {
   const u = await requireUser();
   await deleteBlock(u.id, id);
   revalidatePath("/dashboard/page");
-  revalidatePath(`/${u.username}`);
+  if (u.username) revalidatePath(`/${u.username}`);
 }
 
 export async function toggleBlockAction(id: number): Promise<void> {
   const u = await requireUser();
   await toggleBlock(u.id, id);
   revalidatePath("/dashboard/page");
-  revalidatePath(`/${u.username}`);
+  if (u.username) revalidatePath(`/${u.username}`);
 }
 
 export async function reorderBlocksAction(ids: number[]): Promise<void> {
   const u = await requireUser();
   await reorderBlocks(u.id, ids.filter((n) => Number.isInteger(n)));
-  revalidatePath(`/${u.username}`);
+  if (u.username) revalidatePath(`/${u.username}`);
 }
 
 /* ---------- API keys ---------- */
@@ -162,6 +195,8 @@ export async function createApiKeyAction(_: FormState, fd: FormData): Promise<Fo
   const u = await requireUser();
   const name = s(fd, "name").trim().slice(0, 80);
   if (!name) return fail({ name: "Give the key a name so you can recognise it later." });
+  if (!(await rateLimit(`apikey:create:${u.id}`, 5, 3600))) return fail({ form: "You are creating keys too fast. Try again in an hour." });
+  if (await verificationRequired() && !u.email_verified_at) return fail({ form: "Confirm your email before creating an API key." });
   const n = await queryOne<{ n: number }>("SELECT COUNT(*) AS n FROM api_keys WHERE user_id = ? AND revoked_at IS NULL", [u.id]);
   if (Number(n?.n) >= 10) return fail({ form: "You can have 10 active keys. Revoke one first." });
   const secret = `ob_${randomToken(24)}`;
@@ -221,10 +256,11 @@ export async function deleteAccountAction(_: FormState, fd: FormData): Promise<F
     const n = await queryOne<{ n: number }>("SELECT COUNT(*) AS n FROM users WHERE role = 'super_admin'");
     if (Number(n?.n) <= 1) return fail({ form: "You are the only Super Admin. Promote someone else before deleting this account." });
   }
-  if (s(fd, "confirm").trim().toLowerCase() !== u.username.toLowerCase()) return fail({ confirm: `Type ${u.username} to confirm.` });
+  const confirmWord = u.username ?? u.email;
+  if (s(fd, "confirm").trim().toLowerCase() !== confirmWord.toLowerCase()) return fail({ confirm: `Type ${confirmWord} to confirm.` });
   const row = await queryOne<{ password_hash: string | null }>("SELECT password_hash FROM users WHERE id = ?", [u.id]);
   if (row?.password_hash && !(await verifyPassword(s(fd, "password"), row.password_hash))) return fail({ password: "That password is not right." });
-  await audit(u.id, "user.delete_self", u.username);
+  await audit(u.id, "user.delete_self", u.username ?? u.email);
   await destroySession();
   await exec("DELETE FROM users WHERE id = ?", [u.id]);
   redirect("/");

@@ -12,7 +12,7 @@ export default async function Account() {
       <div className="page-head">
         <div>
           <h1>Account</h1>
-          <p>Signed in as <strong>{user.username}</strong>.</p>
+          <p>Signed in as <strong>{user.username ?? user.email}</strong>.</p>
         </div>
       </div>
       <div style={{ maxWidth: 520, display: "grid", gap: 40 }}>
@@ -45,7 +45,7 @@ export default async function Account() {
           <h2 className="section-title">Delete account</h2>
           <p className="small muted">This removes your bio page, short links, QR codes and analytics for good. Short links will stop redirecting.</p>
           <ActionForm action={deleteAccountAction} submit="Delete my account" pendingLabel="Deleting..." submitClass="btn btn-danger">
-            <Field label={`Type "${user.username}" to confirm`} name="confirm" autoComplete="off" required />
+            <Field label={`Type "${user.username ?? user.email}" to confirm`} name="confirm" autoComplete="off" required />
             <Field label="Password" name="password" type="password" autoComplete="current-password" required />
           </ActionForm>
         </section>
