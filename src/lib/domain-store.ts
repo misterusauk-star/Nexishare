@@ -2,7 +2,7 @@ import { exec, query, queryOne, withTx } from "./db";
 import type { AuditEntry, DomainRow, DomainStore } from "./domain-service.ts";
 
 interface Raw extends Omit<DomainRow, "is_default" | "last_check_ok"> { is_default: number; last_check_ok: number | null }
-const COLS = "id, hostname, label, status, is_default, note, last_check_at, last_check_ok, last_check_error, override_by, activated_at";
+const COLS = "id, hostname, label, status, purpose, is_default, note, last_check_at, last_check_ok, last_check_error, override_by, activated_at";
 const map = (r: Raw): DomainRow => ({ ...r, is_default: !!r.is_default, last_check_ok: r.last_check_ok === null ? null : !!r.last_check_ok });
 
 const writeAudit = (run: typeof exec, a: AuditEntry) =>
@@ -13,7 +13,7 @@ export const mysqlDomainStore: DomainStore = {
   async get(id) { const r = await queryOne<Raw>(`SELECT ${COLS} FROM site_domains WHERE id = ?`, [id]); return r ? map(r) : null; },
   async getByHost(h) { const r = await queryOne<Raw>(`SELECT ${COLS} FROM site_domains WHERE hostname = ?`, [h]); return r ? map(r) : null; },
   async insert(v) {
-    const res = await exec("INSERT INTO site_domains (hostname, label, status, is_default, note) VALUES (?, ?, ?, ?, ?)", [v.hostname, v.label, v.status, v.is_default ? 1 : 0, v.note ?? null]);
+    const res = await exec("INSERT INTO site_domains (hostname, label, status, purpose, is_default, note) VALUES (?, ?, ?, ?, ?, ?)", [v.hostname, v.label, v.status, v.purpose ?? "site", v.is_default ? 1 : 0, v.note ?? null]);
     return (await this.get(res.insertId))!;
   },
   async update(id, patch) {
@@ -29,8 +29,9 @@ export const mysqlDomainStore: DomainStore = {
   /** One transaction: lock rows, require the target to be active, clear the old default, set the new one, audit. */
   async swapDefault(id, a) {
     await withTx(async (tx) => {
-      const [t] = await tx.query<{ status: string }>("SELECT status FROM site_domains WHERE id = ? FOR UPDATE", [id]);
+      const [t] = await tx.query<{ status: string; purpose: string }>("SELECT status, purpose FROM site_domains WHERE id = ? FOR UPDATE", [id]);
       if (!t) throw new Error("Domain not found.");
+      if (t.purpose === "api") throw new Error("An API domain cannot be the default.");
       if (t.status !== "active") throw new Error("Only an active domain can become the default.");
       await tx.exec("UPDATE site_domains SET is_default = 0 WHERE is_default = 1");
       await tx.exec("UPDATE site_domains SET is_default = 1 WHERE id = ?", [id]);

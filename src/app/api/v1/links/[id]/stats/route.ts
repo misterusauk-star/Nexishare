@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import { apiError, authApi, num } from "@/lib/api";
 import { getStats } from "@/lib/analytics";
 import { getLinkForUser } from "@/lib/services/links";
+import { guardApi } from "@/lib/host-guard";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  { const blocked = await guardApi(); if (blocked) return blocked; } // domain rules: API only on the main and API domains
   const a = await authApi(req);
   if ("res" in a) return a.res;
   const id = Number((await ctx.params).id);

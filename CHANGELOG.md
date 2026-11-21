@@ -4,14 +4,30 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+### Added
+- Links can live on any active site domain. Dashboard: a Domain dropdown on new and existing links, with the default domain preselected. API: `domain_id` / `domain` on create and update, `GET /api/v1/domains`, and `domain` / `domain_id` in every link response. A link answers only on its own domain; bio pages stay on the default domain. Migration 007.
+- Abuse limits: 500 links per account per day (50 unverified), 5 new API keys per hour, wrong-key throttle per IP, email confirmation required for keys when verification is on.
+
+### Changed (accounts)
+- Registration asks only for email and password. The bio page is created later from Dashboard > Bio page, where the person picks a name. Google sign-up works the same way. `users.username` may be empty.
+- API keys page shows the API domain (for example api.example.com) as the request address.
+
+### Fixed
+- API: `starts_at` and `expires_at` are now truly optional on create (missing, `null` or empty all mean no date), matching the docs.
+
+### Docs
+- `/docs` now has a field table (required vs optional), more curl examples and samples in JavaScript, Python, PHP, Go and Ruby.
+
 ### Changed
 - **Breaking:** user-owned custom domains are gone. Domains are now managed by the Super Admin in Admin > Domains. Run `npm run migrate`: migration 004 is additive and copies old user domains in as *pending* admin domains, 005 drops the old `domains` table. Remove `APP_SERVER_IP` and `APP_CNAME_TARGET` from your environment if you set them.
-- Links and bio pages are served only on the default domain. Every other host returns 404 for them. Dashboard, admin, API and installer stay reachable on every active domain and the `APP_URL` host. Unknown hosts return 404.
+- Links and bio pages are served only on the default domain. Every other host returns 404 for them. App pages (home, login, dashboard, admin) run on the main domain (`APP_URL` host); other domains redirect them there. The REST API (`/api/v1`) is accepted only on an API domain once one is active. Unknown hosts return 404.
 - Every public URL is built from the current default domain at render time. Nothing about a domain is stored on links or pages.
 - `X-Forwarded-Host` and `X-Forwarded-Proto` are trusted only when `TRUST_PROXY=true`.
 - Slugs and usernames: lowercase ASCII, 3 to 32 characters. Existing names are not changed, but renames and new names follow the new rules.
 
 ### Added
+- Domain purpose: a link domain and an API domain (for example `link.` and `api.` subdomains). Migration 006.
+- Names that match our own subdomains (`link`, `api`, ...) are reserved automatically.
 - Admin > Domains: add, edit, disable, delete, Check & activate (HTTPS check of `/api/health`, exact failure reason, explicit override), change default with confirmation and audit entry. The `APP_URL` host is seeded as the default.
 - `GET /api/health`.
 - Reserved route and static names, editable reserved, brand and sensitive-word lists, look-alike detection, review queue (Admin > Names and safety).

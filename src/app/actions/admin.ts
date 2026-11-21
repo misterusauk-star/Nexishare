@@ -47,10 +47,10 @@ export async function setUserStatusAction(id: number, status: "active" | "suspen
 export async function deleteUserAction(id: number): Promise<void> {
   const me = await requireAdmin();
   if (id === me.id) return;
-  const u = await queryOne<{ username: string }>("SELECT username FROM users WHERE id = ?", [id]);
+  const u = await queryOne<{ username: string | null; email: string }>("SELECT username, email FROM users WHERE id = ?", [id]);
   if (!u) return;
   await exec("DELETE FROM users WHERE id = ?", [id]);
-  await audit(me.id, "user.delete", u.username);
+  await audit(me.id, "user.delete", u.username ?? u.email);
   clearSlugCache();
   revalidatePath("/admin/users");
 }

@@ -128,6 +128,22 @@ export function Field({
   );
 }
 
+/** Which domain a short link lives on. The default domain stays selected unless the person picks another. */
+export function DomainSelect({ domains, value }: { domains: { id: number; host: string; isDefault: boolean }[]; value?: number | null }) {
+  const ctx = useContext(ErrCtx);
+  const error = ctx.domain_id;
+  if (domains.length < 2) return null; // one domain: nothing to choose
+  return (
+    <div className="field">
+      <label htmlFor="f-domain_id">Domain</label>
+      <select id="f-domain_id" className="input" name="domain_id" defaultValue={value ? String(value) : ""} aria-invalid={error ? true : undefined}>
+        {domains.map((d) => <option key={d.id} value={d.isDefault ? "" : String(d.id)}>{d.host}{d.isDefault ? " (default)" : ""}</option>)}
+      </select>
+      {error ? <div className="err">{error}</div> : <div className="hint">The default domain is used unless you pick another.</div>}
+    </div>
+  );
+}
+
 /** Small button that runs a server action with a confirm step and refreshes via revalidation. */
 export function ConfirmButton({ action, label, confirm, className = "btn btn-sm btn-danger", children }: {
   action: () => Promise<unknown>; label: string; confirm: string; className?: string; children?: React.ReactNode;

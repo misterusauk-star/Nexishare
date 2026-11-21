@@ -24,7 +24,7 @@ export default async function Content({ searchParams }: { searchParams: Promise<
   const pages = await query<P>(
     `SELECT p.id, u.username, p.published, p.moderated,
             (SELECT COUNT(*) FROM clicks c WHERE c.entity_type = 'page' AND c.entity_id = p.id) AS views
-       FROM pages p JOIN users u ON u.id = p.user_id ORDER BY p.id DESC LIMIT 100`,
+       FROM pages p JOIN users u ON u.id = p.user_id WHERE u.username IS NOT NULL ORDER BY p.id DESC LIMIT 100`,
   );
   const q = encodeURIComponent(sp.q ?? "");
   return (

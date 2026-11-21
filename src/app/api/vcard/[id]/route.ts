@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { queryOne } from "@/lib/db";
 import { getBrand } from "@/lib/brand";
-import { guardRequest } from "@/lib/host-guard";
+import { guardRequest, onDefaultHost } from "@/lib/host-guard";
 import { fromHeaders } from "@/lib/request";
 import { recordClick } from "@/lib/analytics";
 import { phase2Enabled } from "@/lib/features";
@@ -15,13 +15,14 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
   if (!phase2Enabled()) return new NextResponse("Not found", { status: 404 });
   const blocked404 = await guardRequest(req);
   if (blocked404) return blocked404;
+  if (!(await onDefaultHost())) return new NextResponse("Not found", { status: 404 }); // bio content: default domain only
   const { id } = await ctx.params;
   const blockId = Number(id);
   if (!Number.isInteger(blockId) || blockId < 1) return new NextResponse("Not found", { status: 404 });
   const row = await queryOne<{ id: number; title: string | null; url: string | null; data: Record<string, string> | null; user_id: number; display_name: string | null; username: string; avatar_url: string | null }>(
     `SELECT bl.id, bl.title, bl.url, bl.data, p.user_id, p.display_name, p.avatar_url, u.username
        FROM blocks bl JOIN pages p ON p.id = bl.page_id JOIN users u ON u.id = p.user_id
-      WHERE bl.id = ? AND bl.type = 'vcard' AND bl.enabled = 1 AND p.published = 1 AND p.moderated = 0 AND u.status = 'active'`,
+      WHERE bl.id = ? AND bl.type = 'vcard' AND bl.enabled = 1 AND p.published = 1 AND p.moderated = 0 AND u.status = 'active' AND u.username IS NOT NULL`,
     [blockId],
   );
   if (!row) return new NextResponse("Not found", { status: 404 });

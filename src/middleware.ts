@@ -7,6 +7,7 @@ import { NextResponse, type NextRequest } from "next/server";
 export function middleware(req: NextRequest) {
   const h = new Headers(req.headers);
   h.set("x-ob-path", req.nextUrl.pathname);
+  h.set("x-ob-search", req.nextUrl.search);
   return NextResponse.next({ request: { headers: h } });
 }
 

@@ -4,6 +4,7 @@ import { query } from "@/lib/db";
 import { phase2Enabled } from "@/lib/features";
 import { toCsv } from "@/lib/csv";
 import { getBrand } from "@/lib/brand";
+import { guardApi } from "@/lib/host-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,7 @@ interface Row {
 const fmt = (d: Date | null) => (d ? new Date(d).toISOString().slice(0, 19).replace("T", " ") : "");
 
 export async function GET() {
+  { const blocked = await guardApi(); if (blocked) return blocked; } // domain rules: API only on the main and API domains
   if (!phase2Enabled()) return new NextResponse("Not found", { status: 404 });
   const u = await currentUser();
   if (!u) return new NextResponse("Sign in first", { status: 401 });

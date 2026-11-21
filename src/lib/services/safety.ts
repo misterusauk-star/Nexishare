@@ -47,9 +47,11 @@ export async function assessDestination(raw: string, ownHost?: string): Promise<
  * list, our own hosts and Safe Browsing. Flagged links are switched off (moderated) and show up in the admin queue.
  */
 export async function recheckLinks(batch = 100, olderDays = 7): Promise<{ checked: number; flagged: number }> {
+  // Integers are inlined (after coercion): MySQL rejects bound parameters for LIMIT/INTERVAL in some prepared-statement modes.
+  const days = Math.max(1, Math.floor(Number(olderDays)) || 7);
+  const lim = Math.min(500, Math.max(1, Math.floor(Number(batch)) || 100));
   const rows = await query<{ id: number; target_url: string }>(
-    "SELECT id, target_url FROM links WHERE (checked_at IS NULL OR checked_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL ? DAY)) AND moderated = 0 ORDER BY checked_at IS NULL DESC, checked_at ASC LIMIT ?",
-    [olderDays, batch],
+    `SELECT id, target_url FROM links WHERE (checked_at IS NULL OR checked_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL ${days} DAY)) AND moderated = 0 ORDER BY checked_at IS NULL DESC, checked_at ASC LIMIT ${lim}`,
   );
   if (!rows.length) return { checked: 0, flagged: 0 };
   const sb = await safeBrowsingFlags(rows.map((r) => r.target_url));

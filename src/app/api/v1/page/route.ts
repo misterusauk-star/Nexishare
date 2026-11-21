@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { apiError, authApi, jsonBody } from "@/lib/api";
 import { ensurePage, getBlocks, updateProfile } from "@/lib/services/pages";
+import { guardApi } from "@/lib/host-guard";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
+  { const blocked = await guardApi(); if (blocked) return blocked; } // domain rules: API only on the main and API domains
   const a = await authApi(req);
   if ("res" in a) return a.res;
   const page = await ensurePage(a.user.id);
@@ -13,6 +15,7 @@ export async function GET(req: Request) {
 }
 
 export async function PATCH(req: Request) {
+  { const blocked = await guardApi(); if (blocked) return blocked; } // domain rules: API only on the main and API domains
   const a = await authApi(req);
   if ("res" in a) return a.res;
   const body = await jsonBody(req);

@@ -42,7 +42,7 @@ export default async function Domains() {
       <div className="page-head">
         <div>
           <h1>Domains</h1>
-          <p>Short links and bio pages are served only on the default domain. Every other active domain opens the dashboard, admin and API, and returns 404 for public content.</p>
+          <p>The main domain (APP_URL) runs the dashboard, admin and sign-in. Short links and bio pages are served only on the default domain. The REST API is accepted only on the API domain. Any other address redirects app pages to the main domain.</p>
         </div>
       </div>
 
@@ -52,6 +52,14 @@ export default async function Domains() {
           <ActionForm action={addDomainAction} submit="Add domain" pendingLabel="Adding..." resetOnSuccess>
             <Field label="Domain" name="hostname" placeholder="go.example.com" hint="The exact subdomain you created, without https://." required />
             <Field label="Label (optional)" name="label" placeholder="Short links" maxLength={80} />
+            <div className="field">
+              <label htmlFor="f-purpose">Used for</label>
+              <select id="f-purpose" name="purpose" className="input" defaultValue="site">
+                <option value="site">Short links and bio pages (link domain)</option>
+                <option value="api">REST API only (for example api.example.com)</option>
+              </select>
+              <p className="hint">A link domain redirects its app pages, such as /login, to the main domain. An API domain answers /api/v1 only.</p>
+            </div>
           </ActionForm>
           <ol className="steps small">
             <li>In Hostinger hPanel, create the subdomain and point it at this Node.js app.</li>
@@ -76,7 +84,8 @@ export default async function Domains() {
                       <span className="row wrap" style={{ gap: 6 }}>
                         {d.is_default && <span className="badge good">Default</span>}
                         <span className={`badge ${st.cls}`}>{st.label}</span>
-                        {d.hostname === appHost && <span className="badge">APP_URL</span>}
+                        {d.hostname === appHost && <span className="badge">Main (APP_URL)</span>}
+                        {d.purpose === "api" && <span className="badge">API</span>}
                       </span>
                     </div>
                     {d.label && <p className="small muted dom-line">{d.label}</p>}
@@ -94,7 +103,7 @@ export default async function Domains() {
                           <p>If you activate it anyway, visitors may see certificate warnings or errors on this domain. The override is recorded in the audit log.</p>
                         </ConfirmDialog>
                       )}
-                      {d.status === "active" && !d.is_default && (
+                      {d.status === "active" && !d.is_default && d.purpose !== "api" && (
                         <ConfirmDialog
                           trigger="Make default" title={`Make ${d.hostname} the default domain?`} confirmLabel="Make default"
                           action={makeDefaultAction.bind(null, d.id)} triggerClass="btn btn-sm btn-primary"
@@ -117,6 +126,13 @@ export default async function Domains() {
                       <ActionForm action={editDomainAction.bind(null, d.id)} submit="Save" pendingLabel="Saving...">
                         <Field label="Domain" name="hostname" defaultValue={d.hostname} required hint={d.is_default ? "The default domain's address is locked." : "Changing the address makes the domain pending again."} />
                         <Field label="Label" name="label" defaultValue={d.label ?? ""} maxLength={80} />
+                        <div className="field">
+                          <label htmlFor={`p-${d.id}`}>Used for</label>
+                          <select id={`p-${d.id}`} name="purpose" className="input" defaultValue={d.purpose} disabled={d.is_default}>
+                            <option value="site">Short links and bio pages</option>
+                            <option value="api">REST API only</option>
+                          </select>
+                        </div>
                       </ActionForm>
                     </details>
                   </li>

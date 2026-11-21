@@ -3,11 +3,13 @@ import { getBrand } from "@/lib/brand";
 import { getSetting } from "@/lib/settings";
 import { randomToken } from "@/lib/crypto";
 import { safeNext } from "@/lib/validation";
+import { guardApi } from "@/lib/host-guard";
 
 export const dynamic = "force-dynamic";
 
 /** Starts Google sign-in. Only works when the owner has saved a client ID in the admin settings. */
 export async function GET(req: Request) {
+  { const blocked = await guardApi(); if (blocked) return blocked; } // domain rules: API only on the main and API domains
   const clientId = await getSetting("google_client_id");
   const brand = await getBrand();
   if (!clientId) return NextResponse.redirect(`${brand.url}/login`);

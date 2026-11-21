@@ -275,6 +275,12 @@ details.edit[open] > summary { margin-bottom: 12px; }
 .docs h2 { margin-bottom: 12px; }
 .method { display: inline-block; font: 600 12px var(--font-mono); padding: 2px 6px; border-radius: 3px; margin-right: 8px; background: var(--sunken); }
 .method.get { color: var(--ok); } .method.post { color: var(--accent-text); } .method.patch { color: var(--warn); } .method.delete { color: var(--danger); }
+.docs h3 { margin: 20px 0 8px; font-size: 16px; }
+.docs .table-wrap { overflow-x: auto; margin: 12px 0; }
+.docs .table td, .docs .table th { vertical-align: top; text-align: left; }
+.lang-samples details { border: 1px solid var(--line); border-radius: 6px; margin: 8px 0; }
+.lang-samples summary { cursor: pointer; padding: 12px 14px; min-height: 44px; font-weight: 600; }
+.lang-samples pre.code { margin: 0; border: 0; border-top: 1px solid var(--line); border-radius: 0 0 6px 6px; overflow-x: auto; }
 @media (max-width: 860px) { .docs { grid-template-columns: 1fr; gap: 16px; } .docs nav { position: static; flex-direction: row; flex-wrap: wrap; } }
 
 .public-foot { text-align: center; padding: 32px 16px; font-size: 13px; color: var(--muted); }

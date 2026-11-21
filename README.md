@@ -123,7 +123,7 @@ Server notes: the app runs one Node process and a 60-second timer that sends que
 
 ### Domains
 
-Only the Super Admin manages domains, in **Admin > Domains**. Users never add or choose one.
+Only the Super Admin manages domains, in **Admin > Domains**. Users cannot add domains, but they can place each short link on any active link domain (a Domain dropdown in the dashboard, `domain_id` / `domain` in the API; see `GET /api/v1/domains`). The default domain is preselected.
 
 To add a domain:
 
@@ -135,17 +135,30 @@ To add a domain:
 
 The host of `APP_URL` is added as an active domain and as the default automatically, on fresh installs and on upgrades, so nobody can be locked out. Set `TRUST_PROXY=true` behind Hostinger so the real host is read from `X-Forwarded-Host`.
 
-What each kind of domain serves:
+Three kinds of address, each with one job:
 
-| Route | Default domain | Other active domains and the `APP_URL` host | Unknown hosts |
-| --- | --- | --- | --- |
-| Short links `/<slug>`, bio pages, `/out/*`, vCard | Served | 404 | 404 |
-| Dashboard, admin, API, installer, login | Served | Served | 404 |
-| `/api/health` | Served | Served | Served |
+- **Main domain** (the host of `APP_URL`, for example `nexishare.com`): dashboard, admin, sign-in, installer and the dashboard's own endpoints (QR, export, upload, Google sign-in).
+- **Link domain** (for example `link.nexishare.com`, added as "Short links and bio pages"): the default domain serves short links and bio pages. Opening an app page there, such as `/`, `/login` or `/dashboard`, redirects to the same path on the main domain. Its `/api/*` is 404.
+- **API domain** (for example `api.nexishare.com`, added as "REST API only"): serves `/api/v1/*` and `/api/health` only. Its other pages redirect to the main domain. Once an API domain is active, `/api/v1` is accepted **only** there: the main domain and every other domain return 404 for it. Until then `/api/v1` keeps working on the main domain so existing keys do not break. An API domain can never be the default.
 
-There are no aliases and no redirects. Links and bio pages store only the slug or username, so no data changes when the default changes: every URL (copy link, QR targets, canonical and Open Graph tags, sitemap, emails, API responses) is built from the current default domain when it is rendered.
+| Route | Main domain | Default link domain | Other link domains | API domain | Unknown hosts |
+| --- | --- | --- | --- | --- | --- |
+| Short links `/<slug>` | Only links placed on it | Links on it and links with no domain chosen | Only links placed on it | 404 | 404 |
+| Bio pages, `/out/*`, vCard | 404 (unless it is the default) | Served | 404 | 404 | 404 |
+| Dashboard, admin, login, home, installer | Served | Redirect to main | Redirect to main | Redirect to main | 404 |
+| Dashboard endpoints (`/api/qr`, export, upload) | Served | 404 | 404 | 404 | 404 |
+| REST API `/api/v1/*` | Only while no API domain is active | 404 | 404 | Served | 404 |
+| `/api/health`, static assets | Served | Served | Served | Served | health only |
+
+When the main domain is also the default (the usual starting point), it serves everything.
+
+There are no aliases and no redirects. A link stores its slug and, only if the owner picked one, a domain id; with none chosen it follows the default. Bio pages store only the username. Every URL (copy link, QR targets, canonical and Open Graph tags, sitemap, emails, API responses) is built at render time from the link's domain (or the current default). Because each name is unique across all domains, the same slug can never point at two places.
 
 **Changing the default** (Super Admin only, active domains only) is one database transaction with an audit log entry. After it, **old URLs and printed QR codes on the previous domain stop working** and return 404. Disabling or deleting a domain never deletes links. The default domain cannot be disabled or deleted. Google sign-in uses the default domain for its redirect URI, so add the new address there when you switch.
+
+### Accounts and bio pages
+
+Registration asks for email and password only. A bio page is optional: the person opens **Bio page** in the dashboard and picks a name. Until then the account has no public address (`users.username` is empty).
 
 ### Short names and bio usernames
 

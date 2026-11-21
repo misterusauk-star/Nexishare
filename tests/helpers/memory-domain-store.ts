@@ -8,9 +8,9 @@ export class MemoryDomainStore implements DomainStore {
   async list() { return this.rows.map((r) => ({ ...r })).sort((a, b) => a.id - b.id); }
   async get(id: number) { const r = this.rows.find((x) => x.id === id); return r ? { ...r } : null; }
   async getByHost(h: string) { const r = this.rows.find((x) => x.hostname === h); return r ? { ...r } : null; }
-  async insert(v: { hostname: string; label: string | null; status: DomainRow["status"]; is_default?: boolean; note?: string | null }) {
+  async insert(v: { hostname: string; label: string | null; status: DomainRow["status"]; purpose?: DomainRow["purpose"]; is_default?: boolean; note?: string | null }) {
     if (this.rows.some((r) => r.hostname === v.hostname)) throw new Error("duplicate hostname");
-    const row: DomainRow = { id: ++this.seq, hostname: v.hostname, label: v.label, status: v.status, is_default: !!v.is_default, note: v.note ?? null, last_check_at: null, last_check_ok: null, last_check_error: null, override_by: null, activated_at: null };
+    const row: DomainRow = { id: ++this.seq, hostname: v.hostname, label: v.label, status: v.status, purpose: v.purpose ?? "site", is_default: !!v.is_default, note: v.note ?? null, last_check_at: null, last_check_ok: null, last_check_error: null, override_by: null, activated_at: null };
     this.rows.push(row);
     return { ...row };
   }

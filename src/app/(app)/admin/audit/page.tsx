@@ -11,7 +11,7 @@ export default async function Audit({ searchParams }: { searchParams: Promise<{ 
   const page = Math.max(1, Number((await searchParams).page) || 1);
   const total = Number((await queryOne<{ n: number }>("SELECT COUNT(*) AS n FROM audit_log"))?.n ?? 0);
   const rows = await query<A>(
-    `SELECT a.id, u.username AS actor, a.action, a.target, a.meta, a.created_at FROM audit_log a
+    `SELECT a.id, COALESCE(u.username, u.email) AS actor, a.action, a.target, a.meta, a.created_at FROM audit_log a
        LEFT JOIN users u ON u.id = a.actor_id ORDER BY a.id DESC LIMIT ${PER} OFFSET ${(page - 1) * PER}`,
   );
   const pages = Math.max(1, Math.ceil(total / PER));

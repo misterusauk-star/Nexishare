@@ -118,3 +118,19 @@ test("health check: maps TLS and network failures to actionable reasons, accepts
   assert.match((await checkDomainHttps("x.example.com", { fetchImpl: res(200, { hello: 1 }) })).error!, /not from this app/);
   assert.match(explainFetchError(Object.assign(new Error("x"), { name: "TimeoutError" }), "h", 8000), /Timed out after 8s/);
 });
+
+test("API domains: added with a purpose, can never become the default", async () => {
+  const { svc } = setup();
+  await svc.ensureSeed("app.example.com");
+  const a = ok(await svc.add(1, "api.example.com", "REST API", "api"));
+  assert.equal(a.purpose, "api");
+  await svc.checkAndActivate(1, a.id);
+  const r = await svc.makeDefault(1, a.id);
+  assert.equal(r.ok, false);
+  assert.match((r as { error: string }).error, /API domain/);
+  const l = ok(await svc.add(1, "link.example.com"));
+  assert.equal(l.purpose, "site");
+  assert.equal(ok(await svc.edit(1, l.id, { purpose: "api" })).purpose, "api");
+  const def = (await svc.list()).find((d) => d.is_default)!;
+  assert.equal((await svc.edit(1, def.id, { purpose: "api" })).ok, false); // the default must stay a site domain
+});

@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { getBrand, shortUrl } from "@/lib/brand";
+import { getDomainState, linkUrl, linkHost } from "@/lib/domains";
 import { getLinkForUser, linkState } from "@/lib/services/links";
 import { getStats, countryName } from "@/lib/analytics";
-import { ActionForm, Field, CopyButton } from "@/components/client";
+import { ActionForm, DomainSelect, Field, CopyButton } from "@/components/client";
 import { BarList, StatRow, TimeSeries } from "@/components/charts";
 import { QrPanel } from "@/components/qr-panel";
 import { updateLinkAction } from "@/app/actions/app";
@@ -19,16 +19,17 @@ export default async function LinkDetail({ params, searchParams }: { params: Pro
   if (!link) notFound();
   const dq = Number((await searchParams).days);
   const days = [7, 30, 90].includes(dq) ? dq : 30;
-  const b = await getBrand();
+  const st = await getDomainState();
+  const host = linkHost(st, link.domain_id);
   const stats = await getStats({ entityType: "link", entityId: link.id, days });
-  const short = shortUrl(b, link.slug);
+  const short = linkUrl(st, link.domain_id, link.slug);
   return (
     <>
       <div className="page-head">
         <div>
           <p><Link href="/dashboard/links">Links</Link> /</p>
           <h1>{link.title || link.slug}</h1>
-          <div className="row"><span className="slug">{b.host}<b>/</b>{link.slug}</span><CopyButton value={short} /><span className="badge">{linkState(link)}</span></div>
+          <div className="row"><span className="slug">{host}<b>/</b>{link.slug}</span><CopyButton value={short} /><span className="badge">{linkState(link)}</span></div>
         </div>
         <div className="row small">
           {[7, 30, 90].map((d) => <Link key={d} className={`btn btn-sm ${d === days ? "btn-primary" : ""}`} href={`?days=${d}`}>{d} days</Link>)}
@@ -49,7 +50,8 @@ export default async function LinkDetail({ params, searchParams }: { params: Pro
           <div className="section-title"><h2>Settings</h2></div>
           <ActionForm action={updateLinkAction.bind(null, link.id)} submit="Save changes" pendingLabel="Saving...">
             <Field label="Destination URL" name="target_url" type="url" defaultValue={link.target_url} required />
-            <Field label="Short name" name="slug" prefix={`${b.host}/`} defaultValue={link.slug} maxLength={64} required />
+            <DomainSelect domains={st.linkDomains} value={link.domain_id} />
+            <Field label="Short name" name="slug" prefix={`${host}/`} defaultValue={link.slug} maxLength={64} required />
             <Field label="Label" name="title" defaultValue={link.title} maxLength={160} />
             <div className="grid2">
               <Field label="Starts (UTC)" name="starts_at" type="datetime-local" defaultValue={iso(link.starts_at)} />

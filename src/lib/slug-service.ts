@@ -2,6 +2,7 @@ import { exec, query, queryOne } from "./db";
 import { LRU } from "./lru.ts";
 import { rateLimit } from "./ratelimit";
 import { ipHash } from "./crypto";
+import { getDomainState } from "./domains";
 import { checkSlug, DEFAULT_BRANDS, DEFAULT_RESERVED_WORDS, DEFAULT_SENSITIVE, UNAVAILABLE, type SlugLists } from "./slug-rules.ts";
 
 const cache = new LRU<SlugLists>(1, 30_000);
@@ -15,6 +16,9 @@ export async function loadSlugLists(appName?: string): Promise<SlugLists> {
       const rows = await query<{ kind: string; value: string }>("SELECT kind, value FROM slug_lists");
       const by = (k: string) => rows.filter((r) => r.kind === k).map((r) => r.value);
       l = { reserved: by("reserved"), brands: by("brand"), sensitive: by("sensitive") };
+      // The subdomain names of our own domains (link, api, ...) can never be claimed as a short name.
+      const d = await getDomainState();
+      l.reserved = [...(l.reserved as string[]), ...[d.defaultHost, d.appHost, ...d.activeHosts, ...d.apiHosts].map((h) => h.split(".")[0])];
     } catch {
       l = { reserved: DEFAULT_RESERVED_WORDS, brands: DEFAULT_BRANDS, sensitive: DEFAULT_SENSITIVE };
     }

@@ -8,6 +8,8 @@ import { validateNewSlug, slugInUse, slugRateOk, SLUG_RATE_MESSAGE } from "../sl
 import { invalidateSlug } from "../slug-cache";
 import { fromHeaders } from "../request";
 import { getBrand } from "../brand";
+import { getDomainState } from "../domains";
+import { rateLimit } from "../ratelimit";
 
 export type Result<T> = { ok: true; data: T } | { ok: false; errors: Record<string, string> };
 
@@ -20,6 +22,7 @@ export interface LinkRow {
   title: string | null;
   target_url: string;
   password_hash: string | null;
+  domain_id?: number | null;
   expires_at: Date | null;
   starts_at: Date | null;
   enabled: number;
@@ -30,8 +33,10 @@ export interface LinkRow {
   created_at: Date;
 }
 
+// Truly optional: key may be missing, null or "" (all mean "no date").
 const optionalDate = z
-  .union([z.string(), z.null(), z.undefined()])
+  .string()
+  .nullish()
   .transform((v, ctx) => {
     if (!v) return null;
     const d = new Date(v);
@@ -52,10 +57,32 @@ export const linkInput = z.object({
   enabled: z.boolean().optional(),
   group_id: z.coerce.number().int().positive().nullish(),
   team_id: z.coerce.number().int().positive().nullish(),
+  // Where the short link lives: an active site domain by id or by host name. Missing or null = follow the default domain.
+  domain_id: z.coerce.number().int().positive().nullish(),
+  domain: z.string().trim().toLowerCase().max(190).nullish(),
 });
 export type LinkInput = z.infer<typeof linkInput>;
 
 export const slugTaken = slugInUse;
+
+/** Turns domain_id / domain from a request into a domain id (null = default). Only active site domains qualify. */
+async function resolveDomain(v: { domain_id?: number | null; domain?: string | null }): Promise<{ ok: true; id: number | null } | { ok: false; error: string }> {
+  const st = await getDomainState();
+  if (v.domain) {
+    const h = v.domain.replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+    const d = st.linkDomains.find((x) => x.host.toLowerCase() === h);
+    return d ? { ok: true, id: d.id } : { ok: false, error: "That domain is not available for links. See GET /domains." };
+  }
+  if (v.domain_id) {
+    const d = st.linkDomains.find((x) => x.id === v.domain_id);
+    return d ? { ok: true, id: d.id } : { ok: false, error: "That domain is not available for links. See GET /domains." };
+  }
+  return { ok: true, id: null };
+}
+
+/** Links one account may create per day (any route: dashboard, API, import). Unverified accounts get a smaller cap. */
+const DAILY_LINKS = 500;
+const DAILY_LINKS_UNVERIFIED = 50;
 
 function randomSlug(): string {
   const alphabet = "abcdefghjkmnpqrstuvwxyz23456789";
@@ -77,6 +104,12 @@ export async function createLink(userId: number, ownHost: string, raw: unknown):
   const p = linkInput.safeParse(raw);
   if (!p.success) return { ok: false, errors: fieldErrors(p.error) };
   const v = p.data;
+  const verified = await queryOne<{ ok: number }>("SELECT (email_verified_at IS NOT NULL) AS ok FROM users WHERE id = ?", [userId]);
+  if (!(await rateLimit(`link:day:${userId}`, verified?.ok ? DAILY_LINKS : DAILY_LINKS_UNVERIFIED, 86400))) {
+    return { ok: false, errors: { form: "Daily limit for new links reached. Try again tomorrow." } };
+  }
+  const dom = await resolveDomain(v);
+  if (!dom.ok) return { ok: false, errors: { domain_id: dom.error } };
   const u = await assessDestination(v.target_url, ownHost);
   if (!u.ok) return { ok: false, errors: { target_url: u.error } };
   const appName = (await getBrand()).name;
@@ -101,8 +134,8 @@ export async function createLink(userId: number, ownHost: string, raw: unknown):
   // Suspicious names wait in the admin review queue and stay inactive until approved. Admins skip the queue.
   const queued = review !== null && !(await isAdminUser(userId));
   const res = await exec(
-    "INSERT INTO links (user_id, team_id, group_id, slug, title, target_url, password_hash, expires_at, starts_at, enabled, review_status, review_reason, checked_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())",
-    [userId, v.team_id ?? null, v.group_id ?? null, slug, v.title, u.url, pw, v.expires_at, v.starts_at, v.enabled === false ? 0 : 1, queued ? "pending" : "none", queued ? review : null],
+    "INSERT INTO links (user_id, team_id, group_id, domain_id, slug, title, target_url, password_hash, expires_at, starts_at, enabled, review_status, review_reason, checked_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())",
+    [userId, v.team_id ?? null, v.group_id ?? null, dom.id, slug, v.title, u.url, pw, v.expires_at, v.starts_at, v.enabled === false ? 0 : 1, queued ? "pending" : "none", queued ? review : null],
   );
   invalidateSlug(slug);
   const row = await queryOne<LinkRow>("SELECT * FROM links WHERE id = ?", [res.insertId]);
@@ -141,6 +174,11 @@ export async function updateLink(userId: number, id: number, ownHost: string, ra
   if (raw && typeof raw === "object" && "expires_at" in raw) { sets.push("expires_at = ?"); vals.push(v.expires_at ?? null); }
   if (raw && typeof raw === "object" && "starts_at" in raw) { sets.push("starts_at = ?"); vals.push(v.starts_at ?? null); }
   if (v.enabled !== undefined) { sets.push("enabled = ?"); vals.push(v.enabled ? 1 : 0); }
+  if (raw && typeof raw === "object" && ("domain_id" in raw || "domain" in raw)) {
+    const dom = await resolveDomain(v);
+    if (!dom.ok) return { ok: false, errors: { domain_id: dom.error } };
+    sets.push("domain_id = ?"); vals.push(dom.id);
+  }
   if (raw && typeof raw === "object" && "group_id" in raw) { sets.push("group_id = ?"); vals.push(v.group_id ?? null); }
   if (sets.length) await exec(`UPDATE links SET ${sets.join(", ")} WHERE id = ?`, [...vals, id]);
   invalidateSlug(cur.slug, v.slug);

@@ -48,7 +48,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </nav>
         <div className="side-foot stack-sm">
           <div className="row" style={{ justifyContent: "space-between" }}>
-            <Link href={`/${user.username}`} className="small mono">/{user.username}</Link>
+            {user.username ? <Link href={`/${user.username}`} className="small mono">/{user.username}</Link> : <Link href="/dashboard/page" className="small">Create bio page</Link>}
             <ThemeToggle />
           </div>
           <form action={logoutAction}><button className="btn btn-sm" style={{ width: "100%" }}>{t("nav.signout")}</button></form>

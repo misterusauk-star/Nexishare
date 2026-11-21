@@ -8,7 +8,7 @@ export const metadata = { title: "Users" };
 export const dynamic = "force-dynamic";
 const PER = 30;
 
-interface U { id: number; email: string; username: string; role: string; status: string; email_verified_at: Date | null; created_at: Date; last_login_at: Date | null; links: number }
+interface U { id: number; email: string; username: string | null; role: string; status: string; email_verified_at: Date | null; created_at: Date; last_login_at: Date | null; links: number }
 const day = (d: Date | null) => (d ? new Date(d).toISOString().slice(0, 10) : "Never");
 
 export default async function Users({ searchParams }: { searchParams: Promise<{ q?: string; page?: string }> }) {
@@ -43,7 +43,7 @@ export default async function Users({ searchParams }: { searchParams: Promise<{ 
             {rows.map((u) => (
               <tr key={u.id}>
                 <td>
-                  <Link href={`/${u.username}`}>{u.username}</Link>
+                  {u.username ? <Link href={`/${u.username}`}>{u.username}</Link> : <span className="muted">No bio page</span>}
                   {u.status === "suspended" && <> <span className="badge bad">Suspended</span></>}
                   {!u.email_verified_at && <> <span className="badge">Unverified</span></>}
                   <div className="small muted">{u.email}</div>
@@ -57,7 +57,7 @@ export default async function Users({ searchParams }: { searchParams: Promise<{ 
                     <span className="row" style={{ justifyContent: "flex-end" }}>
                       <ActionButton action={setUserRoleAction.bind(null, u.id, u.role === "super_admin" ? "user" : "super_admin")}>{u.role === "super_admin" ? "Make user" : "Make admin"}</ActionButton>
                       <ActionButton action={setUserStatusAction.bind(null, u.id, u.status === "active" ? "suspended" : "active")}>{u.status === "active" ? "Suspend" : "Reinstate"}</ActionButton>
-                      <ConfirmButton action={deleteUserAction.bind(null, u.id)} label="Delete" confirm={`Delete ${u.username} and everything they own? This cannot be undone.`} />
+                      <ConfirmButton action={deleteUserAction.bind(null, u.id)} label="Delete" confirm={`Delete ${u.username ?? u.email} and everything they own? This cannot be undone.`} />
                     </span>
                   )}
                 </td>

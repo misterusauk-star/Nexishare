@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { query } from "@/lib/db";
-import { getBrand } from "@/lib/brand";
+import { getDomainState } from "@/lib/domains";
 import { ApiKeyForm } from "@/components/api-key-form";
 import { ConfirmButton } from "@/components/client";
 import { revokeApiKeyAction } from "@/app/actions/app";
@@ -13,14 +13,14 @@ const fmt = (d: Date | null) => (d ? new Date(d).toISOString().slice(0, 16).repl
 
 export default async function ApiPage() {
   const user = await requireUser();
-  const b = await getBrand();
+  const st = await getDomainState();
   const keys = await query<Key>("SELECT id, name, prefix, last_used_at, revoked_at, created_at FROM api_keys WHERE user_id = ? ORDER BY id DESC", [user.id]);
   return (
     <>
       <div className="page-head">
         <div>
           <h1>API keys</h1>
-          <p>Create short links and read stats from your own scripts. See the <Link href="/docs">API reference</Link>.</p>
+          <p>Create short links and read stats from your own scripts. Requests go to <code>{st.apiUrl}/api/v1</code>. See the <Link href="/docs">API reference</Link>.</p>
         </div>
       </div>
       <div className="cols" style={{ gridTemplateColumns: "minmax(0, 6fr) minmax(0, 4fr)", alignItems: "start" }}>
@@ -28,7 +28,7 @@ export default async function ApiPage() {
           {keys.length === 0 ? (
             <div className="empty">
               <h3>No keys yet</h3>
-              <p>Make one on the right, then send it as <code>Authorization: Bearer ob_...</code> to {b.url}/api/v1.</p>
+              <p>Make one on the right, then send it as <code>Authorization: Bearer ob_...</code> to {st.apiUrl}/api/v1.</p>
             </div>
           ) : (
             <table className="table">

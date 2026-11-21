@@ -10,7 +10,7 @@ export default async function QrPage({ searchParams }: { searchParams: Promise<{
   const user = await requireUser();
   const b = await getBrand();
   const { rows } = await listLinks({ userId: user.id, limit: 100, offset: 0 });
-  const options = [{ slug: user.username, label: "Your bio page" }, ...rows.map((l) => ({ slug: l.slug, label: l.title || l.slug }))];
+  const options = [...(user.username ? [{ slug: user.username, label: "Your bio page" }] : []), ...rows.map((l) => ({ slug: l.slug, label: l.title || l.slug }))];
   const wanted = (await searchParams).s;
   const current = options.find((o) => o.slug === wanted) ?? options[0];
   return (

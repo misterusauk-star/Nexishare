@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { queryOne } from "@/lib/db";
 import { getBrand, shortUrl } from "@/lib/brand";
+import { getDomainState, linkUrl } from "@/lib/domains";
 import { qrPng, qrSvg } from "@/lib/qr";
 import { rateLimit } from "@/lib/ratelimit";
 import { fromHeaders } from "@/lib/request";
 import { ipHash } from "@/lib/crypto";
 import { safeImageUrl } from "@/lib/validation";
+import { guardApi } from "@/lib/host-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -15,15 +17,18 @@ export const dynamic = "force-dynamic";
  * GET /api/qr?slug=name&format=svg|png&fg=%23000000&bg=%23ffffff&size=512&logo=https://...
  */
 export async function GET(req: Request) {
+  { const blocked = await guardApi(); if (blocked) return blocked; } // domain rules: API only on the main and API domains
   const info = fromHeaders(req.headers);
   if (!(await rateLimit(`qr:${ipHash(info.ip)}`, 120, 60))) return new NextResponse("Too many requests", { status: 429 });
   const u = new URL(req.url);
   const slug = (u.searchParams.get("slug") ?? "").toLowerCase();
   if (!/^[a-z0-9][a-z0-9_-]{0,63}$/.test(slug)) return new NextResponse("Bad slug", { status: 400 });
-  const exists = (await queryOne("SELECT 1 FROM links WHERE slug = ?", [slug])) || (await queryOne("SELECT 1 FROM users WHERE username = ?", [slug]));
+  const lk = await queryOne<{ domain_id: number | null }>("SELECT domain_id FROM links WHERE slug = ?", [slug]);
+  const exists = lk || (await queryOne("SELECT 1 FROM users WHERE username = ?", [slug]));
   if (!exists) return new NextResponse("Not found", { status: 404 });
   const brand = await getBrand();
-  const target = shortUrl(brand, slug) + (u.searchParams.get("src") === "qr" ? "?utm_source=qr" : "");
+  const base = lk ? linkUrl(await getDomainState(), lk.domain_id, slug) : shortUrl(brand, slug); // a link's QR points at its own domain
+  const target = base + (u.searchParams.get("src") === "qr" ? "?utm_source=qr" : "");
   const logoRaw = u.searchParams.get("logo") ?? "";
   const opts = {
     fg: u.searchParams.get("fg") ?? undefined,

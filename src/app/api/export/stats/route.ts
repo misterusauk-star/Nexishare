@@ -4,10 +4,12 @@ import { phase2Enabled } from "@/lib/features";
 import { getStats } from "@/lib/analytics";
 import { toCsv } from "@/lib/csv";
 import { rateLimit } from "@/lib/ratelimit";
+import { guardApi } from "@/lib/host-guard";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  { const blocked = await guardApi(); if (blocked) return blocked; } // domain rules: API only on the main and API domains
   if (!phase2Enabled()) return new NextResponse("Not found", { status: 404 });
   const u = await currentUser();
   if (!u) return new NextResponse("Sign in first", { status: 401 });
