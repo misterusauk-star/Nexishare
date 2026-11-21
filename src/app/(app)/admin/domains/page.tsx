@@ -38,6 +38,19 @@ export default async function Domains() {
   }
   const current = rows.find((d) => d.is_default);
   const appHost = appOrigin().host;
+  const bioDomain = rows.find((d) => d.purpose === "bio" && d.status !== "disabled");
+  const apiDomain = rows.find((d) => d.purpose === "api" && d.status !== "disabled");
+  const waiting = (d: DomainRow) => (d.status === "active" ? "Active" : "Not active yet: press Check & activate below");
+  const roleRows = [
+    { job: "Dashboard, admin, sign-in", host: appHost, status: "Active" },
+    { job: "Short links with no domain chosen", host: current?.hostname ?? appHost, status: current?.status === "active" ? "Active (default)" : "Default" },
+    {
+      job: "Bio pages",
+      host: bioDomain && bioDomain.status === "active" ? bioDomain.hostname : (current?.hostname ?? appHost),
+      status: !bioDomain ? "No bio domain added, so bio pages use the default domain" : bioDomain.status === "active" ? "Active: bio pages open only here" : `${bioDomain.hostname}: ${waiting(bioDomain)}. Until then bio pages stay on the default domain`,
+    },
+    { job: "REST API", host: apiDomain && apiDomain.status === "active" ? apiDomain.hostname : appHost, status: !apiDomain ? "No API domain added, so the API stays on the main domain" : apiDomain.status === "active" ? "Active: /api/v1 works only here" : `${apiDomain.hostname}: ${waiting(apiDomain)}. Until then the API stays on the main domain` },
+  ];
   // How many links are placed on each domain; links with no domain chosen follow the default. Tolerates a missing column before migration 007.
   const used: Record<number, number> = {};
   let following = 0;
@@ -54,6 +67,24 @@ export default async function Domains() {
           <p>The main domain (APP_URL) runs the dashboard, admin and sign-in. Short links are served on the default domain and on any other link domain you add. Bio pages are served on the bio domain, or on the default domain when there is none. The REST API is accepted only on the API domain. Any other address redirects app pages to the main domain.</p>
         </div>
       </div>
+
+      <section aria-labelledby="roles-h" style={{ marginBottom: 24 }}>
+        <h2 id="roles-h" className="section-h">What each address does right now</h2>
+        <div className="table-wrap">
+          <table className="table">
+            <thead><tr><th>Job</th><th>Address</th><th>Status</th></tr></thead>
+            <tbody>
+              {roleRows.map((r) => (
+                <tr key={r.job}>
+                  <td>{r.job}</td>
+                  <td className="mono">{r.host}</td>
+                  <td>{r.status}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <div className="cols">
         <section aria-labelledby="add-h">

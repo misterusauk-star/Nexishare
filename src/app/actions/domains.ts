@@ -16,7 +16,13 @@ const purposeOf = (v: string) => (v === "api" ? "api" : v === "bio" ? "bio" : "s
 
 export async function addDomainAction(_: FormState, fd: FormData): Promise<FormState> {
   const me = await requireAdmin();
-  const r = await domainService().add(me.id, s(fd, "hostname"), s(fd, "label"), purposeOf(s(fd, "purpose")));
+  let r;
+  try {
+    r = await domainService().add(me.id, s(fd, "hostname"), s(fd, "label"), purposeOf(s(fd, "purpose")));
+  } catch {
+    // Most likely migration 008 (the bio type) has not been applied to this database yet.
+    return { errors: { hostname: "Could not save the domain. Press Run database updates at the top of this page, then try again." } };
+  }
   refresh();
   if (!r.ok) return { errors: { hostname: r.error } };
   return { ok: true, message: `Added ${r.data.hostname} as pending. Create the subdomain and install SSL in hPanel, then press Check & activate.` };
@@ -24,7 +30,12 @@ export async function addDomainAction(_: FormState, fd: FormData): Promise<FormS
 
 export async function editDomainAction(id: number, _: FormState, fd: FormData): Promise<FormState> {
   const me = await requireAdmin();
-  const r = await domainService().edit(me.id, id, { hostname: s(fd, "hostname"), label: s(fd, "label"), purpose: purposeOf(s(fd, "purpose")) });
+  let r;
+  try {
+    r = await domainService().edit(me.id, id, { hostname: s(fd, "hostname"), label: s(fd, "label"), purpose: purposeOf(s(fd, "purpose")) });
+  } catch {
+    return { errors: { hostname: "Could not save the domain. Press Run database updates at the top of this page, then try again." } };
+  }
   refresh();
   if (!r.ok) return { errors: { hostname: r.error } };
   return { ok: true, message: r.data.status === "pending" ? "Saved. The domain is pending again, so run Check & activate." : "Saved." };
