@@ -39,3 +39,14 @@ export async function runMigrations(opts: { includePhase2?: boolean } = {}): Pro
   }
   return applied;
 }
+
+/** Which migration files are applied and which are waiting. Never throws (a fresh database has no schema_migrations yet). */
+export async function migrationStatus(): Promise<{ applied: string[]; pending: string[] }> {
+  const { query } = await import("./db");
+  const files = fs.readdirSync(migrationsDir()).filter((f) => f.endsWith(".sql")).sort();
+  let done = new Set<string>();
+  try {
+    done = new Set((await query<{ name: string }>("SELECT name FROM schema_migrations")).map((r) => r.name));
+  } catch { /* table not created yet: everything is pending */ }
+  return { applied: files.filter((f) => done.has(f)), pending: files.filter((f) => !done.has(f)) };
+}

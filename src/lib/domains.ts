@@ -65,7 +65,7 @@ export async function getDomainState(): Promise<DomainState> {
       if (def) state = { ...state, defaultHost: def.hostname, defaultUrl: originFor(def.hostname) };
       const active = rows.filter((r) => r.status === "active");
       state.activeHosts = active.filter((r) => r.purpose !== "api").map((r) => r.hostname);
-      state.linkDomains = active.filter((r) => r.purpose === "site").map((r) => ({ id: Number(r.id), host: r.hostname, isDefault: !!r.is_default }));
+      state.linkDomains = active.filter((r) => r.purpose !== "api" && r.purpose !== "bio").map((r) => ({ id: Number(r.id), host: r.hostname, isDefault: !!r.is_default }));
       state.bioHost = bioHostFor(active.find((r) => r.purpose === "bio")?.hostname, state.defaultHost);
       state.apiHosts = active.filter((r) => r.purpose === "api").map((r) => r.hostname);
       if (state.apiHosts[0]) state.apiUrl = originFor(state.apiHosts[0]);

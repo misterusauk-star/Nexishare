@@ -25,6 +25,10 @@ export async function addDomainAction(_: FormState, fd: FormData): Promise<FormS
   }
   refresh();
   if (!r.ok) return { errors: { hostname: r.error } };
+  if (r.data.purpose !== purposeOf(s(fd, "purpose"))) {
+    // The database silently stored another value: it does not know this type yet.
+    return { errors: { hostname: "Saved, but your database does not know this type yet. Press Run database updates at the top of this page, then edit the domain and choose the type again." } };
+  }
   return { ok: true, message: `Added ${r.data.hostname} as pending. Create the subdomain and install SSL in hPanel, then press Check & activate.` };
 }
 
@@ -38,6 +42,9 @@ export async function editDomainAction(id: number, _: FormState, fd: FormData): 
   }
   refresh();
   if (!r.ok) return { errors: { hostname: r.error } };
+  if (r.data.purpose !== purposeOf(s(fd, "purpose")) && !r.data.is_default) {
+    return { errors: { hostname: "The type was not saved: your database does not know it yet. Press Run database updates at the top of this page, then choose the type again." } };
+  }
   return { ok: true, message: r.data.status === "pending" ? "Saved. The domain is pending again, so run Check & activate." : "Saved." };
 }
 

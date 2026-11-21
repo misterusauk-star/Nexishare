@@ -8,6 +8,7 @@ import {
 import type { DomainRow } from "@/lib/domain-service";
 
 import { runMigrationsAction } from "@/app/actions/domains";
+import { migrationStatus } from "@/lib/migrate";
 
 export const metadata = { title: "Domains" };
 export const dynamic = "force-dynamic";
@@ -38,6 +39,7 @@ export default async function Domains() {
   }
   const current = rows.find((d) => d.is_default);
   const appHost = appOrigin().host;
+  const mig = await migrationStatus().catch(() => ({ applied: [] as string[], pending: [] as string[] }));
   const bioDomain = rows.find((d) => d.purpose === "bio" && d.status !== "disabled");
   const apiDomain = rows.find((d) => d.purpose === "api" && d.status !== "disabled");
   const waiting = (d: DomainRow) => (d.status === "active" ? "Active" : "Not active yet: press Check & activate below");
@@ -67,6 +69,22 @@ export default async function Domains() {
           <p>The main domain (APP_URL) runs the dashboard, admin and sign-in. Short links are served on the default domain and on any other link domain you add. Bio pages are served on the bio domain, or on the default domain when there is none. The REST API is accepted only on the API domain. Any other address redirects app pages to the main domain.</p>
         </div>
       </div>
+
+      <section aria-labelledby="db-h" style={{ marginBottom: 24 }}>
+        <h2 id="db-h" className="section-h">Database</h2>
+        {mig.pending.length > 0 ? (
+          <div className="notice bad" role="alert">
+            <p><b>{mig.pending.length} database {mig.pending.length === 1 ? "update is" : "updates are"} waiting:</b> <span className="mono">{mig.pending.join(", ")}</span>. Some features, such as the bio domain, do not work until they are applied. Back up the database first.</p>
+          </div>
+        ) : (
+          <p className="small muted">Database is up to date ({mig.applied.length} updates applied).</p>
+        )}
+        <p>
+          <ConfirmDialog trigger="Run database updates" triggerClass="btn btn-primary" title="Apply pending database updates?" confirmLabel="Run updates" action={runMigrationsAction}>
+            <p>Applies every waiting update in order. It is safe to run again when nothing is waiting. Take a database backup first.</p>
+          </ConfirmDialog>
+        </p>
+      </section>
 
       <section aria-labelledby="roles-h" style={{ marginBottom: 24 }}>
         <h2 id="roles-h" className="section-h">What each address does right now</h2>
@@ -137,6 +155,7 @@ export default async function Domains() {
                         {d.hostname === appHost && <span className="badge">Main (APP_URL)</span>}
                         {d.purpose === "api" && <span className="badge">API</span>}
                         {d.purpose === "bio" && <span className="badge">Bio pages</span>}
+                        {!["site", "api", "bio"].includes(d.purpose) && <span className="badge">Type unknown: run database updates</span>}
                       </span>
                     </div>
                     {d.label && <p className="small muted dom-line">{d.label}</p>}

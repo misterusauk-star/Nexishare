@@ -23,6 +23,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 - API keys page shows the API domain (for example api.example.com) as the request address.
 
 ### Fixed
+- Choosing "Bio pages only" silently turned into a link domain when migration 008 was not applied (the database stored an empty type). The Domains page now has a permanent Database panel that lists waiting updates with a Run database updates button, saving a type the database does not know is refused with a clear message, and migration 008 repairs rows saved empty.
 - Sign-in links (verify, reset, dashboard e-mail buttons) and the Google OAuth redirect now always use the main domain, so making a link domain the default no longer breaks Google sign-in. Sitemap, robots and metadata base follow the main domain, and each host lists its own sitemap.
 - API: `starts_at` and `expires_at` are now truly optional on create (missing, `null` or empty all mean no date), matching the docs.
 
