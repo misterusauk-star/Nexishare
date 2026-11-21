@@ -4,9 +4,12 @@
  * "Check & activate" only verifies that https://<domain>/api/health answers with a valid certificate.
  */
 export type DomainStatus = "pending" | "active" | "disabled";
-/** "site": main, link and other domains. "api": serves the REST API (/api/v1) only and can never be the default. */
-export type DomainPurpose = "site" | "api";
-export const isPurpose = (v: unknown): v is DomainPurpose => v === "site" || v === "api";
+/**
+ * "site": main, link and other domains. "api": serves the REST API (/api/v1) only. "bio": serves bio pages only (one is used).
+ * Neither api nor bio can be the default.
+ */
+export type DomainPurpose = "site" | "api" | "bio";
+export const isPurpose = (v: unknown): v is DomainPurpose => v === "site" || v === "api" || v === "bio";
 
 export interface DomainRow {
   id: number;
@@ -67,6 +70,7 @@ export function createDomainService({ store, check, now = () => new Date() }: Se
       const h = normalizeHostname(rawHost);
       if (!h.ok) return h;
       if (await store.getByHost(h.data)) return fail("That domain is already in the list.");
+      if (purpose === "bio" && (await store.list()).some((d) => d.purpose === "bio" && d.status !== "disabled")) return fail("There is already a bio domain. Disable or delete it first.");
       const row = await store.insert({ hostname: h.data, label: (label ?? "").trim().slice(0, 80) || null, status: "pending", purpose: isPurpose(purpose) ? purpose : "site" });
       await store.audit({ actor, action: "domain.add", target: row.hostname, meta: { purpose: row.purpose } });
       return { ok: true, data: row };
@@ -80,6 +84,7 @@ export function createDomainService({ store, check, now = () => new Date() }: Se
       if (v.label !== undefined) patch.label = v.label.trim().slice(0, 80) || null;
       if (v.purpose !== undefined && isPurpose(v.purpose) && v.purpose !== cur.purpose) {
         if (cur.is_default) return fail("The default domain must stay a site domain. Make another domain the default first.");
+        if (v.purpose === "bio" && (await store.list()).some((d) => d.id !== id && d.purpose === "bio" && d.status !== "disabled")) return fail("There is already a bio domain. Disable or delete it first.");
         patch.purpose = v.purpose;
       }
       if (v.hostname !== undefined) {
@@ -146,6 +151,7 @@ export function createDomainService({ store, check, now = () => new Date() }: Se
       const cur = await store.get(id);
       if (!cur) return fail("Domain not found.");
       if (cur.purpose === "api") return fail("An API domain cannot be the default. It serves the REST API only.");
+      if (cur.purpose === "bio") return fail("A bio domain cannot be the default. It serves bio pages only.");
       if (cur.status !== "active") return fail("Only an active domain can become the default. Run Check & activate first.");
       const all = await store.list();
       const prev = all.find((d) => d.is_default) ?? null;

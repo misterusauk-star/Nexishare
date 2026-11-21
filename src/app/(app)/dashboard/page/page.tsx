@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { query } from "@/lib/db";
-import { getBrand, shortUrl } from "@/lib/brand";
+import { getBrand } from "@/lib/brand";
+import { bioUrl, getDomainState } from "@/lib/domains";
 import { ensurePage, getBlocks, BLOCK_TYPES_P1, BLOCK_TYPES_P2 } from "@/lib/services/pages";
 import { totalsFor } from "@/lib/analytics";
 import { SOCIALS, THEMES } from "@/lib/themes";
@@ -16,6 +17,7 @@ const local = (d: Date | null) => (d ? new Date(d).toISOString().slice(0, 16) : 
 export default async function BioEditor() {
   const user = await requireUser();
   const b = await getBrand();
+  const st = await getDomainState();
   if (!user.username) {
     // No bio page yet: the person picks a name when they want one.
     return (
@@ -39,7 +41,7 @@ export default async function BioEditor() {
     starts_at: local(x.starts_at), ends_at: local(x.ends_at), clicks: totals[x.id]?.total ?? 0,
   }));
   const types = [...BLOCK_TYPES_P1, ...(p2 ? BLOCK_TYPES_P2 : [])] as string[];
-  const address = `${b.url}/${user.username}`;
+  const address = bioUrl(st, user.username);
   return (
     <>
       <div className="page-head">
@@ -47,7 +49,7 @@ export default async function BioEditor() {
         <div className="row">
           <span className="slug">{b.host}<b>/</b>{user.username}</span>
           <CopyButton value={address} label="Copy page address" />
-          <a className="btn" href={shortUrl(b, user.username)} target="_blank" rel="noopener">View page</a>
+          <a className="btn" href={bioUrl(st, user.username)} target="_blank" rel="noopener">View page</a>
         </div>
       </div>
       {page.moderated ? <div className="notice bad" role="alert">An administrator has taken this page offline. Contact {b.supportEmail} if you think this is a mistake.</div> : null}

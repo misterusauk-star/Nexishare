@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { LRU } from "../src/lib/lru.ts";
 import { ClickBuffer } from "../src/lib/click-buffer.ts";
-import { classifyPath, decideHost, effectiveHost, effectiveProto, isPublicContentPath, linkHostFor, normalizeHost } from "../src/lib/host-policy.ts";
+import { classifyPath, decideHost, effectiveHost, effectiveProto, isPublicContentPath, bioHostFor, linkHostFor, normalizeHost } from "../src/lib/host-policy.ts";
 import { applyUtm, checkTargetUrl } from "../src/lib/url-check.ts";
 
 test("LRU evicts least recently used and honours TTL", () => {
@@ -131,4 +131,9 @@ test("applyUtm: adds given tags, replaces existing ones, skips empty, leaves jun
   assert.equal(applyUtm("https://example.com/a", { utm_source: "news", utm_medium: "", utm_campaign: " spring " }), "https://example.com/a?utm_source=news&utm_campaign=spring");
   assert.equal(applyUtm("https://example.com/a?x=1&utm_source=old", { utm_source: "new" }), "https://example.com/a?x=1&utm_source=new");
   assert.equal(applyUtm("not a url", { utm_source: "x" }), "not a url");
+});
+
+test("bioHostFor: the bio domain when there is one, otherwise the default", () => {
+  assert.equal(bioHostFor("Bio.Example.com", "go.example.com"), "bio.example.com");
+  assert.equal(bioHostFor(null, "go.example.com"), "go.example.com");
 });

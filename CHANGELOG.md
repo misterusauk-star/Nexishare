@@ -5,6 +5,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 ## [Unreleased]
 
 ### Added
+- Bio domain: a domain type "Bio pages only" (for example bio.example.com). Bio pages, their redirects and vCards are served only there, short links only on link domains. Bio page URLs (dashboard, admin, QR, vCard, sitemap, canonical tags) follow it. Migration 008.
 - Campaign tags (UTM): a collapsible section on the new-link form and `utm_*` fields in the API are added to the destination URL.
 - Admin > Domains lists short name ideas (go, to, s, u, bio, me, qr, hi) for link domains.
 - Links can live on any active site domain. Dashboard: a Domain dropdown on new and existing links, with the default domain preselected. API: `domain_id` / `domain` on create and update, `GET /api/v1/domains`, and `domain` / `domain_id` in every link response. A link answers only on its own domain; bio pages stay on the default domain. Migration 007.

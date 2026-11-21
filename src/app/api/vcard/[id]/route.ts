@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { queryOne } from "@/lib/db";
 import { getBrand } from "@/lib/brand";
-import { guardRequest, onDefaultHost } from "@/lib/host-guard";
+import { bioUrl, getDomainState } from "@/lib/domains";
+import { guardRequest, onBioHost } from "@/lib/host-guard";
 import { fromHeaders } from "@/lib/request";
 import { recordClick } from "@/lib/analytics";
 import { phase2Enabled } from "@/lib/features";
@@ -15,7 +16,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
   if (!phase2Enabled()) return new NextResponse("Not found", { status: 404 });
   const blocked404 = await guardRequest(req);
   if (blocked404) return blocked404;
-  if (!(await onDefaultHost())) return new NextResponse("Not found", { status: 404 }); // bio content: default domain only
+  if (!(await onBioHost())) return new NextResponse("Not found", { status: 404 }); // bio content: default domain only
   const { id } = await ctx.params;
   const blockId = Number(id);
   if (!Number.isInteger(blockId) || blockId < 1) return new NextResponse("Not found", { status: 404 });
@@ -33,7 +34,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
   if (d.org) lines.push(`ORG:${esc(d.org)}`);
   if (d.phone) lines.push(`TEL;TYPE=CELL:${esc(d.phone)}`);
   if (d.email) lines.push(`EMAIL:${esc(d.email)}`);
-  lines.push(`URL:${b.url}/${row.username}`);
+  lines.push(`URL:${bioUrl(await getDomainState(), row.username)}`);
   if (row.url && /^https?:\/\//i.test(row.url)) lines.push(`URL:${esc(row.url)}`);
   if (d.note) lines.push(`NOTE:${esc(d.note)}`);
   lines.push("END:VCARD");

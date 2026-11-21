@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth";
 import { query, queryOne } from "@/lib/db";
 import { getStats } from "@/lib/analytics";
 import { getBrand, shortUrl } from "@/lib/brand";
+import { bioUrl, getDomainState } from "@/lib/domains";
 import { TimeSeries, StatRow } from "@/components/charts";
 import { CopyButton } from "@/components/client";
 
@@ -11,6 +12,7 @@ export const metadata = { title: "Overview" };
 export default async function Overview() {
   const user = await requireUser();
   const b = await getBrand();
+  const st = await getDomainState();
   const [clicks, views] = await Promise.all([
     getStats({ userId: user.id, kind: "clicks", days: 30 }),
     getStats({ userId: user.id, kind: "views", days: 30 }),
@@ -24,7 +26,7 @@ export default async function Overview() {
       WHERE l.user_id = ? GROUP BY l.id, l.slug, l.title ORDER BY n DESC LIMIT 5`,
     [user.id],
   );
-  const page = user.username ? shortUrl(b, user.username) : null;
+  const page = user.username ? bioUrl(st, user.username) : null;
   const fresh = !Number(counts?.links) && !Number(counts?.blocks);
   return (
     <>

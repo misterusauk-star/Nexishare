@@ -12,9 +12,11 @@ const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const refresh = () => { invalidateDomains(); revalidatePath("/admin/domains"); };
 
 /** Every action re-checks the role against the database. Only a super admin ever reaches the service. */
+const purposeOf = (v: string) => (v === "api" ? "api" : v === "bio" ? "bio" : "site") as "site" | "api" | "bio";
+
 export async function addDomainAction(_: FormState, fd: FormData): Promise<FormState> {
   const me = await requireAdmin();
-  const r = await domainService().add(me.id, s(fd, "hostname"), s(fd, "label"), s(fd, "purpose") === "api" ? "api" : "site");
+  const r = await domainService().add(me.id, s(fd, "hostname"), s(fd, "label"), purposeOf(s(fd, "purpose")));
   refresh();
   if (!r.ok) return { errors: { hostname: r.error } };
   return { ok: true, message: `Added ${r.data.hostname} as pending. Create the subdomain and install SSL in hPanel, then press Check & activate.` };
@@ -22,7 +24,7 @@ export async function addDomainAction(_: FormState, fd: FormData): Promise<FormS
 
 export async function editDomainAction(id: number, _: FormState, fd: FormData): Promise<FormState> {
   const me = await requireAdmin();
-  const r = await domainService().edit(me.id, id, { hostname: s(fd, "hostname"), label: s(fd, "label"), purpose: s(fd, "purpose") === "api" ? "api" : "site" });
+  const r = await domainService().edit(me.id, id, { hostname: s(fd, "hostname"), label: s(fd, "label"), purpose: purposeOf(s(fd, "purpose")) });
   refresh();
   if (!r.ok) return { errors: { hostname: r.error } };
   return { ok: true, message: r.data.status === "pending" ? "Saved. The domain is pending again, so run Check & activate." : "Saved." };

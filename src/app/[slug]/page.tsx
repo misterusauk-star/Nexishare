@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getBrand } from "@/lib/brand";
 import { currentHost, enforceHost } from "@/lib/host-guard";
-import { getDomainState, linkHost } from "@/lib/domains";
+import { bioUrl, getDomainState, linkHost } from "@/lib/domains";
 import { reqInfo } from "@/lib/request";
 import { recordClick } from "@/lib/analytics";
 import { isBlocked } from "@/lib/validation";
@@ -20,6 +20,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   await enforceHost();
   const { slug } = await params;
   const b = await getBrand();
+  const st0 = await getDomainState();
   if (await getLinkBySlug(slug)) return { title: "Link", robots: { index: false, follow: false } }; // cached; no page query for redirects
   const data = await getPublicPage(slug);
   if (!data) return { title: "Link", robots: { index: false, follow: false } };
@@ -28,8 +29,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: name,
     description: desc,
-    alternates: { canonical: `${b.url}/${data.user.username}` },
-    openGraph: { title: name, description: desc, url: `${b.url}/${data.user.username}`, siteName: b.name, type: "profile", images: data.page.avatar_url ? [data.page.avatar_url] : undefined },
+    alternates: { canonical: bioUrl(st0, data.user.username) },
+    openGraph: { title: name, description: desc, url: bioUrl(st0, data.user.username), siteName: b.name, type: "profile", images: data.page.avatar_url ? [data.page.avatar_url] : undefined },
     twitter: { card: "summary", title: name, description: desc },
   };
 }
@@ -48,7 +49,7 @@ export default async function SlugPage({ params, searchParams }: Props) {
   const host = await currentHost();
   const st = await getDomainState();
   if (data) {
-    if (host !== st.defaultHost.toLowerCase()) notFound(); // bio pages live on the default domain only
+    if (host !== st.bioHost.toLowerCase()) notFound(); // bio pages live on the bio domain (or the default when there is none)
     const info = await reqInfo();
     await recordClick({
       type: "page", id: data.page.id, userId: data.user.id, info, ownHost: b.host,

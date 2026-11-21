@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { queryOne } from "@/lib/db";
 import { getBrand, shortUrl } from "@/lib/brand";
-import { getDomainState, linkUrl } from "@/lib/domains";
+import { bioUrl, getDomainState, linkUrl } from "@/lib/domains";
 import { qrPng, qrSvg } from "@/lib/qr";
 import { rateLimit } from "@/lib/ratelimit";
 import { fromHeaders } from "@/lib/request";
@@ -27,7 +27,7 @@ export async function GET(req: Request) {
   const exists = lk || (await queryOne("SELECT 1 FROM users WHERE username = ?", [slug]));
   if (!exists) return new NextResponse("Not found", { status: 404 });
   const brand = await getBrand();
-  const base = lk ? linkUrl(await getDomainState(), lk.domain_id, slug) : shortUrl(brand, slug); // a link's QR points at its own domain
+  const base = lk ? linkUrl(await getDomainState(), lk.domain_id, slug) : bioUrl(await getDomainState(), slug); // a link's QR points at its own domain
   const target = base + (u.searchParams.get("src") === "qr" ? "?utm_source=qr" : "");
   const logoRaw = u.searchParams.get("logo") ?? "";
   const opts = {

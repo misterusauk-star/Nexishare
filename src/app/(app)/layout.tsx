@@ -2,7 +2,8 @@ import "../editor.css";
 import Link from "next/link";
 import { ensureInstalled } from "@/lib/install";
 import { requireUser } from "@/lib/auth";
-import { getBrand, shortUrl } from "@/lib/brand";
+import { getBrand } from "@/lib/brand";
+import { bioUrl, getDomainState } from "@/lib/domains";
 import { getT } from "@/lib/i18n";
 import { NavLinks, type NavItem } from "@/components/nav";
 import { NavToggle, ThemeToggle } from "@/components/client";
@@ -15,7 +16,7 @@ import { ResendButton } from "@/app/(auth)/verify/resend";
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   await ensureInstalled();
   const user = await requireUser();
-  const [b, t] = [await getBrand(), await getT()];
+  const [b, t, st] = [await getBrand(), await getT(), await getDomainState()];
   const p2 = phase2Enabled();
   const nav: NavItem[] = [
     { href: "/dashboard", label: t("nav.overview"), icon: "overview", exact: true },
@@ -48,7 +49,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </nav>
         <div className="side-foot stack-sm">
           <div className="row" style={{ justifyContent: "space-between" }}>
-            {user.username ? <a href={shortUrl(b, user.username)} className="small mono" target="_blank" rel="noopener">/{user.username}</a> : <Link href="/dashboard/page" className="small">Create bio page</Link>}
+            {user.username ? <a href={bioUrl(st, user.username)} className="small mono" target="_blank" rel="noopener">/{user.username}</a> : <Link href="/dashboard/page" className="small">Create bio page</Link>}
             <ThemeToggle />
           </div>
           <form action={logoutAction}><button className="btn btn-sm" style={{ width: "100%" }}>{t("nav.signout")}</button></form>

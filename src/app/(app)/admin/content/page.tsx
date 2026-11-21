@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { query } from "@/lib/db";
-import { getBrand, shortUrl } from "@/lib/brand";
+import { bioUrl, getDomainState } from "@/lib/domains";
 import { ActionButton } from "@/components/client";
 import { AdminLinksTable, type AdminLink } from "@/components/admin-links-table";
 import { moderatePageAction } from "@/app/actions/admin";
@@ -12,7 +12,7 @@ const PER = 50;
 interface P { id: number; username: string; published: number; moderated: number; views: number }
 
 export default async function Content({ searchParams }: { searchParams: Promise<{ q?: string; page?: string }> }) {
-  const brand = await getBrand();
+  const st = await getDomainState();
   const sp = await searchParams;
   const page = Math.max(1, Number(sp.page) || 1);
   const like = `%${(sp.q ?? "").replace(/[%_]/g, "").slice(0, 80)}%`;
@@ -56,7 +56,7 @@ export default async function Content({ searchParams }: { searchParams: Promise<
           <tbody>
             {pages.map((p) => (
               <tr key={p.id}>
-                <td><a href={shortUrl(brand, p.username)} className="slug" target="_blank" rel="noopener"><b>/</b>{p.username}</a></td>
+                <td><a href={bioUrl(st, p.username)} className="slug" target="_blank" rel="noopener"><b>/</b>{p.username}</a></td>
                 <td className="num">{Number(p.views)}</td>
                 <td>{p.moderated ? <span className="badge bad">Removed</span> : p.published ? <span className="badge good">Live</span> : <span className="badge">Draft</span>}</td>
                 <td style={{ textAlign: "right" }}>

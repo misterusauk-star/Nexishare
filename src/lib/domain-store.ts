@@ -31,7 +31,7 @@ export const mysqlDomainStore: DomainStore = {
     await withTx(async (tx) => {
       const [t] = await tx.query<{ status: string; purpose: string }>("SELECT status, purpose FROM site_domains WHERE id = ? FOR UPDATE", [id]);
       if (!t) throw new Error("Domain not found.");
-      if (t.purpose === "api") throw new Error("An API domain cannot be the default.");
+      if (t.purpose === "api" || t.purpose === "bio") throw new Error("An API or bio domain cannot be the default.");
       if (t.status !== "active") throw new Error("Only an active domain can become the default.");
       await tx.exec("UPDATE site_domains SET is_default = 0 WHERE is_default = 1");
       await tx.exec("UPDATE site_domains SET is_default = 1 WHERE id = ?", [id]);

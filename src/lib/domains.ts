@@ -3,7 +3,7 @@ import { LRU } from "./lru.ts";
 import { createDomainService, normalizeHostname, type DomainService } from "./domain-service.ts";
 import { checkDomainHttps } from "./domain-check.ts";
 import { mysqlDomainStore } from "./domain-store";
-import { linkHostFor, normalizeHost } from "./host-policy.ts";
+import { bioHostFor, linkHostFor, normalizeHost } from "./host-policy.ts";
 
 export interface DomainState {
   /** Host of the current default domain, e.g. "go.example.com". */
@@ -14,6 +14,8 @@ export interface DomainState {
   activeHosts: string[];
   /** Active site domains a link may be placed on (id, host, whether it is the default). */
   linkDomains: { id: number; host: string; isDefault: boolean }[];
+  /** Host bio pages answer on: the active bio domain, otherwise the default domain. */
+  bioHost: string;
   /** Hosts of ACTIVE API domains. They serve /api/v1 only. */
   apiHosts: string[];
   /** Origin the REST API is documented on: the first active API domain, otherwise the main domain. */
@@ -54,7 +56,7 @@ export async function getDomainState(): Promise<DomainState> {
   const hit = cache.get("s");
   if (hit) return hit;
   const a = appOrigin();
-  let state: DomainState = { defaultHost: a.host, defaultUrl: a.url, activeHosts: [a.host], linkDomains: [], apiHosts: [], apiUrl: a.url, appHost: a.host, appUrl: a.url };
+  let state: DomainState = { defaultHost: a.host, defaultUrl: a.url, activeHosts: [a.host], linkDomains: [], bioHost: a.host, apiHosts: [], apiUrl: a.url, appHost: a.host, appUrl: a.url };
   if (dbConfigured()) {
     try {
       if (!g.__domSeeded) { await domainService().ensureSeed(a.host); g.__domSeeded = true; }
@@ -63,7 +65,8 @@ export async function getDomainState(): Promise<DomainState> {
       if (def) state = { ...state, defaultHost: def.hostname, defaultUrl: originFor(def.hostname) };
       const active = rows.filter((r) => r.status === "active");
       state.activeHosts = active.filter((r) => r.purpose !== "api").map((r) => r.hostname);
-      state.linkDomains = active.filter((r) => r.purpose !== "api").map((r) => ({ id: Number(r.id), host: r.hostname, isDefault: !!r.is_default }));
+      state.linkDomains = active.filter((r) => r.purpose === "site").map((r) => ({ id: Number(r.id), host: r.hostname, isDefault: !!r.is_default }));
+      state.bioHost = bioHostFor(active.find((r) => r.purpose === "bio")?.hostname, state.defaultHost);
       state.apiHosts = active.filter((r) => r.purpose === "api").map((r) => r.hostname);
       if (state.apiHosts[0]) state.apiUrl = originFor(state.apiHosts[0]);
     } catch {
@@ -82,6 +85,11 @@ export function linkHost(s: DomainState, domainId: number | null | undefined): s
 /** Public URL of a link, built at render time from its domain. */
 export function linkUrl(s: DomainState, domainId: number | null | undefined, slug: string): string {
   return `${originFor(linkHost(s, domainId))}/${slug}`;
+}
+
+/** Public URL of a bio page: on the bio domain when there is one, otherwise on the default domain. */
+export function bioUrl(s: DomainState, username: string): string {
+  return `${originFor(s.bioHost)}/${username}`;
 }
 
 /** Every host this install answers on. Short links must never point at one of these (redirect loops). */

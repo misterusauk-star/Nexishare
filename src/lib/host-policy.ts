@@ -96,6 +96,11 @@ export function effectiveProto(get: (name: string) => string | null | undefined,
 }
 export const trustProxyEnabled = () => (process.env.TRUST_PROXY || "").toLowerCase() === "true";
 
+/** The host bio pages answer on: the bio domain when one is active, otherwise the default domain. */
+export function bioHostFor(bioDomainHost: string | null | undefined, defaultHost: string): string {
+  return normalizeHost(bioDomainHost || defaultHost);
+}
+
 /** The host a link answers on: its chosen active domain, otherwise the default domain. */
 export function linkHostFor(linkDomainHost: string | null | undefined, defaultHost: string): string {
   return normalizeHost(linkDomainHost || defaultHost);

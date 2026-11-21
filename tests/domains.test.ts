@@ -134,3 +134,21 @@ test("API domains: added with a purpose, can never become the default", async ()
   const def = (await svc.list()).find((d) => d.is_default)!;
   assert.equal((await svc.edit(1, def.id, { purpose: "api" })).ok, false); // the default must stay a site domain
 });
+
+test("bio domain: one at a time, never the default", async () => {
+  const { svc } = setup();
+  await svc.ensureSeed("app.example.com");
+  const b = ok(await svc.add(1, "bio.example.com", "Bio", "bio"));
+  assert.equal(b.purpose, "bio");
+  const second = await svc.add(1, "me.example.com", "", "bio");
+  assert.equal(second.ok, false);
+  assert.match((second as { error: string }).error, /already a bio domain/);
+  await svc.checkAndActivate(1, b.id);
+  const r = await svc.makeDefault(1, b.id);
+  assert.equal(r.ok, false);
+  assert.match((r as { error: string }).error, /bio domain/);
+  const l = ok(await svc.add(1, "go.example.com"));
+  assert.equal((await svc.edit(1, l.id, { purpose: "bio" })).ok, false); // already one
+  await svc.disable(1, b.id);
+  assert.equal((await svc.edit(1, l.id, { purpose: "bio" })).ok, true); // the old one is disabled, so a new one is fine
+});

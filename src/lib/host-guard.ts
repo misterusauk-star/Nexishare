@@ -53,13 +53,20 @@ export async function onDefaultHost(): Promise<boolean> {
   return effectiveHost((n) => h.get(n), trustProxyEnabled()) === s.defaultHost.toLowerCase();
 }
 
+/** True when the request arrived on the host bio pages live on (the bio domain, else the default domain). */
+export async function onBioHost(): Promise<boolean> {
+  const h = await headers();
+  const s = await getDomainState();
+  return effectiveHost((n) => h.get(n), trustProxyEnabled()) === s.bioHost.toLowerCase();
+}
+
 /** Host of the current request (forwarded headers honoured only with TRUST_PROXY=true). */
 export async function currentHost(): Promise<string> {
   const h = await headers();
   return effectiveHost((n) => h.get(n), trustProxyEnabled());
 }
 
-/** 404 unless this request arrived on the default domain. Bio pages, block redirects and vCards live there only. */
-export async function requireDefaultHost(): Promise<void> {
-  if (!(await onDefaultHost())) notFound();
+/** 404 unless this request arrived on the bio host. Bio pages, block redirects and vCards live there only. */
+export async function requireBioHost(): Promise<void> {
+  if (!(await onBioHost())) notFound();
 }

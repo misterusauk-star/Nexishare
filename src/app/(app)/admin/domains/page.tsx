@@ -51,7 +51,7 @@ export default async function Domains() {
       <div className="page-head">
         <div>
           <h1>Domains</h1>
-          <p>The main domain (APP_URL) runs the dashboard, admin and sign-in. Short links and bio pages are served only on the default domain. The REST API is accepted only on the API domain. Any other address redirects app pages to the main domain.</p>
+          <p>The main domain (APP_URL) runs the dashboard, admin and sign-in. Short links are served on the default domain and on any other link domain you add. Bio pages are served on the bio domain, or on the default domain when there is none. The REST API is accepted only on the API domain. Any other address redirects app pages to the main domain.</p>
         </div>
       </div>
 
@@ -64,10 +64,11 @@ export default async function Domains() {
             <div className="field">
               <label htmlFor="f-purpose">Used for</label>
               <select id="f-purpose" name="purpose" className="input" defaultValue="site">
-                <option value="site">Short links and bio pages (link domain)</option>
+                <option value="site">Short links (link domain)</option>
+                <option value="bio">Bio pages only (for example bio.example.com)</option>
                 <option value="api">REST API only (for example api.example.com)</option>
               </select>
-              <p className="hint">A link domain redirects its app pages, such as /login, to the main domain. An API domain answers /api/v1 only.</p>
+              <p className="hint">A link domain serves short links. A bio domain serves bio pages only; without one, bio pages use the default domain. An API domain answers /api/v1 only. All of them redirect app pages such as /login to the main domain.</p>
             </div>
           </ActionForm>
           <ol className="steps small">
@@ -104,10 +105,11 @@ export default async function Domains() {
                         <span className={`badge ${st.cls}`}>{st.label}</span>
                         {d.hostname === appHost && <span className="badge">Main (APP_URL)</span>}
                         {d.purpose === "api" && <span className="badge">API</span>}
+                        {d.purpose === "bio" && <span className="badge">Bio pages</span>}
                       </span>
                     </div>
                     {d.label && <p className="small muted dom-line">{d.label}</p>}
-                    {d.purpose !== "api" && (
+                    {d.purpose === "site" && (
                       <p className="small muted dom-line">
                         {(used[d.id] ?? 0).toLocaleString("en-US")} {(used[d.id] ?? 0) === 1 ? "link is" : "links are"} placed on this domain
                         {d.is_default ? `, and ${following.toLocaleString("en-US")} follow the default.` : ". If you disable or delete it, they move to the default domain."}
@@ -127,7 +129,7 @@ export default async function Domains() {
                           <p>If you activate it anyway, visitors may see certificate warnings or errors on this domain. The override is recorded in the audit log.</p>
                         </ConfirmDialog>
                       )}
-                      {d.status === "active" && !d.is_default && d.purpose !== "api" && (
+                      {d.status === "active" && !d.is_default && d.purpose === "site" && (
                         <ConfirmDialog
                           trigger="Make default" title={`Make ${d.hostname} the default domain?`} confirmLabel="Make default"
                           action={makeDefaultAction.bind(null, d.id)} triggerClass="btn btn-sm btn-primary"
@@ -153,7 +155,8 @@ export default async function Domains() {
                         <div className="field">
                           <label htmlFor={`p-${d.id}`}>Used for</label>
                           <select id={`p-${d.id}`} name="purpose" className="input" defaultValue={d.purpose} disabled={d.is_default}>
-                            <option value="site">Short links and bio pages</option>
+                            <option value="site">Short links</option>
+                            <option value="bio">Bio pages only</option>
                             <option value="api">REST API only</option>
                           </select>
                         </div>

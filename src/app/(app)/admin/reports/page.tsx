@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { query } from "@/lib/db";
-import { getBrand, shortUrl } from "@/lib/brand";
-import { getDomainState, linkUrl } from "@/lib/domains";
+import { bioUrl, getDomainState, linkUrl } from "@/lib/domains";
 import { ActionButton, ConfirmButton } from "@/components/client";
 import { resolveReportAction, takeDownReportedAction } from "@/app/actions/admin";
 import { blocklistDestinationAction, suspendOwnerAction } from "@/app/actions/slugs";
@@ -22,7 +21,6 @@ export default async function Reports({ searchParams }: { searchParams: Promise<
        LEFT JOIN users u ON r.target_type = 'page' AND u.username = r.target_slug
       ${status === "open" ? "WHERE r.status = 'open'" : ""} ORDER BY r.id DESC LIMIT 200`,
   );
-  const brand = await getBrand();
   const st = await getDomainState();
   return (
     <>
@@ -42,7 +40,7 @@ export default async function Reports({ searchParams }: { searchParams: Promise<
             {rows.map((r) => (
               <tr key={r.id}>
                 <td>
-                  <a href={r.target_type === "link" ? linkUrl(st, r.domain_id, r.target_slug) : shortUrl(brand, r.target_slug)} className="slug" target="_blank" rel="noopener"><b>/</b>{r.target_slug}</a>
+                  <a href={r.target_type === "link" ? linkUrl(st, r.domain_id, r.target_slug) : bioUrl(st, r.target_slug)} className="slug" target="_blank" rel="noopener"><b>/</b>{r.target_slug}</a>
                   <div className="small muted">{r.target_type === "link" ? "Short link" : "Bio page"}</div>
                 </td>
                 <td style={{ maxWidth: 360 }}>{r.reason}{r.details && <div className="small muted" style={{ overflowWrap: "anywhere" }}>{r.details}</div>}</td>

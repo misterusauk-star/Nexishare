@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { query, queryOne } from "@/lib/db";
-import { getBrand, shortUrl } from "@/lib/brand";
+import { bioUrl, getDomainState } from "@/lib/domains";
 import { ActionButton, ConfirmButton } from "@/components/client";
 import { deleteUserAction, setUserRoleAction, setUserStatusAction } from "@/app/actions/admin";
 
@@ -13,7 +13,7 @@ interface U { id: number; email: string; username: string | null; role: string; 
 const day = (d: Date | null) => (d ? new Date(d).toISOString().slice(0, 10) : "Never");
 
 export default async function Users({ searchParams }: { searchParams: Promise<{ q?: string; page?: string }> }) {
-  const brand = await getBrand();
+  const st = await getDomainState();
   const me = await requireAdmin();
   const sp = await searchParams;
   const page = Math.max(1, Number(sp.page) || 1);
@@ -45,7 +45,7 @@ export default async function Users({ searchParams }: { searchParams: Promise<{ 
             {rows.map((u) => (
               <tr key={u.id}>
                 <td>
-                  {u.username ? <a href={shortUrl(brand, u.username)} target="_blank" rel="noopener">{u.username}</a> : <span className="muted">No bio page</span>}
+                  {u.username ? <a href={bioUrl(st, u.username)} target="_blank" rel="noopener">{u.username}</a> : <span className="muted">No bio page</span>}
                   {u.status === "suspended" && <> <span className="badge bad">Suspended</span></>}
                   {!u.email_verified_at && <> <span className="badge">Unverified</span></>}
                   <div className="small muted">{u.email}</div>
