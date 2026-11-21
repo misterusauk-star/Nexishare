@@ -5,7 +5,7 @@ export function normalizeHost(h: string): string {
   return String(h ?? "").trim().toLowerCase().replace(/:\d+$/, "").replace(/\.$/, "");
 }
 
-const STATIC_SEGMENTS = new Set(["_next", "uploads", "favicon.ico", "robots.txt", "sitemap.xml", "icon.svg", "manifest.json", "manifest.webmanifest", ".well-known", "static", "assets"]);
+const STATIC_SEGMENTS = new Set(["_next", "uploads", "favicon.ico", "robots.txt", "sitemap.xml", "llms.txt", "icon.svg", "manifest.json", "manifest.webmanifest", ".well-known", "static", "assets"]);
 
 export type PathClass = "public" | "static" | "api" | "api-v1" | "page";
 

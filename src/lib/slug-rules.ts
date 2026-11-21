@@ -4,7 +4,7 @@
  */
 
 /** Static paths that must never be claimed as a slug. */
-export const STATIC_RESERVED = ["_next", "static", "assets", "uploads", "favicon.ico", "robots.txt", "sitemap.xml", "manifest.json", "manifest.webmanifest", ".well-known"];
+export const STATIC_RESERVED = ["_next", "static", "assets", "uploads", "favicon.ico", "robots.txt", "sitemap.xml", "llms.txt", "manifest.json", "manifest.webmanifest", ".well-known"];
 
 /**
  * Every top-level route segment of the Next.js app (src/app, route groups flattened) plus a few legacy names.

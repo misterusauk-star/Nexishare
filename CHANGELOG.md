@@ -5,6 +5,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 ## [Unreleased]
 
 ### Added
+- `llms.txt` on every domain (a plain-text map for language models: product and docs on the main domain, public pages on the bio domain). `robots.txt` is now per domain: link and API domains disallow everything, the bio domain allows bio pages only. `sitemap.xml` lists site pages on the main domain and bio pages on the bio host, with change frequency and priority.
 - Bio domain: a domain type "Bio pages only" (for example bio.example.com). Bio pages, their redirects and vCards are served only there, short links only on link domains. Bio page URLs (dashboard, admin, QR, vCard, sitemap, canonical tags) follow it. Migration 008.
 - Campaign tags (UTM): a collapsible section on the new-link form and `utm_*` fields in the API are added to the destination URL.
 - Admin > Domains lists short name ideas (go, to, s, u, bio, me, qr, hi) for link domains.

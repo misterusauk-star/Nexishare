@@ -14,7 +14,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const onApp = host === st.appHost.toLowerCase();
   const onBio = host === st.bioHost.toLowerCase();
   if (!onApp && !onBio) return [];
-  const out: MetadataRoute.Sitemap = onApp ? ["", "/terms", "/privacy", "/docs"].map((p) => ({ url: `${b.appUrl}${p}` })) : [];
+  const out: MetadataRoute.Sitemap = onApp ? [["", 1], ["/docs", 0.8], ["/terms", 0.3], ["/privacy", 0.3]].map(([p, priority]) => ({ url: `${b.appUrl}${p}`, changeFrequency: "monthly" as const, priority: priority as number })) : [];
   if (!onBio) return out;
   try {
     // Published bio pages only. Short links are never listed.
@@ -22,7 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       `SELECT u.username, p.created_at FROM pages p JOIN users u ON u.id = p.user_id
         WHERE p.published = 1 AND p.moderated = 0 AND u.status = 'active' AND u.username IS NOT NULL ORDER BY p.created_at DESC LIMIT 5000`,
     );
-    for (const r of rows) out.push({ url: bioUrl(st, r.username), lastModified: r.created_at });
+    for (const r of rows) out.push({ url: bioUrl(st, r.username), lastModified: r.created_at, changeFrequency: "weekly", priority: 0.6 });
   } catch {
     // Before install the tables do not exist; the static entries are enough.
   }

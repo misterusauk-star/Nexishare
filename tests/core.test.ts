@@ -137,3 +137,10 @@ test("bioHostFor: the bio domain when there is one, otherwise the default", () =
   assert.equal(bioHostFor("Bio.Example.com", "go.example.com"), "bio.example.com");
   assert.equal(bioHostFor(null, "go.example.com"), "go.example.com");
 });
+
+test("crawler files are static on every host: robots.txt, sitemap.xml, llms.txt", () => {
+  for (const p of ["/robots.txt", "/sitemap.xml", "/llms.txt"]) {
+    assert.equal(classifyPath(p), "static", p);
+    assert.deepEqual(d("api.example.com", p), allow, p);
+  }
+});
