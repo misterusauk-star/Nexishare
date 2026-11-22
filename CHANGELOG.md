@@ -5,6 +5,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 ## [Unreleased]
 
 ### Added
+- Click limit per link (`max_clicks`): after that many visits the link behaves as expired and can redirect to `expired_url`. Counted atomically, so the last click is never shared. Dashboard field on new and existing links, API field, `click_count` in responses, docs section. Migration 011.
 - Scheduling: `starts_in` / `expires_in` (30m, 12h, 7d, 2w) in the API, explicit defaults (no start = live now, no expiry = never), start/expiry order checked on update too, and a `status` field on every link in API responses. New docs sections "Scheduling" and "Device destinations" with examples.
 - Device destinations now cover Windows, macOS and Linux as well as iPhone/iPad and Android (`windows_url`, `mac_url`, `linux_url`). Migration 010.
 - Smart destinations per link: iPhone/iPad and Android visitors can go to their own URL (for example an app store page), and an expired link can redirect to a fallback URL instead of the expired notice. Dashboard: "Different destinations" on new and existing links. API: `ios_url`, `android_url`, `expired_url`. Migration 009.

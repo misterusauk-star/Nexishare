@@ -208,3 +208,16 @@ test("resolveSchedule rejects conflicts and bad order", () => {
   assert.equal(resolveSchedule({ expires_in: "xx" }).ok, false);
   assert.equal(resolveSchedule({ starts_at: new Date(2000), expires_at: new Date(1000) }).ok, false);
 });
+
+import { clicksExhausted, clicksLeft } from "../src/lib/click-limit.ts";
+
+test("click limit helpers", () => {
+  assert.equal(clicksExhausted(null, 999), false);
+  assert.equal(clicksExhausted(undefined, 0), false);
+  assert.equal(clicksExhausted(5, 4), false);
+  assert.equal(clicksExhausted(5, 5), true);
+  assert.equal(clicksExhausted(5, 9), true);
+  assert.equal(clicksLeft(null, 3), null);
+  assert.equal(clicksLeft(5, 2), 3);
+  assert.equal(clicksLeft(5, 9), 0);
+});

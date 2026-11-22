@@ -248,6 +248,7 @@ export default async function Docs() {
           <a href="#fields">Link fields</a>
           <a href="#schedule">Scheduling</a>
           <a href="#devices">Device destinations</a>
+          <a href="#limit">Click limit</a>
           <a href="#create">Create a link</a>
           <a href="#get">Get a link</a>
           <a href="#update">Update a link</a>
@@ -352,6 +353,7 @@ curl -X PATCH ${base}/links/12 \\
                   <Field name="starts_at" type="string | null">When the link goes live. Leave it out, or send <code>null</code>, to start at once. Before this time visitors see a not-live-yet page.</Field>
                   <Field name="starts_in" type="string">Relative start: <code>30m</code>, <code>12h</code>, <code>7d</code> or <code>2w</code>, counted from now. Use instead of <code>starts_at</code>, not together with it.</Field>
                   <Field name="expires_in" type="string">Relative expiry, same format, counted from the start time (or from now when there is no start). Use instead of <code>expires_at</code>.</Field>
+                  <Field name="max_clicks" type="integer | null">Optional click limit, 1 to 1,000,000,000. After this many visits the link behaves as expired (it goes to <code>expired_url</code> when set). Leave it out, or send <code>null</code>, for unlimited. Visits are counted only for links that have a limit.</Field>
                   <Field name="expires_at" type="string | null">When the link stops working. Leave it out, or send <code>null</code>, for no expiry. Must be later than <code>starts_at</code>.</Field>
                   <Field name="enabled" type="boolean">Default <code>true</code>. <code>false</code> pauses the link.</Field>
                   <Field name="domain_id" type="number | null">Which domain the short link lives on, by id from <code>GET /domains</code>. Leave it out, or send <code>null</code>, to use the default domain.</Field>
@@ -412,6 +414,13 @@ await fetch("${base}/links", {
 # Python
 requests.post("${base}/links", headers={"Authorization": "Bearer ob_your_key"},
   json={"target_url": "https://example.com/app", "ios_url": "https://apps.apple.com/app/id1", "linux_url": "https://example.com/linux", "expires_in": "2w"}, timeout=15)`}</pre>
+          </section>
+
+          <section id="limit">
+            <h2>Click limit</h2>
+            <p>Set <code>max_clicks</code> to stop a link after a number of visits, for example a coupon for the first 100 people. The count is exact: two visitors can never take the same last click. When the limit is used up the link shows <code>status: "expired"</code>, visitors see the expired notice or are sent to <code>expired_url</code>, and the response shows <code>click_count</code> next to <code>max_clicks</code>. On update, send a higher number to extend it, or <code>null</code> to remove the limit.</p>
+            <pre className="code">{`curl -X POST ${base}/links -H "Authorization: Bearer ob_your_key" -H "Content-Type: application/json" \\
+  -d '{ "target_url": "https://example.com/coupon", "max_clicks": 100, "expires_in": "7d", "expired_url": "https://example.com/sold-out" }'`}</pre>
           </section>
 
           <Endpoint id="create" method="post" path="/links">

@@ -9,7 +9,7 @@ import { recordClick } from "@/lib/analytics";
 import { pickDestination } from "@/lib/smart-link.ts";
 import { isBlocked } from "@/lib/validation";
 import { getLinkBySlug, getPublicPage } from "@/lib/services/public";
-import { linkState } from "@/lib/services/links";
+import { linkState, takeClick } from "@/lib/services/links";
 import { PublicPageView } from "@/components/public-page";
 import { ActionForm, Field } from "@/components/client";
 import { unlockLinkAction } from "@/app/actions/public";
@@ -86,6 +86,11 @@ export default async function SlugPage({ params, searchParams }: Props) {
   }
 
   const info = await reqInfo();
+  // A link with a click limit takes one of its visits first; when none are left it behaves like an expired link.
+  if (link.max_clicks != null && !(await takeClick(link.id))) {
+    if (link.expired_url && link.owner_active && !(await isBlocked(link.expired_url))) redirect(link.expired_url);
+    return <Gone state="expired" slug={slug} />;
+  }
   await recordClick({
     type: "link", id: link.id, userId: link.user_id, info, ownHost: b.host,
     utm: { source: first(sp.utm_source), medium: first(sp.utm_medium), campaign: first(sp.utm_campaign) },

@@ -57,6 +57,7 @@ export default async function LinkDetail({ params, searchParams }: { params: Pro
               <Field label="Starts (UTC)" name="starts_at" type="datetime-local" defaultValue={iso(link.starts_at)} />
               <Field label="Expires (UTC)" name="expires_at" type="datetime-local" defaultValue={iso(link.expires_at)} />
             </div>
+            <Field label="Click limit" name="max_clicks" type="number" min={1} max={1000000000} inputMode="numeric" placeholder="Unlimited" defaultValue={link.max_clicks ?? ""} hint={link.max_clicks != null ? `${Number(link.click_count ?? 0)} of ${link.max_clicks} used. Empty = unlimited.` : "Optional. After this many visits the link behaves as expired."} />
             <details className="utm" open={!!(link.ios_url || link.android_url || link.windows_url || link.mac_url || link.linux_url || link.expired_url)}>
               <summary className="small link-like">Different destinations by device (optional)</summary>
               <p className="small muted">Send visitors on iPhone, Android, Windows, Mac or Linux to their own page, for example an app store listing or a download page, and choose where an expired link goes instead of the expired notice.</p>

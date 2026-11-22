@@ -52,6 +52,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
             <Field label="Starts (UTC)" name="starts_at" type="datetime-local" hint="Leave empty to go live right away." />
             <Field label="Expires (UTC)" name="expires_at" type="datetime-local" hint="Leave empty for no expiry." />
           </div>
+          <Field label="Click limit" name="max_clicks" type="number" min={1} max={1000000000} inputMode="numeric" placeholder="Unlimited" hint="Optional. After this many visits the link behaves as expired." />
             <details className="utm">
               <summary className="small link-like">Different destinations by device (optional)</summary>
               <p className="small muted">Send visitors on iPhone, Android, Windows, Mac or Linux to their own page, for example an app store listing or a download page, and choose where an expired link goes instead of the expired notice.</p>

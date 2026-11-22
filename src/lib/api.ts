@@ -62,6 +62,9 @@ export function linkJson(l: LinkRow, st: DomainState) {
     title: l.title,
     password_protected: !!l.password_hash,
     enabled: !!l.enabled && !l.moderated,
+    // max_clicks: null = unlimited. click_count only counts visits for links that have a limit.
+    max_clicks: l.max_clicks ?? null,
+    click_count: l.max_clicks != null ? Number(l.click_count ?? 0) : null,
     // status: active | scheduled | expired | disabled | review | moderated
     status: linkState(l),
     // null starts_at = live immediately, null expires_at = never expires.

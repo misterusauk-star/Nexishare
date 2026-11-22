@@ -98,16 +98,17 @@ export function ActionForm({
 }
 
 export function Field({
-  label, name, error, hint, type = "text", defaultValue, required, autoComplete, placeholder, prefix, textarea, maxLength, rows,
+  label, name, error, hint, type = "text", defaultValue, required, autoComplete, placeholder, prefix, textarea, maxLength, rows, min, max, inputMode,
 }: {
   label: string; name: string; error?: string; hint?: string; type?: string; defaultValue?: string | number | null;
   required?: boolean; autoComplete?: string; placeholder?: string; prefix?: string; textarea?: boolean; maxLength?: number; rows?: number;
+  min?: number; max?: number; inputMode?: "numeric" | "text" | "email" | "url" | "decimal";
 }) {
   const ctx = useContext(ErrCtx);
   error = error ?? ctx[name];
   const id = `f-${name}`;
   const common = {
-    id, name, required, autoComplete, placeholder, maxLength,
+    id, name, required, autoComplete, placeholder, maxLength, min, max, inputMode,
     defaultValue: defaultValue ?? undefined,
     "aria-invalid": error ? true : undefined,
     "aria-describedby": error ? `${id}-e` : hint ? `${id}-h` : undefined,

@@ -12,7 +12,7 @@ import { reqInfo } from "@/lib/request";
 import { recordClick } from "@/lib/analytics";
 import { emailSchema, fieldErrors, isBlocked } from "@/lib/validation";
 import { getLinkBySlug } from "@/lib/services/public";
-import { linkState } from "@/lib/services/links";
+import { linkState, takeClick } from "@/lib/services/links";
 import { pickDestination } from "@/lib/smart-link.ts";
 import { sendEmail } from "@/lib/email/mailer";
 import { submitReport } from "@/lib/services/reports";
@@ -31,6 +31,10 @@ export async function unlockLinkAction(slug: string, _: FormState, fd: FormData)
   const dest = pickDestination(link, info.ua);
   const blocked = await isBlocked(dest);
   if (blocked) return { errors: { password: "This link has been blocked." } };
+  if (link.max_clicks != null && !(await takeClick(link.id))) {
+    if (link.expired_url && !(await isBlocked(link.expired_url))) redirect(link.expired_url);
+    return { errors: { password: "This link is no longer available." } };
+  }
   const b = await getBrand();
   await recordClick({ type: "link", id: link.id, userId: link.user_id, info, ownHost: b.host });
   redirect(dest);

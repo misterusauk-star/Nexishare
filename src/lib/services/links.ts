@@ -12,6 +12,7 @@ import { getDomainState } from "../domains";
 import { applyUtm } from "../url-check";
 import { rateLimit } from "../ratelimit";
 import { resolveSchedule } from "../duration";
+import { clicksExhausted, MAX_CLICK_LIMIT } from "../click-limit";
 
 export type Result<T> = { ok: true; data: T } | { ok: false; errors: Record<string, string> };
 
@@ -31,6 +32,8 @@ export interface LinkRow {
   windows_url?: string | null;
   mac_url?: string | null;
   linux_url?: string | null;
+  max_clicks?: number | null;
+  click_count?: number;
   expires_at: Date | null;
   starts_at: Date | null;
   enabled: number;
@@ -65,6 +68,8 @@ export const linkInput = z.object({
   // Relative scheduling: starts_in counts from now, expires_in from the start (or now). Examples: 30m, 12h, 7d, 2w.
   starts_in: z.string().trim().max(20).nullish(),
   expires_in: z.string().trim().max(20).nullish(),
+  // Optional click limit: the link behaves as expired after this many visits. Missing or null = unlimited.
+  max_clicks: z.coerce.number("Enter a whole number of 1 or more.").int("Enter a whole number of 1 or more.").min(1, "Enter a whole number of 1 or more.").max(MAX_CLICK_LIMIT, "That number is too large.").nullish(),
   enabled: z.boolean().optional(),
   group_id: z.coerce.number().int().positive().nullish(),
   team_id: z.coerce.number().int().positive().nullish(),
@@ -177,8 +182,8 @@ export async function createLink(userId: number, ownHost: string, raw: unknown):
   // Suspicious names wait in the admin review queue and stay inactive until approved. Admins skip the queue.
   const queued = review !== null && !(await isAdminUser(userId));
   const res = await exec(
-    "INSERT INTO links (user_id, team_id, group_id, domain_id, slug, title, target_url, ios_url, android_url, windows_url, mac_url, linux_url, expired_url, password_hash, expires_at, starts_at, enabled, review_status, review_reason, checked_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())",
-    [userId, v.team_id ?? null, v.group_id ?? null, dom.id, slug, v.title, u.url, extras.urls.ios_url ?? null, extras.urls.android_url ?? null, extras.urls.windows_url ?? null, extras.urls.mac_url ?? null, extras.urls.linux_url ?? null, extras.urls.expired_url ?? null, pw, sched.expires_at, sched.starts_at, v.enabled === false ? 0 : 1, queued ? "pending" : "none", queued ? review : null],
+    "INSERT INTO links (user_id, team_id, group_id, domain_id, slug, title, target_url, ios_url, android_url, windows_url, mac_url, linux_url, expired_url, max_clicks, password_hash, expires_at, starts_at, enabled, review_status, review_reason, checked_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())",
+    [userId, v.team_id ?? null, v.group_id ?? null, dom.id, slug, v.title, u.url, extras.urls.ios_url ?? null, extras.urls.android_url ?? null, extras.urls.windows_url ?? null, extras.urls.mac_url ?? null, extras.urls.linux_url ?? null, extras.urls.expired_url ?? null, v.max_clicks ?? null, pw, sched.expires_at, sched.starts_at, v.enabled === false ? 0 : 1, queued ? "pending" : "none", queued ? review : null],
   );
   invalidateSlug(slug);
   const row = await queryOne<LinkRow>("SELECT * FROM links WHERE id = ?", [res.insertId]);
@@ -234,6 +239,7 @@ export async function updateLink(userId: number, id: number, ownHost: string, ra
     if (touchStart) { sets.push("starts_at = ?"); vals.push(sched.starts_at); }
     if (touchExpiry) { sets.push("expires_at = ?"); vals.push(sched.expires_at); }
   }
+  if (raw && typeof raw === "object" && "max_clicks" in raw) { sets.push("max_clicks = ?"); vals.push(v.max_clicks ?? null); }
   if (v.enabled !== undefined) { sets.push("enabled = ?"); vals.push(v.enabled ? 1 : 0); }
   if (raw && typeof raw === "object" && ("domain_id" in raw || "domain" in raw)) {
     const dom = await resolveDomain(v);
@@ -294,12 +300,22 @@ export async function listLinks(o: ListOpts): Promise<{ rows: LinkRow[]; total: 
 }
 
 export type LinkState = "active" | "disabled" | "expired" | "scheduled" | "moderated" | "review";
-export function linkState(l: Pick<LinkRow, "enabled" | "moderated" | "expires_at" | "starts_at"> & { review_status?: string }): LinkState {
+export function linkState(l: Pick<LinkRow, "enabled" | "moderated" | "expires_at" | "starts_at"> & Partial<Pick<LinkRow, "max_clicks" | "click_count">> & { review_status?: string }): LinkState {
   if (l.moderated || l.review_status === "rejected") return "moderated";
   if (l.review_status === "pending") return "review";
   if (!l.enabled) return "disabled";
   const now = Date.now();
   if (l.expires_at && new Date(l.expires_at).getTime() <= now) return "expired";
+  if (clicksExhausted(l.max_clicks, l.click_count)) return "expired";
   if (l.starts_at && new Date(l.starts_at).getTime() > now) return "scheduled";
   return "active";
+}
+
+/**
+ * Counts one visit against the link's limit. Atomic, so two visitors cannot both take the last click.
+ * Only call it for links that have a limit. Returns false when the limit is already used up.
+ */
+export async function takeClick(id: number): Promise<boolean> {
+  const r = await exec("UPDATE links SET click_count = click_count + 1 WHERE id = ? AND max_clicks IS NOT NULL AND click_count < max_clicks", [id]);
+  return r.affectedRows > 0;
 }
