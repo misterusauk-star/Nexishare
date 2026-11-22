@@ -4,7 +4,7 @@ import { ipHash, sha256 } from "./crypto";
 import { rateLimit } from "./ratelimit";
 import { getSetting } from "./settings";
 import { fromHeaders } from "./request";
-import type { LinkRow } from "./services/links";
+import { linkState, type LinkRow } from "./services/links";
 import { linkHost, linkUrl, type DomainState } from "./domains";
 
 export interface ApiUser { id: number; username: string | null; role: "super_admin" | "user"; keyId: number }
@@ -62,6 +62,9 @@ export function linkJson(l: LinkRow, st: DomainState) {
     title: l.title,
     password_protected: !!l.password_hash,
     enabled: !!l.enabled && !l.moderated,
+    // status: active | scheduled | expired | disabled | review | moderated
+    status: linkState(l),
+    // null starts_at = live immediately, null expires_at = never expires.
     starts_at: l.starts_at ? new Date(l.starts_at).toISOString() : null,
     expires_at: l.expires_at ? new Date(l.expires_at).toISOString() : null,
     created_at: new Date(l.created_at).toISOString(),

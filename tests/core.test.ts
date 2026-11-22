@@ -173,3 +173,38 @@ test("smart links: desktop platforms and look-alike user agents", async () => {
   assert.equal(pickDestination(link, mac), "https://x.com/"); // no Mac URL: normal destination
   assert.equal(pickDestination(link, android), "https://x.com/"); // Android is not Linux
 });
+
+import { parseDuration, resolveSchedule } from "../src/lib/duration.ts";
+
+test("parseDuration accepts m/h/d/w and rejects junk", () => {
+  assert.equal(parseDuration("30m"), 30 * 60_000);
+  assert.equal(parseDuration("12h"), 12 * 3_600_000);
+  assert.equal(parseDuration("7d"), 7 * 86_400_000);
+  assert.equal(parseDuration("2w"), 14 * 86_400_000);
+  for (const bad of ["", "0d", "-1d", "7", "d", "1.5h", "5y", "99999d"]) assert.equal(parseDuration(bad), null, bad);
+});
+
+test("resolveSchedule defaults: no start = now, no expiry = never", () => {
+  const r = resolveSchedule({});
+  assert.deepEqual(r, { ok: true, starts_at: null, expires_at: null });
+});
+
+test("resolveSchedule relative values", () => {
+  const now = Date.UTC(2026, 0, 1);
+  const r = resolveSchedule({ starts_in: "1d", expires_in: "7d" }, now);
+  assert.ok(r.ok);
+  if (r.ok) {
+    assert.equal(r.starts_at?.getTime(), now + 86_400_000);
+    assert.equal(r.expires_at?.getTime(), now + 8 * 86_400_000);
+  }
+  const e = resolveSchedule({ expires_in: "2h" }, now);
+  assert.ok(e.ok && e.expires_at?.getTime() === now + 7_200_000 && e.starts_at === null);
+});
+
+test("resolveSchedule rejects conflicts and bad order", () => {
+  const d = new Date();
+  assert.equal(resolveSchedule({ starts_at: d, starts_in: "1d" }).ok, false);
+  assert.equal(resolveSchedule({ expires_at: d, expires_in: "1d" }).ok, false);
+  assert.equal(resolveSchedule({ expires_in: "xx" }).ok, false);
+  assert.equal(resolveSchedule({ starts_at: new Date(2000), expires_at: new Date(1000) }).ok, false);
+});

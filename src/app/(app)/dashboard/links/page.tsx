@@ -49,8 +49,8 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
             <Field label="Label" name="title" hint="Only you see this." maxLength={160} />
           </div>
           <div className="grid2">
-            <Field label="Starts (UTC)" name="starts_at" type="datetime-local" />
-            <Field label="Expires (UTC)" name="expires_at" type="datetime-local" />
+            <Field label="Starts (UTC)" name="starts_at" type="datetime-local" hint="Leave empty to go live right away." />
+            <Field label="Expires (UTC)" name="expires_at" type="datetime-local" hint="Leave empty for no expiry." />
           </div>
             <details className="utm">
               <summary className="small link-like">Different destinations by device (optional)</summary>

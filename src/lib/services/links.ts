@@ -11,6 +11,7 @@ import { getBrand } from "../brand";
 import { getDomainState } from "../domains";
 import { applyUtm } from "../url-check";
 import { rateLimit } from "../ratelimit";
+import { resolveSchedule } from "../duration";
 
 export type Result<T> = { ok: true; data: T } | { ok: false; errors: Record<string, string> };
 
@@ -61,6 +62,9 @@ export const linkInput = z.object({
   password: z.string().max(100).optional().transform((s) => s || undefined),
   expires_at: optionalDate,
   starts_at: optionalDate,
+  // Relative scheduling: starts_in counts from now, expires_in from the start (or now). Examples: 30m, 12h, 7d, 2w.
+  starts_in: z.string().trim().max(20).nullish(),
+  expires_in: z.string().trim().max(20).nullish(),
   enabled: z.boolean().optional(),
   group_id: z.coerce.number().int().positive().nullish(),
   team_id: z.coerce.number().int().positive().nullish(),
@@ -167,13 +171,14 @@ export async function createLink(userId: number, ownHost: string, raw: unknown):
     }
     if (!slug) return { ok: false, errors: { slug: "Could not generate a free short name. Try again." } };
   }
-  if (v.starts_at && v.expires_at && v.expires_at <= v.starts_at) return { ok: false, errors: { expires_at: "Expiry must be after the start date." } };
+  const sched = resolveSchedule(v);
+  if (!sched.ok) return { ok: false, errors: { [sched.field]: sched.error } };
   const pw = v.password ? await hashPassword(v.password) : null;
   // Suspicious names wait in the admin review queue and stay inactive until approved. Admins skip the queue.
   const queued = review !== null && !(await isAdminUser(userId));
   const res = await exec(
     "INSERT INTO links (user_id, team_id, group_id, domain_id, slug, title, target_url, ios_url, android_url, windows_url, mac_url, linux_url, expired_url, password_hash, expires_at, starts_at, enabled, review_status, review_reason, checked_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())",
-    [userId, v.team_id ?? null, v.group_id ?? null, dom.id, slug, v.title, u.url, extras.urls.ios_url ?? null, extras.urls.android_url ?? null, extras.urls.windows_url ?? null, extras.urls.mac_url ?? null, extras.urls.linux_url ?? null, extras.urls.expired_url ?? null, pw, v.expires_at, v.starts_at, v.enabled === false ? 0 : 1, queued ? "pending" : "none", queued ? review : null],
+    [userId, v.team_id ?? null, v.group_id ?? null, dom.id, slug, v.title, u.url, extras.urls.ios_url ?? null, extras.urls.android_url ?? null, extras.urls.windows_url ?? null, extras.urls.mac_url ?? null, extras.urls.linux_url ?? null, extras.urls.expired_url ?? null, pw, sched.expires_at, sched.starts_at, v.enabled === false ? 0 : 1, queued ? "pending" : "none", queued ? review : null],
   );
   invalidateSlug(slug);
   const row = await queryOne<LinkRow>("SELECT * FROM links WHERE id = ?", [res.insertId]);
@@ -214,8 +219,21 @@ export async function updateLink(userId: number, id: number, ownHost: string, ra
     if (pw === "") { sets.push("password_hash = NULL"); }
     else if (pw) { sets.push("password_hash = ?"); vals.push(await hashPassword(pw)); }
   }
-  if (raw && typeof raw === "object" && "expires_at" in raw) { sets.push("expires_at = ?"); vals.push(v.expires_at ?? null); }
-  if (raw && typeof raw === "object" && "starts_at" in raw) { sets.push("starts_at = ?"); vals.push(v.starts_at ?? null); }
+  const has = (k: string) => !!raw && typeof raw === "object" && k in raw;
+  const touchStart = has("starts_at") || has("starts_in");
+  const touchExpiry = has("expires_at") || has("expires_in");
+  if (touchStart || touchExpiry) {
+    // Keep the side that was not mentioned; a null/empty value clears it (no start = live now, no expiry = never expires).
+    const sched = resolveSchedule({
+      starts_at: touchStart ? v.starts_at ?? null : cur.starts_at ? new Date(cur.starts_at) : null,
+      expires_at: touchExpiry ? v.expires_at ?? null : cur.expires_at ? new Date(cur.expires_at) : null,
+      starts_in: touchStart ? v.starts_in : null,
+      expires_in: touchExpiry ? v.expires_in : null,
+    });
+    if (!sched.ok) return { ok: false, errors: { [sched.field]: sched.error } };
+    if (touchStart) { sets.push("starts_at = ?"); vals.push(sched.starts_at); }
+    if (touchExpiry) { sets.push("expires_at = ?"); vals.push(sched.expires_at); }
+  }
   if (v.enabled !== undefined) { sets.push("enabled = ?"); vals.push(v.enabled ? 1 : 0); }
   if (raw && typeof raw === "object" && ("domain_id" in raw || "domain" in raw)) {
     const dom = await resolveDomain(v);

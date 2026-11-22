@@ -246,6 +246,8 @@ export default async function Docs() {
           <a href="#bulk">Bulk create</a>
           <a href="#list">List links</a>
           <a href="#fields">Link fields</a>
+          <a href="#schedule">Scheduling</a>
+          <a href="#devices">Device destinations</a>
           <a href="#create">Create a link</a>
           <a href="#get">Get a link</a>
           <a href="#update">Update a link</a>
@@ -348,6 +350,8 @@ curl -X PATCH ${base}/links/12 \\
                   <Field name="title" type="string">Up to 160 characters. Only for your own reference.</Field>
                   <Field name="password" type="string">Up to 100 characters. On update, send <code>""</code> to remove protection.</Field>
                   <Field name="starts_at" type="string | null">When the link goes live. Leave it out, or send <code>null</code>, to start at once. Before this time visitors see a not-live-yet page.</Field>
+                  <Field name="starts_in" type="string">Relative start: <code>30m</code>, <code>12h</code>, <code>7d</code> or <code>2w</code>, counted from now. Use instead of <code>starts_at</code>, not together with it.</Field>
+                  <Field name="expires_in" type="string">Relative expiry, same format, counted from the start time (or from now when there is no start). Use instead of <code>expires_at</code>.</Field>
                   <Field name="expires_at" type="string | null">When the link stops working. Leave it out, or send <code>null</code>, for no expiry. Must be later than <code>starts_at</code>.</Field>
                   <Field name="enabled" type="boolean">Default <code>true</code>. <code>false</code> pauses the link.</Field>
                   <Field name="domain_id" type="number | null">Which domain the short link lives on, by id from <code>GET /domains</code>. Leave it out, or send <code>null</code>, to use the default domain.</Field>
@@ -363,6 +367,50 @@ curl -X PATCH ${base}/links/12 \\
               </table>
             </div>
             <p>Dates use ISO 8601, for example <code>2026-12-31T23:59:00Z</code> or <code>2026-12-31T23:59:00+05:30</code>. Without an offset the time is read as UTC. An invalid date returns <code>422</code> with <code>fields.expires_at</code> or <code>fields.starts_at</code>.</p>
+          </section>
+
+          <section id="schedule">
+            <h2>Scheduling</h2>
+            <p>Both dates are optional and the defaults are explicit:</p>
+            <ul>
+              <li>No <code>starts_at</code> (or <code>null</code>): the link is live <strong>immediately</strong>.</li>
+              <li>No <code>expires_at</code> (or <code>null</code>): the link <strong>never expires</strong>.</li>
+              <li>If you send a date, it is used as given (ISO 8601; no offset means UTC).</li>
+            </ul>
+            <p>Instead of a date you can send a relative value: <code>starts_in</code> and <code>expires_in</code> with a number and a unit <code>m</code>, <code>h</code>, <code>d</code> or <code>w</code> (up to 3650 days). <code>starts_in</code> counts from now; <code>expires_in</code> counts from the start time, or from now when there is no start. Sending both the absolute and the relative value for the same side returns <code>422</code>. On update, <code>null</code> clears a side and a side you do not send is kept.</p>
+            <pre className="code">{`# Live in 1 day, expires 7 days after it goes live
+curl -X POST ${base}/links -H "Authorization: Bearer ob_your_key" -H "Content-Type: application/json" \\
+  -d '{ "target_url": "https://example.com/sale", "starts_in": "1d", "expires_in": "7d" }'
+
+# No dates at all: live now, never expires
+curl -X POST ${base}/links -H "Authorization: Bearer ob_your_key" -H "Content-Type: application/json" \\
+  -d '{ "target_url": "https://example.com/always" }'`}</pre>
+            <p>Every link in a response has a <code>status</code>: <code>active</code>, <code>scheduled</code> (start is in the future), <code>expired</code>, <code>disabled</code>, <code>review</code> or <code>moderated</code>.</p>
+          </section>
+
+          <section id="devices">
+            <h2>Device destinations</h2>
+            <p>One short link, different destinations by device. <code>ios_url</code>, <code>android_url</code>, <code>windows_url</code>, <code>mac_url</code> and <code>linux_url</code> are all optional; a visitor on a platform without its own URL goes to <code>target_url</code>. <code>expired_url</code> is where visitors land after the link expires. Send <code>null</code> on update to remove one. The same fields work in bulk create.</p>
+            <pre className="code">{`curl -X POST ${base}/links -H "Authorization: Bearer ob_your_key" -H "Content-Type: application/json" \\
+  -d '{
+    "target_url": "https://example.com/get-the-app",
+    "ios_url": "https://apps.apple.com/app/id123456789",
+    "android_url": "https://play.google.com/store/apps/details?id=com.example.app",
+    "windows_url": "https://apps.microsoft.com/detail/9NBLGGH4NNS1",
+    "mac_url": "https://apps.apple.com/app/id987654321",
+    "expires_in": "30d",
+    "expired_url": "https://example.com/campaign-ended"
+  }'`}</pre>
+            <pre className="code">{`// JavaScript
+await fetch("${base}/links", {
+  method: "POST",
+  headers: { Authorization: "Bearer ob_your_key", "Content-Type": "application/json" },
+  body: JSON.stringify({ target_url: "https://example.com/app", ios_url: "https://apps.apple.com/app/id1", android_url: "https://play.google.com/store/apps/details?id=com.example" }),
+});
+
+# Python
+requests.post("${base}/links", headers={"Authorization": "Bearer ob_your_key"},
+  json={"target_url": "https://example.com/app", "ios_url": "https://apps.apple.com/app/id1", "expires_in": "2w"}, timeout=15)`}</pre>
           </section>
 
           <Endpoint id="create" method="post" path="/links">
