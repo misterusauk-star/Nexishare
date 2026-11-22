@@ -53,6 +53,8 @@ export function linkJson(l: LinkRow, st: DomainState) {
     domain: linkHost(st, l.domain_id),
     domain_id: l.domain_id ?? null,
     target_url: l.target_url,
+    // universal: true when the link has no destination of its own, only device URLs (other devices see a chooser page).
+    universal: !!l.universal,
     ios_url: l.ios_url ?? null,
     android_url: l.android_url ?? null,
     windows_url: l.windows_url ?? null,

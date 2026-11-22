@@ -29,7 +29,7 @@ export default async function LinkDetail({ params, searchParams }: { params: Pro
         <div>
           <p><Link href="/dashboard/links">Links</Link> /</p>
           <h1>{link.title || link.slug}</h1>
-          <div className="row"><span className="slug">{host}<b>/</b>{link.slug}</span><CopyButton value={short} /><span className="badge">{linkState(link)}</span></div>
+          <div className="row"><span className="slug">{host}<b>/</b>{link.slug}</span><CopyButton value={short} /><span className="badge">{linkState(link)}</span>{!!link.universal && <span className="badge">universal</span>}</div>
         </div>
         <div className="row small">
           {[7, 30, 90].map((d) => <Link key={d} className={`btn btn-sm ${d === days ? "btn-primary" : ""}`} href={`?days=${d}`}>{d} days</Link>)}
@@ -49,7 +49,11 @@ export default async function LinkDetail({ params, searchParams }: { params: Pro
         <section>
           <div className="section-title"><h2>Settings</h2></div>
           <ActionForm action={updateLinkAction.bind(null, link.id)} submit="Save changes" pendingLabel="Saving...">
-            <Field label="Destination URL" name="target_url" type="url" defaultValue={link.target_url} required />
+            {link.universal ? (
+              <Field label="Destination URL" name="target_url" type="url" placeholder="Optional" hint="This is a universal link: it only has device URLs below. Fill this in to give it a normal destination for every other device." />
+            ) : (
+              <Field label="Destination URL" name="target_url" type="url" defaultValue={link.target_url} required />
+            )}
             <DomainSelect domains={st.linkDomains} value={link.domain_id} />
             <Field label="Short name" name="slug" prefix={`${host}/`} defaultValue={link.slug} maxLength={64} required />
             <Field label="Label" name="title" defaultValue={link.title} maxLength={160} />
@@ -58,7 +62,7 @@ export default async function LinkDetail({ params, searchParams }: { params: Pro
               <Field label="Expires (UTC)" name="expires_at" type="datetime-local" defaultValue={iso(link.expires_at)} />
             </div>
             <Field label="Click limit" name="max_clicks" type="number" min={1} max={1000000000} inputMode="numeric" placeholder="Unlimited" defaultValue={link.max_clicks ?? ""} hint={link.max_clicks != null ? `${Number(link.click_count ?? 0)} of ${link.max_clicks} used. Empty = unlimited.` : "Optional. After this many visits the link behaves as expired."} />
-            <details className="utm" open={!!(link.ios_url || link.android_url || link.windows_url || link.mac_url || link.linux_url || link.expired_url)}>
+            <details className="utm" open={!!(link.universal || link.ios_url || link.android_url || link.windows_url || link.mac_url || link.linux_url || link.expired_url)}>
               <summary className="small link-like">Different destinations by device (optional)</summary>
               <p className="small muted">Send visitors on iPhone, Android, Windows, Mac or Linux to their own page, for example an app store listing or a download page, and choose where an expired link goes instead of the expired notice.</p>
               <Field label="iPhone and iPad destination" name="ios_url" type="url" placeholder="https://apps.apple.com/app/..." defaultValue={link.ios_url ?? ""} maxLength={2048} />

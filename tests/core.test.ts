@@ -221,3 +221,20 @@ test("click limit helpers", () => {
   assert.equal(clicksLeft(5, 2), 3);
   assert.equal(clicksLeft(5, 9), 0);
 });
+
+import { deviceChoices, firstDeviceUrl, resolveDestination } from "../src/lib/smart-link.ts";
+
+test("universal links: device URL, else a chooser", () => {
+  const IPHONE = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)";
+  const WIN = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)";
+  const link = { target_url: "https://a.example/ios", ios_url: "https://a.example/ios", android_url: "https://a.example/and", universal: 1 };
+  assert.deepEqual(deviceChoices(link).map((c) => c.os), ["ios", "android"]);
+  assert.equal(firstDeviceUrl({ mac_url: "https://m.example" }), "https://m.example");
+  assert.equal(firstDeviceUrl({}), null);
+  assert.deepEqual(resolveDestination(link, IPHONE), { kind: "redirect", url: "https://a.example/ios" });
+  const r = resolveDestination(link, WIN);
+  assert.equal(r.kind, "choose");
+  if (r.kind === "choose") assert.equal(r.choices.length, 2);
+  // a normal link still falls back to its destination
+  assert.deepEqual(resolveDestination({ target_url: "https://x.example", ios_url: "https://i.example" }, WIN), { kind: "redirect", url: "https://x.example" });
+});

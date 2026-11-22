@@ -36,3 +36,38 @@ export function pickDestination(link: Routes, ua: string): string {
     default: return link.target_url;
   }
 }
+
+export interface DeviceChoice { os: Exclude<Os, "other">; label: string; url: string }
+const DEVICE_LABELS: [DeviceChoice["os"], string, keyof Routes][] = [
+  ["ios", "iPhone and iPad", "ios_url"],
+  ["android", "Android", "android_url"],
+  ["windows", "Windows", "windows_url"],
+  ["macos", "Mac", "mac_url"],
+  ["linux", "Linux", "linux_url"],
+];
+
+/** Every device URL a link has, in a fixed order. Empty when the link has none. */
+export function deviceChoices(link: Partial<Routes>): DeviceChoice[] {
+  const out: DeviceChoice[] = [];
+  for (const [os, label, key] of DEVICE_LABELS) { const url = link[key]; if (url) out.push({ os, label, url }); }
+  return out;
+}
+
+/** The URL stored as the base destination of a universal link (it has no destination of its own): the first device URL. */
+export function firstDeviceUrl(link: Partial<Routes>): string | null {
+  return deviceChoices(link)[0]?.url ?? null;
+}
+
+export type Resolution = { kind: "redirect"; url: string } | { kind: "choose"; choices: DeviceChoice[] };
+
+/**
+ * A normal link: the visitor's device URL, else the destination. A universal link (no destination of its own):
+ * the visitor's device URL, else a page that lists the device URLs it does have.
+ */
+export function resolveDestination(link: Routes & { universal?: number | boolean | null }, ua: string): Resolution {
+  if (!link.universal) return { kind: "redirect", url: pickDestination(link, ua) };
+  const os = detectOs(ua);
+  const own = deviceChoices(link).find((c) => c.os === os);
+  if (own) return { kind: "redirect", url: own.url };
+  return { kind: "choose", choices: deviceChoices(link) };
+}

@@ -13,6 +13,7 @@ import { applyUtm } from "../url-check";
 import { rateLimit } from "../ratelimit";
 import { resolveSchedule } from "../duration";
 import { clicksExhausted, MAX_CLICK_LIMIT } from "../click-limit";
+import { firstDeviceUrl } from "../smart-link";
 
 export type Result<T> = { ok: true; data: T } | { ok: false; errors: Record<string, string> };
 
@@ -34,6 +35,7 @@ export interface LinkRow {
   linux_url?: string | null;
   max_clicks?: number | null;
   click_count?: number;
+  universal?: number;
   expires_at: Date | null;
   starts_at: Date | null;
   enabled: number;
@@ -145,8 +147,11 @@ async function requestIp(): Promise<string> {
 }
 const isAdminUser = async (id: number) => (await queryOne<{ role: string }>("SELECT role FROM users WHERE id = ?", [id]))?.role === "super_admin";
 
+// On create the destination may be left out when at least one device URL is given (a "universal" link).
+const createInput = linkInput.extend({ target_url: z.string().trim().optional() });
+
 export async function createLink(userId: number, ownHost: string, raw: unknown): Promise<Result<LinkRow>> {
-  const p = linkInput.safeParse(raw);
+  const p = createInput.safeParse(raw);
   if (!p.success) return { ok: false, errors: fieldErrors(p.error) };
   const v = p.data;
   const verified = await queryOne<{ ok: number }>("SELECT (email_verified_at IS NOT NULL) AS ok FROM users WHERE id = ?", [userId]);
@@ -155,10 +160,14 @@ export async function createLink(userId: number, ownHost: string, raw: unknown):
   }
   const dom = await resolveDomain(v);
   if (!dom.ok) return { ok: false, errors: { domain_id: dom.error } };
-  const u = await assessDestination(applyUtm(v.target_url, v), ownHost);
-  if (!u.ok) return { ok: false, errors: { target_url: u.error } };
   const extras = await checkExtras(v, ownHost);
   if (!extras.ok) return { ok: false, errors: extras.errors };
+  // Universal link: no destination of its own, only device URLs. The first device URL is stored as the base destination.
+  const deviceUrl = firstDeviceUrl(extras.urls as never);
+  const universal = !v.target_url && !!deviceUrl;
+  if (!v.target_url && !deviceUrl) return { ok: false, errors: { target_url: "Enter the destination URL, or at least one device URL." } };
+  const u = universal ? ({ ok: true, url: deviceUrl as string } as const) : await assessDestination(applyUtm(v.target_url as string, v), ownHost);
+  if (!u.ok) return { ok: false, errors: { target_url: u.error } };
   const appName = (await getBrand()).name;
   let slug = v.slug;
   let review: string | null = null;
@@ -182,8 +191,8 @@ export async function createLink(userId: number, ownHost: string, raw: unknown):
   // Suspicious names wait in the admin review queue and stay inactive until approved. Admins skip the queue.
   const queued = review !== null && !(await isAdminUser(userId));
   const res = await exec(
-    "INSERT INTO links (user_id, team_id, group_id, domain_id, slug, title, target_url, ios_url, android_url, windows_url, mac_url, linux_url, expired_url, max_clicks, password_hash, expires_at, starts_at, enabled, review_status, review_reason, checked_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())",
-    [userId, v.team_id ?? null, v.group_id ?? null, dom.id, slug, v.title, u.url, extras.urls.ios_url ?? null, extras.urls.android_url ?? null, extras.urls.windows_url ?? null, extras.urls.mac_url ?? null, extras.urls.linux_url ?? null, extras.urls.expired_url ?? null, v.max_clicks ?? null, pw, sched.expires_at, sched.starts_at, v.enabled === false ? 0 : 1, queued ? "pending" : "none", queued ? review : null],
+    "INSERT INTO links (user_id, team_id, group_id, domain_id, slug, title, target_url, ios_url, android_url, windows_url, mac_url, linux_url, expired_url, max_clicks, universal, password_hash, expires_at, starts_at, enabled, review_status, review_reason, checked_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())",
+    [userId, v.team_id ?? null, v.group_id ?? null, dom.id, slug, v.title, u.url, extras.urls.ios_url ?? null, extras.urls.android_url ?? null, extras.urls.windows_url ?? null, extras.urls.mac_url ?? null, extras.urls.linux_url ?? null, extras.urls.expired_url ?? null, v.max_clicks ?? null, universal ? 1 : 0, pw, sched.expires_at, sched.starts_at, v.enabled === false ? 0 : 1, queued ? "pending" : "none", queued ? review : null],
   );
   invalidateSlug(slug);
   const row = await queryOne<LinkRow>("SELECT * FROM links WHERE id = ?", [res.insertId]);
@@ -202,6 +211,7 @@ export async function updateLink(userId: number, id: number, ownHost: string, ra
     const u = await assessDestination(applyUtm(v.target_url, v), ownHost);
     if (!u.ok) return { ok: false, errors: { target_url: u.error } };
     sets.push("target_url = ?"); vals.push(u.url); sets.push("checked_at = UTC_TIMESTAMP()");
+    if (cur.universal) sets.push("universal = 0"); // a destination was given: it is a normal link with device overrides now
   }
   if (v.slug !== undefined) {
     const wanted = String(v.slug).normalize("NFKC").trim().toLowerCase();
@@ -217,6 +227,13 @@ export async function updateLink(userId: number, id: number, ownHost: string, ra
     const extras = await checkExtras(Object.fromEntries(EXTRA_URLS.filter((k) => k in (raw as object)).map((k) => [k, v[k] ?? ""])), ownHost);
     if (!extras.ok) return { ok: false, errors: extras.errors };
     for (const [k, val] of Object.entries(extras.urls)) { sets.push(`${k} = ?`); vals.push(val); }
+    if (cur.universal && !v.target_url) {
+      // A universal link keeps at least one device URL; its base destination follows the first one.
+      const merged = { ios_url: cur.ios_url, android_url: cur.android_url, windows_url: cur.windows_url, mac_url: cur.mac_url, linux_url: cur.linux_url, ...extras.urls };
+      const first = firstDeviceUrl(merged as never);
+      if (!first) return { ok: false, errors: { ios_url: "A universal link needs at least one device URL." } };
+      sets.push("target_url = ?"); vals.push(first);
+    }
   }
   if (v.title !== undefined) { sets.push("title = ?"); vals.push(v.title); }
   if (raw && typeof raw === "object" && "password" in raw) {

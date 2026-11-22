@@ -29,7 +29,7 @@ Each key gets a fixed number of requests per minute (default 60, set by the serv
 | Method | Path | Purpose |
 | --- | --- | --- |
 | GET | `/links` | List your links. Query: `q`, `page`, `limit` (max 100) |
-| POST | `/links` | Create a link. Only `target_url` is required |
+| POST | `/links` | Create a link. `target_url` is required unless a device URL is given (universal link) |
 | GET | `/links/{id}` | One link |
 | PATCH | `/links/{id}` | Change fields; send only what changes |
 | DELETE | `/links/{id}` | Delete the link and its clicks. Returns 204 |
@@ -55,9 +55,11 @@ curl -X POST https://your-domain/api/v1/links \
 
 Returns `201` with the link. A taken slug, a blocked destination or a private address returns `422`.
 
-Only `target_url` is required. Optional fields: `slug`, `title`, `password`, `starts_at`, `expires_at`, `starts_in`, `expires_in`, `max_clicks`, `enabled`, `group_id`, `team_id`, `domain_id` / `domain`, `ios_url`, `android_url`, `windows_url`, `mac_url`, `linux_url` (platform-specific destinations; a platform without one uses `target_url`), `expired_url` (where to go after expiry), and the campaign tags `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content` (added to `target_url` as query parameters). Leave a field out (or send `null` for the dates) to skip it. Dates are ISO 8601, e.g. `2026-12-31T23:59:00Z`; without an offset they are read as UTC. `expires_at` must be later than `starts_at`.
+Only `target_url` is required, unless you send at least one device URL (a universal link, see below). Optional fields: `slug`, `title`, `password`, `starts_at`, `expires_at`, `starts_in`, `expires_in`, `max_clicks`, `enabled`, `group_id`, `team_id`, `domain_id` / `domain`, `ios_url`, `android_url`, `windows_url`, `mac_url`, `linux_url` (platform-specific destinations; a platform without one uses `target_url`), `expired_url` (where to go after expiry), and the campaign tags `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content` (added to `target_url` as query parameters). Leave a field out (or send `null` for the dates) to skip it. Dates are ISO 8601, e.g. `2026-12-31T23:59:00Z`; without an offset they are read as UTC. `expires_at` must be later than `starts_at`.
 
 **Scheduling defaults:** no `starts_at` = live immediately; no `expires_at` = never expires. Instead of dates you can send `starts_in` (from now) and `expires_in` (from the start, or from now) as a number plus `m`, `h`, `d` or `w`, e.g. `"starts_in": "1d", "expires_in": "7d"`. Do not send both forms for the same side. On update `null` clears a side; unsent sides are kept. Responses include `status`: `active`, `scheduled`, `expired`, `disabled`, `review` or `moderated`.
+
+**Universal links:** leave out `target_url` and send at least one of `ios_url`, `android_url`, `windows_url`, `mac_url`, `linux_url`. Visitors on a device with a URL go to it; other devices see a page listing the supported devices. Responses show `universal: true`, and `target_url` is the first device URL. Sending no `target_url` and no device URL returns 422 on `target_url`. On update, sending a `target_url` makes it a normal link; a universal link must keep at least one device URL. Example: `{"slug":"myapp","ios_url":"https://apps.apple.com/app/id1","android_url":"https://play.google.com/store/apps/details?id=com.example"}`.
 
 **Click limit:** `max_clicks` (1 to 1,000,000,000, or `null` for unlimited) turns the link into an expired link after that many visits (it then goes to `expired_url` when set). The count is atomic. Responses include `max_clicks` and `click_count`; visits are counted only for links that have a limit.
 

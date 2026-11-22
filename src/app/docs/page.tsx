@@ -248,6 +248,7 @@ export default async function Docs() {
           <a href="#fields">Link fields</a>
           <a href="#schedule">Scheduling</a>
           <a href="#devices">Device destinations</a>
+          <a href="#universal">Universal links</a>
           <a href="#limit">Click limit</a>
           <a href="#create">Create a link</a>
           <a href="#get">Get a link</a>
@@ -346,7 +347,7 @@ curl -X PATCH ${base}/links/12 \\
               <table className="table">
                 <thead><tr><th>Field</th><th>Type</th><th></th><th>Notes</th></tr></thead>
                 <tbody>
-                  <Field name="target_url" type="string" req>Destination. Must be a public http(s) URL, up to 2048 characters.</Field>
+                  <Field name="target_url" type="string" req>Destination. Must be a public http(s) URL, up to 2048 characters. Required unless you give at least one device URL (see <a href="#universal">Universal links</a>).</Field>
                   <Field name="slug" type="string">3 to 32 characters: letters, numbers, <code>-</code> and <code>_</code>. Leave it out for a random one. Some names are reserved.</Field>
                   <Field name="title" type="string">Up to 160 characters. Only for your own reference.</Field>
                   <Field name="password" type="string">Up to 100 characters. On update, send <code>""</code> to remove protection.</Field>
@@ -414,6 +415,18 @@ await fetch("${base}/links", {
 # Python
 requests.post("${base}/links", headers={"Authorization": "Bearer ob_your_key"},
   json={"target_url": "https://example.com/app", "ios_url": "https://apps.apple.com/app/id1", "linux_url": "https://example.com/linux", "expires_in": "2w"}, timeout=15)`}</pre>
+          </section>
+
+          <section id="universal">
+            <h2>Universal links</h2>
+            <p>A universal link has no destination of its own, only device URLs. Leave out <code>target_url</code> and send at least one of <code>ios_url</code>, <code>android_url</code>, <code>windows_url</code>, <code>mac_url</code> or <code>linux_url</code>. Visitors on a device with a URL go straight to it. Visitors on any other device see a page that lists the devices the link does support. The response has <code>universal: true</code>, and <code>target_url</code> shows the first device URL.</p>
+            <pre className="code">{`curl -X POST ${base}/links -H "Authorization: Bearer ob_your_key" -H "Content-Type: application/json" \\
+  -d '{
+    "slug": "myapp",
+    "ios_url": "https://apps.apple.com/app/id123456789",
+    "android_url": "https://play.google.com/store/apps/details?id=com.example.app"
+  }'`}</pre>
+            <p>If you send no <code>target_url</code> and no device URL, the request returns <code>422</code> with <code>fields.target_url</code>. On update, sending a <code>target_url</code> turns it into a normal link (that address becomes the fallback for every other device). A universal link must keep at least one device URL. It works in bulk create too. In the dashboard, use <strong>Universal links</strong> in the menu.</p>
           </section>
 
           <section id="limit">

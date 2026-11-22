@@ -74,13 +74,33 @@ export async function createLinkAction(_: FormState, fd: FormData): Promise<Form
   return { ok: true, message: `Created ${linkHost(st, r.data.domain_id)}/${r.data.slug}` };
 }
 
+/** Universal link: no destination of its own, only device URLs (at least one). Other devices see a chooser page. */
+export async function createUniversalAction(_: FormState, fd: FormData): Promise<FormState> {
+  const u = await requireUser();
+  if (!(await rateLimit(`link:create:${u.id}`, 120, 3600))) return fail({ form: "You are creating links too fast. Wait a few minutes." });
+  const b = await getBrand();
+  const st = await getDomainState();
+  const r = await createLink(u.id, b.host, {
+    slug: s(fd, "slug"), title: s(fd, "title"), domain_id: s(fd, "domain_id") || null,
+    ios_url: s(fd, "ios_url"), android_url: s(fd, "android_url"), windows_url: s(fd, "windows_url"), mac_url: s(fd, "mac_url"), linux_url: s(fd, "linux_url"), expired_url: s(fd, "expired_url"),
+  });
+  if (!r.ok) {
+    const e = { ...r.errors };
+    if (e.target_url) { e.ios_url = e.target_url; delete e.target_url; } // "enter at least one device URL" belongs on the first device field
+    return fail(e);
+  }
+  revalidatePath("/dashboard/universal");
+  return { ok: true, message: `Created ${linkHost(st, r.data.domain_id)}/${r.data.slug}` };
+}
+
 export async function updateLinkAction(id: number, _: FormState, fd: FormData): Promise<FormState> {
   const u = await requireUser();
   const b = await getBrand();
   const raw: Record<string, unknown> = {
-    target_url: s(fd, "target_url"), slug: s(fd, "slug"), title: s(fd, "title"),
+    slug: s(fd, "slug"), title: s(fd, "title"),
     expires_at: s(fd, "expires_at"), starts_at: s(fd, "starts_at"), enabled: fd.get("enabled") === "on",
   };
+  if (s(fd, "target_url")) raw.target_url = s(fd, "target_url"); // empty on a universal link = keep it universal
   if (fd.has("group_id")) raw.group_id = s(fd, "group_id") || null;
   if (fd.has("domain_id")) raw.domain_id = s(fd, "domain_id") || null;
   if (fd.has("max_clicks")) raw.max_clicks = s(fd, "max_clicks") || null;

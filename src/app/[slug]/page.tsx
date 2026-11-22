@@ -6,7 +6,7 @@ import { currentHost, enforceHost } from "@/lib/host-guard";
 import { bioUrl, getDomainState, linkHost } from "@/lib/domains";
 import { reqInfo } from "@/lib/request";
 import { recordClick } from "@/lib/analytics";
-import { pickDestination } from "@/lib/smart-link.ts";
+import { resolveDestination, type DeviceChoice } from "@/lib/smart-link.ts";
 import { isBlocked } from "@/lib/validation";
 import { getLinkBySlug, getPublicPage } from "@/lib/services/public";
 import { linkState, takeClick } from "@/lib/services/links";
@@ -95,9 +95,35 @@ export default async function SlugPage({ params, searchParams }: Props) {
     type: "link", id: link.id, userId: link.user_id, info, ownHost: b.host,
     utm: { source: first(sp.utm_source), medium: first(sp.utm_medium), campaign: first(sp.utm_campaign) },
   });
-  const dest = pickDestination(link, info.ua); // iPhone and Android visitors can have their own destination
+  // Visitors on a platform with its own URL go there. A universal link has no destination of its own, so other devices get a chooser.
+  const res = resolveDestination(link, info.ua);
+  if (res.kind === "choose") {
+    const open: DeviceChoice[] = [];
+    for (const c of res.choices) if (!(await isBlocked(c.url))) open.push(c);
+    return <Chooser slug={slug} host={linkHost(st, link.domain_id)} choices={open} />;
+  }
+  const dest = res.url;
   if (dest !== link.target_url && (await isBlocked(dest))) return <Gone state="moderated" slug={slug} />;
   redirect(dest);
+}
+
+function Chooser({ slug, host, choices }: { slug: string; host: string; choices: DeviceChoice[] }) {
+  return (
+    <main id="main" className="gone">
+      <div className="gone-box">
+        <p className="slug">{host}<b>/</b>{slug}</p>
+        <h1>Choose your device</h1>
+        <p>This link has no page for your device. It is available for:</p>
+        <ul className="choose">
+          {choices.map((c) => (
+            <li key={c.os}><a className="btn" href={c.url} rel="nofollow noreferrer">{c.label}</a></li>
+          ))}
+        </ul>
+        {choices.length === 0 && <p className="muted">Nothing is available right now.</p>}
+        <p className="small"><Link href={`/report?target=${encodeURIComponent(slug)}`}>Report this link</Link></p>
+      </div>
+    </main>
+  );
 }
 
 const COPY: Record<string, { title: string; body: string }> = {
