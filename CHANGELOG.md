@@ -27,6 +27,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 - API keys page shows the API domain (for example api.example.com) as the request address.
 
 ### Fixed
+- Creating a link failed with "The page could not be loaded": the INSERT listed 20 columns but only 19 values (added with the Windows/Mac/Linux destinations). Fixed, and a test now checks every INSERT for matching column and value counts.
 - Bio addresses shown in the dashboard (overview, Bio page, QR codes), on bio pages, on the sign-up and install screens and on the password screen of a link now use the bio domain, or the link's own domain, instead of the default domain.
 - Choosing "Bio pages only" silently turned into a link domain when migration 008 was not applied (the database stored an empty type). The Domains page now has a permanent Database panel that lists waiting updates with a Run database updates button, saving a type the database does not know is refused with a clear message, and migration 008 repairs rows saved empty.
 - Sign-in links (verify, reset, dashboard e-mail buttons) and the Google OAuth redirect now always use the main domain, so making a link domain the default no longer breaks Google sign-in. Sitemap, robots and metadata base follow the main domain, and each host lists its own sitemap.

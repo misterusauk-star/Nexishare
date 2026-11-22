@@ -177,7 +177,7 @@ export async function createLink(userId: number, ownHost: string, raw: unknown):
   // Suspicious names wait in the admin review queue and stay inactive until approved. Admins skip the queue.
   const queued = review !== null && !(await isAdminUser(userId));
   const res = await exec(
-    "INSERT INTO links (user_id, team_id, group_id, domain_id, slug, title, target_url, ios_url, android_url, windows_url, mac_url, linux_url, expired_url, password_hash, expires_at, starts_at, enabled, review_status, review_reason, checked_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())",
+    "INSERT INTO links (user_id, team_id, group_id, domain_id, slug, title, target_url, ios_url, android_url, windows_url, mac_url, linux_url, expired_url, password_hash, expires_at, starts_at, enabled, review_status, review_reason, checked_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())",
     [userId, v.team_id ?? null, v.group_id ?? null, dom.id, slug, v.title, u.url, extras.urls.ios_url ?? null, extras.urls.android_url ?? null, extras.urls.windows_url ?? null, extras.urls.mac_url ?? null, extras.urls.linux_url ?? null, extras.urls.expired_url ?? null, pw, sched.expires_at, sched.starts_at, v.enabled === false ? 0 : 1, queued ? "pending" : "none", queued ? review : null],
   );
   invalidateSlug(slug);
