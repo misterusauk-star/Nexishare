@@ -71,3 +71,23 @@ export function resolveDestination(link: Routes & { universal?: number | boolean
   if (own) return { kind: "redirect", url: own.url };
   return { kind: "choose", choices: deviceChoices(link) };
 }
+
+export interface DeviceRoute { device: Os; label: string; url: string | null; source: "device" | "default" | "chooser" }
+const ROUTE_ROWS: [Os, string, keyof Routes | null][] = [
+  ["ios", "iPhone and iPad", "ios_url"],
+  ["android", "Android", "android_url"],
+  ["windows", "Windows", "windows_url"],
+  ["macos", "Mac", "mac_url"],
+  ["linux", "Linux", "linux_url"],
+  ["other", "Any other device", null],
+];
+
+/** Where a visitor on each kind of device ends up. A universal link sends unlisted devices to the chooser page (url null). */
+export function deviceRoutes(link: Routes & { universal?: number | boolean | null }): DeviceRoute[] {
+  return ROUTE_ROWS.map(([device, label, key]) => {
+    const own = key ? (link[key] as string | null | undefined) : null;
+    if (own) return { device, label, url: own, source: "device" as const };
+    if (link.universal) return { device, label, url: null, source: "chooser" as const };
+    return { device, label, url: link.target_url, source: "default" as const };
+  });
+}

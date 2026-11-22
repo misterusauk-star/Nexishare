@@ -110,6 +110,12 @@ Responses include `domain`, `domain_id` and a `short_url` built from that domain
 The response is `{"created": n, "failed": m, "results": [{"ok": true, "data": {...}} | {"ok": false, "fields": {...}}]}` in request order.
 Status `201` if at least one link was created, `422` if none. The daily limit counts every item.
 
+## Duplicate, bulk actions and device routes
+
+- `POST /links/{id}/duplicate`: copies a link with a new random short name (201). Everything is copied except the password. Counts toward the daily link limit.
+- `POST /links/bulk/action`: `{"action": "enable" | "disable" | "delete", "ids": [1, 2, 3]}`, up to 200 ids. Returns `done`, `failed` and one `{id, ok}` per id.
+- `GET /links/{id}/routes`: where each device ends up (`ios`, `android`, `windows`, `macos`, `linux`, `other`) with `source` = `device`, `default` or `chooser`. `url` is `null` for a universal link's chooser page.
+
 ## Search engines and crawlers
 
 No API call is needed; this is built in.

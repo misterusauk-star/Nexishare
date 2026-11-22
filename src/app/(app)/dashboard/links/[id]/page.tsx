@@ -4,10 +4,11 @@ import { requireUser } from "@/lib/auth";
 import { getDomainState, linkUrl, linkHost } from "@/lib/domains";
 import { getLinkForUser, linkState } from "@/lib/services/links";
 import { getStats, countryName } from "@/lib/analytics";
-import { ActionForm, DomainSelect, Field, CopyButton } from "@/components/client";
+import { ActionForm, ActionButton, DomainSelect, Field, CopyButton } from "@/components/client";
+import { deviceRoutes } from "@/lib/smart-link";
 import { BarList, StatRow, TimeSeries } from "@/components/charts";
 import { QrPanel } from "@/components/qr-panel";
-import { updateLinkAction } from "@/app/actions/app";
+import { duplicateLinkAction, updateLinkAction } from "@/app/actions/app";
 
 export const metadata = { title: "Link" };
 const iso = (d: Date | null) => (d ? new Date(d).toISOString().slice(0, 16) : "");
@@ -32,6 +33,7 @@ export default async function LinkDetail({ params, searchParams }: { params: Pro
           <div className="row"><span className="slug">{host}<b>/</b>{link.slug}</span><CopyButton value={short} /><span className="badge">{linkState(link)}</span>{!!link.universal && <span className="badge">universal</span>}</div>
         </div>
         <div className="row small">
+          <ActionButton action={duplicateLinkAction.bind(null, link.id)} label="Duplicate this link">Duplicate</ActionButton>
           {[7, 30, 90].map((d) => <Link key={d} className={`btn btn-sm ${d === days ? "btn-primary" : ""}`} href={`?days=${d}`}>{d} days</Link>)}
         </div>
       </div>
@@ -78,7 +80,25 @@ export default async function LinkDetail({ params, searchParams }: { params: Pro
           </ActionForm>
         </section>
         <section>
-          <div className="section-title"><h2>QR code</h2></div>
+          <div className="section-title"><h2>Where each device goes</h2></div>
+          <div className="tbl-wrap">
+            <table className="tbl">
+              <thead><tr><th>Device</th><th>Goes to</th></tr></thead>
+              <tbody>
+                {deviceRoutes(link).map((r) => (
+                  <tr key={r.device}>
+                    <td>{r.label}</td>
+                    <td className="dest" title={r.url ?? undefined}>
+                      {r.url ?? <span className="muted">A page that lists the devices this link supports</span>}
+                      {r.source === "default" && <span className="small muted"> (default)</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {link.expired_url && <p className="small muted">After it expires: <span className="mono">{link.expired_url}</span></p>}
+          <div className="section-title" style={{ marginTop: 32 }}><h2>QR code</h2></div>
           <QrPanel slug={link.slug} />
         </section>
       </div>

@@ -11,7 +11,7 @@ import { randomToken, sha256 } from "@/lib/crypto";
 import { rateLimit } from "@/lib/ratelimit";
 import { phase2Enabled } from "@/lib/features";
 import { emailSchema, passwordSchema } from "@/lib/validation";
-import { createLink, deleteLink, updateLink } from "@/lib/services/links";
+import { bulkLinkAction, createLink, deleteLink, duplicateLink, updateLink } from "@/lib/services/links";
 import { sendVerification, verificationRequired } from "@/lib/services/users";
 import { validateNewSlug, slugRateOk, SLUG_RATE_MESSAGE } from "@/lib/slug-service";
 import { reqInfo } from "@/lib/request";
@@ -133,12 +133,18 @@ export async function deleteLinkAction(id: number): Promise<void> {
 export async function bulkLinksAction(op: "enable" | "disable" | "delete", ids: number[]): Promise<void> {
   const u = await requireUser();
   const b = await getBrand();
-  for (const id of ids.slice(0, 200)) {
-    if (!Number.isInteger(id)) continue;
-    if (op === "delete") await deleteLink(u.id, id);
-    else await updateLink(u.id, id, b.host, { enabled: op === "enable" });
-  }
+  await bulkLinkAction(u.id, b.host, op, ids);
   revalidatePath("/dashboard/links");
+}
+
+/** Copies a link (new random short name) and opens the copy. */
+export async function duplicateLinkAction(id: number): Promise<void> {
+  const u = await requireUser();
+  const b = await getBrand();
+  const r = await duplicateLink(u.id, id, b.host, u.role === "super_admin");
+  if (!r.ok) return;
+  revalidatePath("/dashboard/links");
+  redirect(`/dashboard/links/${r.data.id}`);
 }
 
 /* ---------- Bio page ---------- */

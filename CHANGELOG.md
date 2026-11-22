@@ -5,6 +5,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 ## [Unreleased]
 
 ### Added
+- Duplicate a link (dashboard button and `POST /links/{id}/duplicate`), bulk enable/disable/delete in the API (`POST /links/bulk/action`), and a "Where each device goes" panel on the link page with `GET /links/{id}/routes`.
 - IndexNow for the main and bio domains: publishing or editing a bio page notifies Bing, Yandex, Seznam and Naver at once (once per page per 10 minutes). Key file at `/<key>.txt`. New Admin > Search page with the sitemap addresses, key files, a "Submit all pages" button and an on/off switch.
 - robots.txt names the major search engines, social preview bots and AI assistants with explicit Allow groups (same disallow list for everyone).
 - Sitemap: `lastmod` on the site pages (deploy time) and on bio pages (newest block), up to 40,000 bio pages. `llms.txt` describes the current API features.

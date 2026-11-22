@@ -250,6 +250,7 @@ export default async function Docs() {
           <a href="#devices">Device destinations</a>
           <a href="#universal">Universal links</a>
           <a href="#limit">Click limit</a>
+          <a href="#more-links">Duplicate and bulk</a>
           <a href="#search">Search engines</a>
           <a href="#create">Create a link</a>
           <a href="#get">Get a link</a>
@@ -435,6 +436,19 @@ requests.post("${base}/links", headers={"Authorization": "Bearer ob_your_key"},
             <p>Set <code>max_clicks</code> to stop a link after a number of visits, for example a coupon for the first 100 people. The count is exact: two visitors can never take the same last click. When the limit is used up the link shows <code>status: "expired"</code>, visitors see the expired notice or are sent to <code>expired_url</code>, and the response shows <code>click_count</code> next to <code>max_clicks</code>. On update, send a higher number to extend it, or <code>null</code> to remove the limit.</p>
             <pre className="code">{`curl -X POST ${base}/links -H "Authorization: Bearer ob_your_key" -H "Content-Type: application/json" \\
   -d '{ "target_url": "https://example.com/coupon", "max_clicks": 100, "expires_in": "7d", "expired_url": "https://example.com/sold-out" }'`}</pre>
+          </section>
+
+          <section id="more-links">
+            <h2>Duplicate, bulk actions and device routes</h2>
+            <p><code>POST /links/{"{id}"}/duplicate</code> copies a link with a new random short name and returns <code>201</code> with the copy. Everything is copied except the password (only its hash is stored). The copy counts toward your daily link limit.</p>
+            <p><code>POST /links/bulk/action</code> enables, disables or deletes up to 200 links: <code>{"{ \"action\": \"disable\", \"ids\": [12, 13, 14] }"}</code>. The response has <code>done</code>, <code>failed</code> and one result per id, so a link that is not yours never blocks the rest.</p>
+            <p><code>GET /links/{"{id}"}/routes</code> shows where a visitor on each device ends up: iPhone and iPad, Android, Windows, Mac, Linux and any other device. A <code>null</code> url means a universal link shows its chooser page there.</p>
+            <pre className="code">{`curl -X POST ${base}/links/12/duplicate -H "Authorization: Bearer ob_your_key"
+
+curl -X POST ${base}/links/bulk/action -H "Authorization: Bearer ob_your_key" -H "Content-Type: application/json" \\
+  -d '{ "action": "disable", "ids": [12, 13, 14] }'
+
+curl ${base}/links/12/routes -H "Authorization: Bearer ob_your_key"`}</pre>
           </section>
 
           <section id="search">

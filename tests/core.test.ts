@@ -264,3 +264,16 @@ test("IndexNow payloads", () => {
   const many = Array.from({ length: MAX_URLS_PER_REQUEST + 5 }, (_, i) => `https://a.example/p${i}`);
   assert.equal(buildPayloads(many, k).length, 2);
 });
+
+import { deviceRoutes } from "../src/lib/smart-link.ts";
+
+test("deviceRoutes shows where each device goes", () => {
+  const normal = deviceRoutes({ target_url: "https://d.example", ios_url: "https://i.example" });
+  assert.equal(normal.length, 6);
+  assert.deepEqual(normal.find((r) => r.device === "ios"), { device: "ios", label: "iPhone and iPad", url: "https://i.example", source: "device" });
+  assert.equal(normal.find((r) => r.device === "windows")?.url, "https://d.example");
+  assert.equal(normal.find((r) => r.device === "other")?.source, "default");
+  const uni = deviceRoutes({ target_url: "https://i.example", ios_url: "https://i.example", universal: 1 });
+  assert.equal(uni.find((r) => r.device === "android")?.source, "chooser");
+  assert.equal(uni.find((r) => r.device === "android")?.url, null);
+});

@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { Copy, Lock, Trash2, Power } from "lucide-react";
-import { bulkLinksAction, deleteLinkAction, toggleLinkAction } from "@/app/actions/app";
+import { Copy, CopyPlus, Lock, Trash2, Power } from "lucide-react";
+import { bulkLinksAction, deleteLinkAction, duplicateLinkAction, toggleLinkAction } from "@/app/actions/app";
 
 export interface LinkItem {
   id: number; slug: string; title: string | null; target: string; short: string; state: string; locked: boolean;
@@ -35,7 +35,7 @@ export function LinksTable({ rows }: { rows: LinkItem[] }) {
           <thead>
             <tr>
               <th style={{ width: 32 }}><input type="checkbox" aria-label="Select all" checked={all} onChange={() => setSel(all ? [] : rows.map((r) => r.id))} /></th>
-              <th>Link</th><th>Destination</th><th>Status</th><th className="r">Clicks</th><th className="r">Unique</th><th style={{ width: 120 }}><span className="sr-only">Actions</span></th>
+              <th>Link</th><th>Destination</th><th>Status</th><th className="r">Clicks</th><th className="r">Unique</th><th style={{ width: 152 }}><span className="sr-only">Actions</span></th>
             </tr>
           </thead>
           <tbody>
@@ -52,6 +52,7 @@ export function LinksTable({ rows }: { rows: LinkItem[] }) {
                 <td className="r num">{r.unique.toLocaleString("en-US")}</td>
                 <td className="r">
                   <button className="btn btn-ghost btn-icon btn-sm" aria-label={`Copy ${r.short}`} title="Copy short URL" onClick={() => navigator.clipboard.writeText(r.short)}><Copy className="icon" /></button>
+                  <button className="btn btn-ghost btn-icon btn-sm" aria-label={`Duplicate ${r.slug}`} title="Duplicate" disabled={pending} onClick={() => start(async () => { await duplicateLinkAction(r.id); })}><CopyPlus className="icon" /></button>
                   <button className="btn btn-ghost btn-icon btn-sm" aria-label={r.state === "disabled" ? "Enable" : "Disable"} title={r.state === "disabled" ? "Enable" : "Disable"} disabled={pending} onClick={() => start(async () => { await toggleLinkAction(r.id); })}><Power className="icon" /></button>
                   <button className="btn btn-ghost btn-icon btn-sm" aria-label={`Delete ${r.slug}`} title="Delete" disabled={pending} onClick={() => { if (window.confirm(`Delete /${r.slug}? Its click history goes with it.`)) start(async () => { await deleteLinkAction(r.id); }); }}><Trash2 className="icon" /></button>
                 </td>

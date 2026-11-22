@@ -336,3 +336,35 @@ export async function takeClick(id: number): Promise<boolean> {
   const r = await exec("UPDATE links SET click_count = click_count + 1 WHERE id = ? AND max_clicks IS NOT NULL AND click_count < max_clicks", [id]);
   return r.affectedRows > 0;
 }
+
+/** A copy of a link with a new random short name. The password is not copied (only its hash is stored); everything else is. */
+export async function duplicateLink(userId: number, id: number, ownHost: string, isAdmin = false): Promise<Result<LinkRow>> {
+  const l = await getLinkForUser(userId, id, isAdmin);
+  if (!l) return { ok: false, errors: { form: "Link not found." } };
+  const iso = (d: Date | null) => (d ? new Date(d).toISOString() : null);
+  return createLink(userId, ownHost, {
+    target_url: l.universal ? undefined : l.target_url,
+    title: l.title ? `${l.title} (copy)`.slice(0, 160) : null,
+    domain_id: l.domain_id ?? null,
+    ios_url: l.ios_url ?? null, android_url: l.android_url ?? null, windows_url: l.windows_url ?? null,
+    mac_url: l.mac_url ?? null, linux_url: l.linux_url ?? null, expired_url: l.expired_url ?? null,
+    max_clicks: l.max_clicks ?? null,
+    starts_at: iso(l.starts_at), expires_at: iso(l.expires_at),
+    enabled: !!l.enabled,
+    group_id: l.group_id ?? null, team_id: l.team_id ?? null,
+  });
+}
+
+export type BulkOp = "enable" | "disable" | "delete";
+export const BULK_MAX = 200;
+
+/** Enable, disable or delete many links at once. One result per id, so a link that is not yours never blocks the rest. */
+export async function bulkLinkAction(userId: number, ownHost: string, op: BulkOp, ids: number[], isAdmin = false): Promise<{ id: number; ok: boolean }[]> {
+  const out: { id: number; ok: boolean }[] = [];
+  for (const id of ids.slice(0, BULK_MAX)) {
+    if (!Number.isInteger(id) || id <= 0) { out.push({ id, ok: false }); continue; }
+    if (op === "delete") out.push({ id, ok: await deleteLink(userId, id, isAdmin) });
+    else out.push({ id, ok: (await updateLink(userId, id, ownHost, { enabled: op === "enable" }, isAdmin)).ok });
+  }
+  return out;
+}
