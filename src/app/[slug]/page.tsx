@@ -74,7 +74,7 @@ export default async function SlugPage({ params, searchParams }: Props) {
     return (
       <main className="gone">
         <div className="gone-box">
-          <p className="slug">{b.host}<b>/</b>{slug}</p>
+          <p className="slug">{linkHost(st, link.domain_id)}<b>/</b>{slug}</p>
           <h1>This link is protected</h1>
           <p>Enter the password the sender gave you to continue.</p>
           <ActionForm action={unlockLinkAction.bind(null, slug)} submit="Continue" pendingLabel="Checking...">

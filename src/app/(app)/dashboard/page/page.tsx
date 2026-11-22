@@ -25,7 +25,7 @@ export default async function BioEditor() {
         <div className="page-head"><div><h1>Bio page</h1><p>One address for everything you share. Pick a name to create yours.</p></div></div>
         <section className="panel" style={{ maxWidth: 520 }}>
           <ActionForm action={claimBioAction} submit="Create bio page" pendingLabel="Creating...">
-            <Field label="Page name" name="username" prefix={`${b.host}/`} autoComplete="off" required maxLength={32} hint="3 to 32 characters: letters, numbers, hyphens and underscores. You can add links and change the look right after." />
+            <Field label="Page name" name="username" prefix={`${b.bioHost}/`} autoComplete="off" required maxLength={32} hint="3 to 32 characters: letters, numbers, hyphens and underscores. You can add links and change the look right after." />
           </ActionForm>
         </section>
       </>
@@ -47,7 +47,7 @@ export default async function BioEditor() {
       <div className="page-head">
         <div><h1>Bio page</h1><p>One address for everything you share.</p></div>
         <div className="row">
-          <span className="slug">{b.host}<b>/</b>{user.username}</span>
+          <span className="slug">{b.bioHost}<b>/</b>{user.username}</span>
           <CopyButton value={address} label="Copy page address" />
           <a className="btn" href={bioUrl(st, user.username)} target="_blank" rel="noopener">View page</a>
         </div>

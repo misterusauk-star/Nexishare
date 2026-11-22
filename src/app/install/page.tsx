@@ -38,7 +38,7 @@ export default async function InstallPage() {
       {db.ok && secretOk && (
         <ActionForm action={installAction} submit="Install" pendingLabel="Running migrations...">
           <Field label="Admin email" name="email" type="email" autoComplete="email" required />
-          <Field label="Admin username" name="username" prefix={`${b.host}/`} autoComplete="username" required maxLength={40} />
+          <Field label="Admin username" name="username" prefix={`${b.bioHost}/`} autoComplete="username" required maxLength={40} />
           <Field label="Admin password" name="password" type="password" autoComplete="new-password" required hint="At least 10 characters, with a letter and a number." />
           <div className="field">
             <label htmlFor="f-lang">Default language</label>

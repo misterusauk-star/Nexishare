@@ -11,7 +11,7 @@ export async function AuthShell({ title, sub, children }: { title: string; sub?:
         </Link>
         <div className="big">
           {b.tagline}
-          <span className="slug">{b.host}<b>/</b>yourname</span>
+          <span className="slug">{b.bioHost}<b>/</b>yourname</span>
         </div>
         <div className="small" style={{ opacity: 0.7 }}>{b.footerText || (b.supportEmail ? `Help: ${b.supportEmail}` : "")}</div>
       </aside>

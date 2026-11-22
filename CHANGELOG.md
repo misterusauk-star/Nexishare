@@ -5,6 +5,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 ## [Unreleased]
 
 ### Added
+- Device destinations now cover Windows, macOS and Linux as well as iPhone/iPad and Android (`windows_url`, `mac_url`, `linux_url`). Migration 010.
 - Smart destinations per link: iPhone/iPad and Android visitors can go to their own URL (for example an app store page), and an expired link can redirect to a fallback URL instead of the expired notice. Dashboard: "Different destinations" on new and existing links. API: `ios_url`, `android_url`, `expired_url`. Migration 009.
 - API: `POST /api/v1/links/bulk` creates up to 50 links per request with a result per item.
 - Admin > Domains opens with a table "What each address does right now" (main, default, bio pages, API) that shows whether the bio and API domains are active or still waiting for Check & activate. Saving a domain before the database updates are applied now shows a clear message instead of an error page.
@@ -25,6 +26,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 - API keys page shows the API domain (for example api.example.com) as the request address.
 
 ### Fixed
+- Bio addresses shown in the dashboard (overview, Bio page, QR codes), on bio pages, on the sign-up and install screens and on the password screen of a link now use the bio domain, or the link's own domain, instead of the default domain.
 - Choosing "Bio pages only" silently turned into a link domain when migration 008 was not applied (the database stored an empty type). The Domains page now has a permanent Database panel that lists waiting updates with a Run database updates button, saving a type the database does not know is refused with a clear message, and migration 008 repairs rows saved empty.
 - Sign-in links (verify, reset, dashboard e-mail buttons) and the Google OAuth redirect now always use the main domain, so making a link domain the default no longer breaks Google sign-in. Sitemap, robots and metadata base follow the main domain, and each host lists its own sitemap.
 - API: `starts_at` and `expires_at` are now truly optional on create (missing, `null` or empty all mean no date), matching the docs.

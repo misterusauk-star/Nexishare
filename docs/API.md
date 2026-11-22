@@ -55,7 +55,7 @@ curl -X POST https://your-domain/api/v1/links \
 
 Returns `201` with the link. A taken slug, a blocked destination or a private address returns `422`.
 
-Only `target_url` is required. Optional fields: `slug`, `title`, `password`, `starts_at`, `expires_at`, `enabled`, `group_id`, `team_id`, `domain_id` / `domain`, `ios_url`, `android_url` (platform-specific destinations), `expired_url` (where to go after expiry), and the campaign tags `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content` (added to `target_url` as query parameters). Leave a field out (or send `null` for the dates) to skip it. Dates are ISO 8601, e.g. `2026-12-31T23:59:00Z`; without an offset they are read as UTC. `expires_at` must be later than `starts_at`.
+Only `target_url` is required. Optional fields: `slug`, `title`, `password`, `starts_at`, `expires_at`, `enabled`, `group_id`, `team_id`, `domain_id` / `domain`, `ios_url`, `android_url`, `windows_url`, `mac_url`, `linux_url` (platform-specific destinations; a platform without one uses `target_url`), `expired_url` (where to go after expiry), and the campaign tags `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content` (added to `target_url` as query parameters). Leave a field out (or send `null` for the dates) to skip it. Dates are ISO 8601, e.g. `2026-12-31T23:59:00Z`; without an offset they are read as UTC. `expires_at` must be later than `starts_at`.
 
 Minimal request:
 

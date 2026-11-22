@@ -49,7 +49,7 @@ export function PublicPageView({ data, brand }: { data: PublicPage; brand: Brand
             <span className="bio-avatar bio-avatar-empty" aria-hidden="true">{name.slice(0, 1).toUpperCase()}</span>
           )}
           <h1>{name}</h1>
-          <p className="bio-handle">{brand.host}<b>/</b>{user.username}</p>
+          <p className="bio-handle">{brand.bioHost}<b>/</b>{user.username}</p>
           {page.bio ? <p className="bio-text">{page.bio}</p> : null}
         </header>
 

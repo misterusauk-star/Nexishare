@@ -354,6 +354,7 @@ curl -X PATCH ${base}/links/12 \\
                   <Field name="domain" type="string | null">Same thing by host name, for example <code>go.example.com</code>. Use either this or <code>domain_id</code>.</Field>
                   <Field name="ios_url" type="string | null">Where iPhone and iPad visitors go instead of <code>target_url</code>, for example an App Store page. Same rules as <code>target_url</code>. Send <code>null</code> to remove.</Field>
                   <Field name="android_url" type="string | null">Same for Android visitors.</Field>
+                  <Field name="windows_url" type="string | null">Same for visitors on Windows. Also <code>mac_url</code> for macOS and <code>linux_url</code> for Linux. Any platform without its own URL goes to <code>target_url</code>.</Field>
                   <Field name="expired_url" type="string | null">Where visitors go after <code>expires_at</code> has passed, instead of the expired notice.</Field>
                   <Field name="utm_source" type="string">Also <code>utm_medium</code>, <code>utm_campaign</code>, <code>utm_term</code> and <code>utm_content</code> (up to 100 characters each). Added to <code>target_url</code> as query parameters, replacing the same tag if it is already there. Sent together with <code>target_url</code>.</Field>
                   <Field name="group_id" type="number | null">Id of one of your link groups.</Field>

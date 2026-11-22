@@ -53,10 +53,13 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
             <Field label="Expires (UTC)" name="expires_at" type="datetime-local" />
           </div>
             <details className="utm">
-              <summary className="small link-like">Different destinations (optional)</summary>
-              <p className="small muted">Send iPhone and Android visitors to their own page, for example an app store listing, and choose where an expired link goes instead of the expired notice.</p>
+              <summary className="small link-like">Different destinations by device (optional)</summary>
+              <p className="small muted">Send visitors on iPhone, Android, Windows, Mac or Linux to their own page, for example an app store listing or a download page, and choose where an expired link goes instead of the expired notice.</p>
               <Field label="iPhone and iPad destination" name="ios_url" type="url" placeholder="https://apps.apple.com/app/..." maxLength={2048} />
               <Field label="Android destination" name="android_url" type="url" placeholder="https://play.google.com/store/apps/..." maxLength={2048} />
+              <Field label="Windows destination" name="windows_url" type="url" placeholder="https://example.com/download/windows" maxLength={2048} />
+              <Field label="Mac destination" name="mac_url" type="url" placeholder="https://example.com/download/mac" maxLength={2048} />
+              <Field label="Linux destination" name="linux_url" type="url" placeholder="https://example.com/download/linux" maxLength={2048} />
               <Field label="After it expires, go to" name="expired_url" type="url" placeholder="https://example.com/offer-ended" maxLength={2048} />
             </details>
           <details className="utm">

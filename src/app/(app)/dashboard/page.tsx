@@ -37,7 +37,7 @@ export default async function Overview() {
         </div>
         {user.username && page ? (
           <div className="row">
-            <span className="slug">{b.host}<b>/</b>{user.username}</span>
+            <span className="slug">{b.bioHost}<b>/</b>{user.username}</span>
             <CopyButton value={page} label="Copy page address" />
             <a className="btn" href={page} target="_blank" rel="noopener">View page</a>
           </div>

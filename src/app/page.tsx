@@ -34,7 +34,7 @@ export default async function Home() {
           {!user && open ? <Link className="btn btn-primary" href="/register">Claim your address</Link> : null}
         </div>
         <div className="ticket" aria-label="What an address looks like">
-          <div><span className="slug">{b.host}<b>/</b>yourname</span></div>
+          <div><span className="slug">{b.bioHost}<b>/</b>yourname</span></div>
           <div><span>Short link</span><span className="slug">{b.host}<b>/</b>spring-menu</span></div>
           <div><span>Points to</span><span className="slug">cafe.example/menus/spring.pdf</span></div>
           <div><span>QR code</span><span>PNG or SVG</span></div>

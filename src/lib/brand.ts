@@ -7,6 +7,8 @@ export interface Brand {
   url: string;
   /** Main domain (APP_URL): sign-in, e-mail links and Google OAuth belong here, whatever the default domain is. */
   appUrl: string;
+  /** Host bio pages live on: the bio domain, or the default domain when there is none. */
+  bioHost: string;
   host: string;
   supportEmail: string;
   primary: string;
@@ -33,6 +35,7 @@ export async function getBrand(): Promise<Brand> {
     tagline: s.brand_tagline || process.env.APP_TAGLINE || "Your links, one page, your server.",
     url,
     appUrl: d.appUrl,
+    bioHost: d.bioHost,
     host,
     supportEmail: s.brand_support_email || process.env.APP_SUPPORT_EMAIL || "",
     primary: HEX.test(primary) ? primary : "#0E7C66",

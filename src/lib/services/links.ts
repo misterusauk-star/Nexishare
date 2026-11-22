@@ -27,6 +27,9 @@ export interface LinkRow {
   ios_url?: string | null;
   android_url?: string | null;
   expired_url?: string | null;
+  windows_url?: string | null;
+  mac_url?: string | null;
+  linux_url?: string | null;
   expires_at: Date | null;
   starts_at: Date | null;
   enabled: number;
@@ -69,6 +72,9 @@ export const linkInput = z.object({
   ios_url: z.string().trim().max(2048).nullish(),
   android_url: z.string().trim().max(2048).nullish(),
   expired_url: z.string().trim().max(2048).nullish(),
+  windows_url: z.string().trim().max(2048).nullish(),
+  mac_url: z.string().trim().max(2048).nullish(),
+  linux_url: z.string().trim().max(2048).nullish(),
   utm_source: z.string().trim().max(100).nullish(),
   utm_medium: z.string().trim().max(100).nullish(),
   utm_campaign: z.string().trim().max(100).nullish(),
@@ -94,7 +100,7 @@ async function resolveDomain(v: { domain_id?: number | null; domain?: string | n
   return { ok: true, id: null };
 }
 
-const EXTRA_URLS = ["ios_url", "android_url", "expired_url"] as const;
+const EXTRA_URLS = ["ios_url", "android_url", "windows_url", "mac_url", "linux_url", "expired_url"] as const;
 
 /** Checks the optional extra destinations with the same rules as the main one. Empty means "none". */
 async function checkExtras(v: Partial<Record<(typeof EXTRA_URLS)[number], string | null | undefined>>, ownHost: string): Promise<{ ok: true; urls: Record<string, string | null> } | { ok: false; errors: Record<string, string> }> {
@@ -166,8 +172,8 @@ export async function createLink(userId: number, ownHost: string, raw: unknown):
   // Suspicious names wait in the admin review queue and stay inactive until approved. Admins skip the queue.
   const queued = review !== null && !(await isAdminUser(userId));
   const res = await exec(
-    "INSERT INTO links (user_id, team_id, group_id, domain_id, slug, title, target_url, ios_url, android_url, expired_url, password_hash, expires_at, starts_at, enabled, review_status, review_reason, checked_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())",
-    [userId, v.team_id ?? null, v.group_id ?? null, dom.id, slug, v.title, u.url, extras.urls.ios_url ?? null, extras.urls.android_url ?? null, extras.urls.expired_url ?? null, pw, v.expires_at, v.starts_at, v.enabled === false ? 0 : 1, queued ? "pending" : "none", queued ? review : null],
+    "INSERT INTO links (user_id, team_id, group_id, domain_id, slug, title, target_url, ios_url, android_url, windows_url, mac_url, linux_url, expired_url, password_hash, expires_at, starts_at, enabled, review_status, review_reason, checked_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())",
+    [userId, v.team_id ?? null, v.group_id ?? null, dom.id, slug, v.title, u.url, extras.urls.ios_url ?? null, extras.urls.android_url ?? null, extras.urls.windows_url ?? null, extras.urls.mac_url ?? null, extras.urls.linux_url ?? null, extras.urls.expired_url ?? null, pw, v.expires_at, v.starts_at, v.enabled === false ? 0 : 1, queued ? "pending" : "none", queued ? review : null],
   );
   invalidateSlug(slug);
   const row = await queryOne<LinkRow>("SELECT * FROM links WHERE id = ?", [res.insertId]);

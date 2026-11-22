@@ -150,10 +150,26 @@ test("smart links: platform destinations and fallback to the normal target", asy
   const iphone = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1";
   const pixel = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36";
   const desktop = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120 Safari/537.36";
-  assert.deepEqual([detectOs(iphone), detectOs(pixel), detectOs(desktop), detectOs("")], ["ios", "android", "other", "other"]);
+  assert.deepEqual([detectOs(iphone), detectOs(pixel), detectOs(desktop), detectOs("")], ["ios", "android", "windows", "other"]);
   const link = { target_url: "https://example.com/", ios_url: "https://apps.apple.com/app/x", android_url: null };
   assert.equal(pickDestination(link, iphone), "https://apps.apple.com/app/x");
   assert.equal(pickDestination(link, pixel), "https://example.com/"); // no Android URL set
   assert.equal(pickDestination(link, desktop), "https://example.com/");
   assert.equal(pickDestination({ target_url: "https://example.com/" }, iphone), "https://example.com/");
+});
+
+test("smart links: desktop platforms and look-alike user agents", async () => {
+  const { detectOs, pickDestination } = await import("../src/lib/smart-link.ts");
+  const win = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36";
+  const mac = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/17 Safari/605.1.15";
+  const linux = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0";
+  const iphone = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148";
+  const android = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36";
+  const chromeos = "Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 Chrome/120 Safari/537.36";
+  assert.deepEqual([win, mac, linux, iphone, android, chromeos].map(detectOs), ["windows", "macos", "linux", "ios", "android", "other"]);
+  const link = { target_url: "https://x.com/", windows_url: "https://x.com/win", linux_url: "https://x.com/lin" };
+  assert.equal(pickDestination(link, win), "https://x.com/win");
+  assert.equal(pickDestination(link, linux), "https://x.com/lin");
+  assert.equal(pickDestination(link, mac), "https://x.com/"); // no Mac URL: normal destination
+  assert.equal(pickDestination(link, android), "https://x.com/"); // Android is not Linux
 });
