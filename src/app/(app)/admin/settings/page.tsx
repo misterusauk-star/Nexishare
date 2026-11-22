@@ -1,10 +1,11 @@
+import Link from "next/link";
 import { CREDIT } from "@/lib/credit";
 import { getSettings } from "@/lib/settings";
 import { getBrand } from "@/lib/brand";
 import { LANGUAGES } from "@/lib/i18n";
 import { ActionForm, Field } from "@/components/client";
 import {
-  saveApiSettingsAction, saveBrandingAction, saveGeneralAction, saveIntegrationsAction, saveLegalAction,
+  saveBrandingAction, saveGeneralAction, saveIntegrationsAction, saveLegalAction,
 } from "@/app/actions/admin";
 
 export const metadata = { title: "Settings" };
@@ -61,9 +62,7 @@ export default async function Settings() {
 
       <section className="panel" id="api" style={{ marginTop: 24 }}>
         <h2 className="section-title">API</h2>
-        <ActionForm action={saveApiSettingsAction} submit="Save limit" pendingLabel="Saving...">
-          <Field label="Requests per minute, per API key" name="api_rate_limit" defaultValue={s.api_rate_limit ?? "60"} />
-        </ActionForm>
+        <p className="small muted">API, link and key limits now live under <Link href="/admin/security">Security</Link>, where they can be set for everyone or for one account.</p>
       </section>
 
       <section className="panel" id="integrations" style={{ marginTop: 24 }}>

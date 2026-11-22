@@ -2,8 +2,11 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { query, queryOne } from "@/lib/db";
 import { bioUrl, getDomainState } from "@/lib/domains";
-import { ActionButton, ConfirmButton } from "@/components/client";
+import { ActionButton, ActionForm, ConfirmButton, Field } from "@/components/client";
+import { DEFAULT_LIMITS, LIMIT_KEYS, LIMIT_LABELS, type LimitKey } from "@/lib/limits";
+import { siteLimits } from "@/lib/user-limits";
 import { deleteUserAction, setUserRoleAction, setUserStatusAction } from "@/app/actions/admin";
+import { saveUserLimitsAction } from "@/app/actions/security-admin";
 
 export const metadata = { title: "Users" };
 export const dynamic = "force-dynamic";
@@ -16,7 +19,7 @@ export default async function Users({ searchParams }: { searchParams: Promise<{ 
   const st = await getDomainState();
   const me = await requireAdmin();
   const sp = await searchParams;
-  const page = Math.max(1, Number(sp.page) || 1);
+  const page = Math.min(100_000, Math.max(1, Math.floor(Number(sp.page)) || 1));
   const like = `%${(sp.q ?? "").replace(/[%_]/g, "").slice(0, 80)}%`;
   const w = sp.q ? "WHERE u.email LIKE ? OR u.username LIKE ?" : "";
   const p = sp.q ? [like, like] : [];
@@ -28,6 +31,18 @@ export default async function Users({ searchParams }: { searchParams: Promise<{ 
     p,
   );
   const pages = Math.max(1, Math.ceil(total / PER));
+  // Per-account limit overrides. Skipped quietly when the database update that adds them has not been run yet.
+  const own = new Map<number, Record<LimitKey, number | null>>();
+  const site = await siteLimits();
+  if (rows.length) {
+    try {
+      const ids = rows.map((r) => r.id);
+      const got = await query<{ id: number; a: number | null; b: number | null; c: number | null; d: number | null }>(
+        `SELECT id, limit_api_per_minute AS a, limit_api_per_day AS b, limit_max_links AS c, limit_max_api_keys AS d FROM users WHERE id IN (${ids.map(() => "?").join(",")})`, ids,
+      );
+      for (const g of got) own.set(g.id, { api_per_minute: g.a, api_per_day: g.b, max_links: g.c, max_api_keys: g.d });
+    } catch { /* migration 013 not applied */ }
+  }
   const q = encodeURIComponent(sp.q ?? "");
   return (
     <>
@@ -49,6 +64,16 @@ export default async function Users({ searchParams }: { searchParams: Promise<{ 
                   {u.status === "suspended" && <> <span className="badge bad">Suspended</span></>}
                   {!u.email_verified_at && <> <span className="badge">Unverified</span></>}
                   <div className="small muted">{u.email}</div>
+                  {own.has(u.id) && u.role !== "super_admin" && (
+                    <details className="utm" style={{ marginTop: 8, maxWidth: 360 }}>
+                      <summary>Limits{Object.values(own.get(u.id)!).some((v) => v !== null) ? " (custom)" : ""}</summary>
+                      <ActionForm action={saveUserLimitsAction.bind(null, u.id)} submit="Save limits" pendingLabel="Saving..." submitClass="btn btn-sm btn-primary">
+                        {LIMIT_KEYS.map((k) => (
+                          <Field key={k} label={LIMIT_LABELS[k]} name={k} inputMode="numeric" defaultValue={own.get(u.id)![k] ?? ""} placeholder={`Site value ${site[k] ?? DEFAULT_LIMITS[k]}`} />
+                        ))}
+                      </ActionForm>
+                    </details>
+                  )}
                 </td>
                 <td>{u.role === "super_admin" ? <span className="badge good">Super Admin</span> : "User"}</td>
                 <td className="num">{Number(u.links)}</td>

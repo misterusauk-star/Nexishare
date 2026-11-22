@@ -14,7 +14,7 @@ interface P { id: number; username: string; published: number; moderated: number
 export default async function Content({ searchParams }: { searchParams: Promise<{ q?: string; page?: string }> }) {
   const st = await getDomainState();
   const sp = await searchParams;
-  const page = Math.max(1, Number(sp.page) || 1);
+  const page = Math.min(100_000, Math.max(1, Math.floor(Number(sp.page)) || 1));
   const like = `%${(sp.q ?? "").replace(/[%_]/g, "").slice(0, 80)}%`;
   const w = sp.q ? "WHERE l.slug LIKE ? OR l.target_url LIKE ? OR u.username LIKE ?" : "";
   const links = await query<AdminLink>(

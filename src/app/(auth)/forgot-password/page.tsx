@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AuthShell } from "@/components/auth-shell";
 import { ActionForm, Field } from "@/components/client";
+import { turnstileSiteKey } from "@/lib/security";
 import { forgotAction } from "@/app/actions/auth";
 import { ensureInstalled } from "@/lib/install";
 import { getT } from "@/lib/i18n";
@@ -15,7 +16,7 @@ export default async function ForgotPage() {
   return (
     <AuthShell title={t("auth.forgot.title")} sub={enabled ? "Enter the email you registered with and we will send a reset link." : undefined}>
       {enabled ? (
-        <ActionForm action={forgotAction} submit={t("auth.forgot.submit")} pendingLabel="Sending...">
+        <ActionForm turnstile={await turnstileSiteKey()} action={forgotAction} submit={t("auth.forgot.submit")} pendingLabel="Sending...">
           <Field label={t("auth.email")} name="email" type="email" autoComplete="email" required />
         </ActionForm>
       ) : (

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuthShell } from "@/components/auth-shell";
 import { ActionForm, Field } from "@/components/client";
+import { turnstileSiteKey } from "@/lib/security";
 import { registerAction } from "@/app/actions/auth";
 import { currentUser } from "@/lib/auth";
 import { ensureInstalled } from "@/lib/install";
@@ -26,7 +27,7 @@ export default async function RegisterPage() {
   }
   return (
     <AuthShell title={t("auth.register.title")}>
-      <ActionForm action={registerAction} submit={t("auth.register.submit")} pendingLabel="Creating account...">
+      <ActionForm turnstile={await turnstileSiteKey()} action={registerAction} submit={t("auth.register.submit")} pendingLabel="Creating account...">
         <>
             <Field label={t("auth.email")} name="email" type="email" autoComplete="email" required />
             <Field label={t("auth.password")} name="password" type="password" autoComplete="new-password" required hint={t("auth.passwordHint")} />

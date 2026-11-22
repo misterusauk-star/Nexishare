@@ -11,6 +11,8 @@ import { randomToken, sha256 } from "@/lib/crypto";
 import { rateLimit } from "@/lib/ratelimit";
 import { phase2Enabled } from "@/lib/features";
 import { emailSchema, passwordSchema } from "@/lib/validation";
+import { countActiveKeys, limitsFor } from "@/lib/user-limits";
+import { emailDomainError } from "@/lib/security";
 import { bulkLinkAction, createLink, deleteLink, duplicateLink, updateLink } from "@/lib/services/links";
 import { sendVerification, verificationRequired } from "@/lib/services/users";
 import { validateNewSlug, slugRateOk, SLUG_RATE_MESSAGE } from "@/lib/slug-service";
@@ -230,8 +232,8 @@ export async function createApiKeyAction(_: FormState, fd: FormData): Promise<Fo
   if (!name) return fail({ name: "Give the key a name so you can recognise it later." });
   if (!(await rateLimit(`apikey:create:${u.id}`, 5, 3600))) return fail({ form: "You are creating keys too fast. Try again in an hour." });
   if (await verificationRequired() && !u.email_verified_at) return fail({ form: "Confirm your email before creating an API key." });
-  const n = await queryOne<{ n: number }>("SELECT COUNT(*) AS n FROM api_keys WHERE user_id = ? AND revoked_at IS NULL", [u.id]);
-  if (Number(n?.n) >= 10) return fail({ form: "You can have 10 active keys. Revoke one first." });
+  const cap = await limitsFor(u.id);
+  if (!cap.unlimited && (await countActiveKeys(u.id)) >= cap.values.max_api_keys) return fail({ form: `You can have ${cap.values.max_api_keys} active key${cap.values.max_api_keys === 1 ? "" : "s"}. Revoke one first, or ask the administrator to raise the limit.` });
   const secret = `ob_${randomToken(24)}`;
   await exec("INSERT INTO api_keys (user_id, name, prefix, key_hash) VALUES (?, ?, ?, ?)", [u.id, name, secret.slice(0, 10), sha256(secret)]);
   await audit(u.id, "api_key.create", name);
@@ -253,6 +255,8 @@ export async function changeEmailAction(_: FormState, fd: FormData): Promise<For
   if (!e.success) return fail({ email: e.error.issues[0].message });
   const row = await queryOne<{ password_hash: string | null }>("SELECT password_hash FROM users WHERE id = ?", [u.id]);
   if (row?.password_hash && !(await verifyPassword(s(fd, "password"), row.password_hash))) return fail({ password: "That password is not right." });
+  const domainError = await emailDomainError(e.data);
+  if (domainError) return fail({ email: domainError });
   if (await queryOne("SELECT id FROM users WHERE email = ? AND id <> ?", [e.data, u.id])) return fail({ email: "That email is already in use." });
   await exec("UPDATE users SET email = ?, email_verified_at = NULL WHERE id = ?", [e.data, u.id]);
   await sendVerification({ id: u.id, email: e.data });

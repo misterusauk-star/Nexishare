@@ -5,6 +5,11 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 ## [Unreleased]
 
 ### Added
+- Usage limits with low defaults (20 API requests per minute per key, 1,000 per day per account, 100 links, 3 keys), editable by a super admin for everyone (Admin > Security) or per account (Admin > Users). API 429 responses name the limit. The API keys page shows your limits. Migration 013.
+- Sign-up limited to allowed email domains (Gmail and Outlook by default, super admin adds more) for email and Google sign-up, and when changing email.
+- Cloudflare Turnstile on sign-in, sign-up and password reset, set up in Admin > Security (secret stored encrypted).
+- Brute-force protection: only failed sign-ins count (5 per email, 20 per connection per 15 minutes, 100 per day); a locked account refuses even the right password.
+- Probe filter: SQL injection, script and path-traversal payloads in a URL get a 400. A new test fails when text that is not reviewed is placed inside a SQL string. Page numbers in lists are clamped.
 - Duplicate a link (dashboard button and `POST /links/{id}/duplicate`), bulk enable/disable/delete in the API (`POST /links/bulk/action`), and a "Where each device goes" panel on the link page with `GET /links/{id}/routes`.
 - IndexNow for the main and bio domains: publishing or editing a bio page notifies Bing, Yandex, Seznam and Naver at once (once per page per 10 minutes). Key file at `/<key>.txt`. New Admin > Search page with the sitemap addresses, key files, a "Submit all pages" button and an on/off switch.
 - robots.txt names the major search engines, social preview bots and AI assistants with explicit Allow groups (same disallow list for everyone).

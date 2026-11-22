@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { exec, queryOne } from "./db";
 import { ipHash, sha256 } from "./crypto";
 import { rateLimit } from "./ratelimit";
-import { getSetting } from "./settings";
+import { limitsFor } from "./user-limits";
 import { fromHeaders } from "./request";
 import { linkState, type LinkRow } from "./services/links";
 import { linkHost, linkUrl, type DomainState } from "./domains";
@@ -16,7 +16,7 @@ export function apiError(status: number, message: string, extra?: Record<string,
 export const num = (v: string | undefined | null, d: number) => (Number.isFinite(Number(v)) && Number(v) > 0 ? Number(v) : d);
 
 /**
- * Authenticates a Bearer key and applies the per-key rate limit (admin setting api_rate_limit, per minute).
+ * Authenticates a Bearer key and applies the per-key (per minute) and per-account (per day) limits.
  * Returns either the user or a ready-made error response.
  */
 export async function authApi(req: Request): Promise<{ user: ApiUser } | { res: NextResponse }> {
@@ -37,9 +37,17 @@ export async function authApi(req: Request): Promise<{ user: ApiUser } | { res: 
     if (!(await rateLimit(`api:bad:${ipHash(info.ip)}`, 30, 600))) return { res: apiError(429, "Too many failed attempts.", undefined, { "Retry-After": "600" }) };
     return { res: apiError(401, "That key is invalid or has been revoked.") };
   }
-  const limit = num(await getSetting("api_rate_limit"), 60);
-  if (!(await rateLimit(`api:key:${row.id}`, limit, 60))) {
-    return { res: apiError(429, `Rate limit of ${limit} requests per minute reached.`, undefined, { "Retry-After": "60" }) };
+  // Limits are low by default; an administrator raises them for everyone or for one account (Admin > Security, Admin > Users).
+  const lim = await limitsFor(row.user_id);
+  if (!lim.unlimited) {
+    const perMinute = lim.values.api_per_minute;
+    if (!(await rateLimit(`api:key:${row.id}`, perMinute, 60))) {
+      return { res: apiError(429, `Rate limit of ${perMinute} requests per minute reached.`, { limit: perMinute, window: "minute" }, { "Retry-After": "60" }) };
+    }
+    const perDay = lim.values.api_per_day;
+    if (!(await rateLimit(`api:day:${row.user_id}`, perDay, 86_400))) {
+      return { res: apiError(429, `Daily limit of ${perDay} API requests reached. It resets within 24 hours.`, { limit: perDay, window: "day" }, { "Retry-After": "3600" }) };
+    }
   }
   exec("UPDATE api_keys SET last_used_at = UTC_TIMESTAMP() WHERE id = ?", [row.id]).catch(() => {});
   return { user: { id: row.user_id, username: row.username, role: row.role, keyId: row.id } };

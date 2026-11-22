@@ -8,7 +8,7 @@ const PER = 50;
 interface A { id: number; actor: string | null; action: string; target: string | null; meta: unknown; created_at: Date }
 
 export default async function Audit({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
-  const page = Math.max(1, Number((await searchParams).page) || 1);
+  const page = Math.min(100_000, Math.max(1, Math.floor(Number((await searchParams).page)) || 1));
   const total = Number((await queryOne<{ n: number }>("SELECT COUNT(*) AS n FROM audit_log"))?.n ?? 0);
   const rows = await query<A>(
     `SELECT a.id, COALESCE(u.username, u.email) AS actor, a.action, a.target, a.meta, a.created_at FROM audit_log a

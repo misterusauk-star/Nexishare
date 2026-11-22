@@ -14,6 +14,7 @@ import { rateLimit } from "../ratelimit";
 import { resolveSchedule } from "../duration";
 import { clicksExhausted, MAX_CLICK_LIMIT } from "../click-limit";
 import { firstDeviceUrl } from "../smart-link";
+import { countLinks, limitsFor } from "../user-limits";
 
 export type Result<T> = { ok: true; data: T } | { ok: false; errors: Record<string, string> };
 
@@ -154,6 +155,14 @@ export async function createLink(userId: number, ownHost: string, raw: unknown):
   const p = createInput.safeParse(raw);
   if (!p.success) return { ok: false, errors: fieldErrors(p.error) };
   const v = p.data;
+  // Total links per account: low by default, raised by an administrator globally or per user. Super admins are not limited.
+  const cap = await limitsFor(userId);
+  if (!cap.unlimited) {
+    const max = cap.values.max_links;
+    if ((await countLinks(userId)) >= max) {
+      return { ok: false, errors: { form: `You have reached your limit of ${max.toLocaleString("en-US")} links. Delete links you no longer use, or ask the administrator to raise it.` } };
+    }
+  }
   const verified = await queryOne<{ ok: number }>("SELECT (email_verified_at IS NOT NULL) AS ok FROM users WHERE id = ?", [userId]);
   if (!(await rateLimit(`link:day:${userId}`, verified?.ok ? DAILY_LINKS : DAILY_LINKS_UNVERIFIED, 86400))) {
     return { ok: false, errors: { form: "Daily limit for new links reached. Try again tomorrow." } };

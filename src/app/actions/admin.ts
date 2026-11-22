@@ -177,15 +177,6 @@ export async function saveGeneralAction(_: FormState, fd: FormData): Promise<For
   return done("General settings saved.");
 }
 
-export async function saveApiSettingsAction(_: FormState, fd: FormData): Promise<FormState> {
-  const me = await requireAdmin();
-  const n = Number(s(fd, "api_rate_limit"));
-  if (!Number.isInteger(n) || n < 1 || n > 10_000) return fail({ api_rate_limit: "Enter a whole number between 1 and 10000." });
-  await setSettings({ api_rate_limit: String(n) });
-  await audit(me.id, "settings.api", undefined, { api_rate_limit: n });
-  return done("API limit saved.");
-}
-
 export async function saveIntegrationsAction(_: FormState, fd: FormData): Promise<FormState> {
   const me = await requireAdmin();
   const vals: Record<string, string> = {

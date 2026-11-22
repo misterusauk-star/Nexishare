@@ -275,8 +275,9 @@ export default async function Docs() {
             <h2>Errors and limits</h2>
             <p>Failures return a non-2xx status and a body shaped like this:</p>
             <pre className="code">{`{ "error": { "message": "Validation failed.", "fields": { "slug": "That short name is already taken." } } }`}</pre>
-            <p>Each key gets a fixed number of requests per minute (the server owner sets it; the default is 60). Past that you get <code>429</code> with a <code>Retry-After</code> header.</p>
-            <p>Abuse protection: an account can create up to 500 links per day (50 until its email is confirmed), you can hold 10 active keys, and repeated wrong keys from one address are blocked for ten minutes. Links with look-alike names or unsafe destinations are held for review or refused.</p>
+            <p>Usage is limited, and the defaults are low on purpose: <strong>20 requests per minute per key</strong> and <strong>1,000 requests per day per account</strong>, <strong>100 links in total</strong> per account, and <strong>3 active keys</strong>. Past a request limit you get <code>429</code> with a <code>Retry-After</code> header and a body that names the limit (<code>limit</code> and <code>window</code>: <code>minute</code> or <code>day</code>). Only the server administrator can raise these, for everyone or for one account. Your API keys page shows the limits that apply to you, and a request that would pass your link limit returns <code>422</code> with a clear message.</p>
+            <p>Abuse protection: an account can create up to 500 links per day (50 until its email is confirmed), and repeated wrong keys from one address are blocked for ten minutes. Links with look-alike names or unsafe destinations are held for review or refused.</p>
+            <p>Sign-up is limited to the email providers the administrator allows (Gmail and Outlook by default, plus any domains they add), and sign-in, sign-up and password reset can show a Cloudflare Turnstile check. Neither affects API calls.</p>
           </section>
 
           <Endpoint id="domains" method="get" path="/domains">

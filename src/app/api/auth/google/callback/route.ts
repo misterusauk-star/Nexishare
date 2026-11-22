@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { exec, queryOne } from "@/lib/db";
 import { getBrand } from "@/lib/brand";
+import { emailDomainError } from "@/lib/security";
 import { getSetting } from "@/lib/settings";
 import { decrypt, safeEqual } from "@/lib/crypto";
 import { createSession } from "@/lib/auth";
@@ -65,6 +66,7 @@ export async function GET(req: Request) {
     } else {
       const reg = await getSetting("registration_enabled");
       if (reg === "0") return bad("closed");
+      if (await emailDomainError(email)) return bad("domain");
       const res = await exec(
         "INSERT INTO users (email, username, google_id, role, email_verified_at) VALUES (?, NULL, ?, 'user', UTC_TIMESTAMP())",
         [email, profile.sub],

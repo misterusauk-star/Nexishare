@@ -15,7 +15,7 @@ interface M { id: number; name: string; email: string; message: string; created_
 export default async function Contacts({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   if (!phase2Enabled()) notFound();
   const u = await requireUser();
-  const page = Math.max(1, Number((await searchParams).page) || 1);
+  const page = Math.min(100_000, Math.max(1, Math.floor(Number((await searchParams).page)) || 1));
   const total = Number((await queryOne<{ n: number }>("SELECT COUNT(*) AS n FROM contact_messages WHERE user_id = ?", [u.id]))?.n ?? 0);
   const rows = await query<M>(
     `SELECT id, name, email, message, created_at FROM contact_messages WHERE user_id = ? ORDER BY id DESC LIMIT ${PER} OFFSET ${(page - 1) * PER}`,

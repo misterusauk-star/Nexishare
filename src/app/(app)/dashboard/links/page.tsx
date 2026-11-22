@@ -18,7 +18,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
   const sp = await searchParams;
   const b = await getBrand();
   const st = await getDomainState();
-  const page = Math.max(1, Number(sp.page) || 1);
+  const page = Math.min(100_000, Math.max(1, Math.floor(Number(sp.page)) || 1));
   let teamIds: number[] = [];
   if (phase2Enabled()) {
     teamIds = await query<{ team_id: number }>("SELECT team_id FROM team_members WHERE user_id = ?", [user.id]).then((r) => r.map((x) => x.team_id)).catch(() => []);

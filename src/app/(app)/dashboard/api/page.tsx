@@ -5,6 +5,7 @@ import { getDomainState } from "@/lib/domains";
 import { ApiKeyForm } from "@/components/api-key-form";
 import { ConfirmButton } from "@/components/client";
 import { revokeApiKeyAction } from "@/app/actions/app";
+import { countLinks, limitsFor } from "@/lib/user-limits";
 
 export const metadata = { title: "API keys" };
 
@@ -15,6 +16,9 @@ export default async function ApiPage() {
   const user = await requireUser();
   const st = await getDomainState();
   const keys = await query<Key>("SELECT id, name, prefix, last_used_at, revoked_at, created_at FROM api_keys WHERE user_id = ? ORDER BY id DESC", [user.id]);
+  const lim = await limitsFor(user.id);
+  const used = await countLinks(user.id).catch(() => 0);
+  const nf = (n: number) => n.toLocaleString("en-US");
   return (
     <>
       <div className="page-head">
@@ -23,6 +27,9 @@ export default async function ApiPage() {
           <p>Create short links and read stats from your own scripts. Requests go to <code>{st.apiUrl}/api/v1</code>. See the <Link href="/docs">API reference</Link>.</p>
         </div>
       </div>
+      <p className="small muted" style={{ marginBottom: 24 }}>
+        {lim.unlimited ? "Your account has no usage limits." : <>Your limits: <span className="num">{nf(lim.values.api_per_minute)}</span> requests per minute per key, <span className="num">{nf(lim.values.api_per_day)}</span> per day, <span className="num">{nf(lim.values.max_api_keys)}</span> active keys, and <span className="num">{nf(used)}</span> of <span className="num">{nf(lim.values.max_links)}</span> links used. Ask the administrator if you need more.</>}
+      </p>
       <div className="cols" style={{ gridTemplateColumns: "minmax(0, 6fr) minmax(0, 4fr)", alignItems: "start" }}>
         <section>
           {keys.length === 0 ? (

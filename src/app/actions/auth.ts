@@ -5,7 +5,8 @@ import { z } from "zod";
 import { exec, queryOne } from "@/lib/db";
 import { createSession, destroySession, destroyAllSessions, currentUser, hashPassword, verifyPassword, requireUser } from "@/lib/auth";
 import { emailSchema, passwordSchema, fieldErrors, safeNext } from "@/lib/validation";
-import { rateLimit } from "@/lib/ratelimit";
+import { rateLimit, rateLimitHit, rateLimitOpen } from "@/lib/ratelimit";
+import { emailDomainError, verifyTurnstile } from "@/lib/security";
 import { ipHash } from "@/lib/crypto";
 import { reqInfo } from "@/lib/request";
 import { flag } from "@/lib/settings";
@@ -22,19 +23,34 @@ export interface FormState {
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "");
 
+/** Brute-force limits. Only FAILED attempts count: 5 per email and 20 per connection in 15 minutes, 100 per connection per day. */
+const FAIL = { email: [5, 900], ip: [20, 900], ipDay: [100, 86_400] } as const;
+
 export async function loginAction(_: FormState, fd: FormData): Promise<FormState> {
   const t = await getT();
   const info = await reqInfo();
-  const email = str(fd, "email").trim().toLowerCase();
-  if (!(await rateLimit(`login:ip:${ipHash(info.ip)}`, 20, 900)) || !(await rateLimit(`login:em:${email}`, 8, 900))) {
+  const email = str(fd, "email").trim().toLowerCase().slice(0, 254);
+  const ip = ipHash(info.ip);
+  if (!(await rateLimit(`login:ip:${ip}`, 60, 900))) return { errors: { form: t("error.ratelimit") } };
+  // Locked out: refuse before looking at the password, so a correct guess during the lock does not work either.
+  if (
+    !(await rateLimitOpen(`login:fail:em:${email}`, FAIL.email[0], FAIL.email[1])) ||
+    !(await rateLimitOpen(`login:fail:ip:${ip}`, FAIL.ip[0], FAIL.ip[1])) ||
+    !(await rateLimitOpen(`login:fail:ipd:${ip}`, FAIL.ipDay[0], FAIL.ipDay[1]))
+  ) {
     return { errors: { form: t("error.ratelimit") } };
   }
+  const human = await verifyTurnstile(fd, info.ip);
+  if (human) return { errors: { form: human } };
   const user = await queryOne<{ id: number; password_hash: string | null; status: string }>(
     "SELECT id, password_hash, status FROM users WHERE email = ?", [email],
   );
   // Always run a hash comparison so response time does not reveal whether the account exists.
-  const ok = await verifyPassword(str(fd, "password"), user?.password_hash ?? "$2a$12$invalidinvalidinvalidinvalidinvalidinvalidinvalidinvali");
-  if (!user || !user.password_hash || !ok) return { errors: { form: t("auth.login.invalid") } };
+  const ok = await verifyPassword(str(fd, "password").slice(0, 200), user?.password_hash ?? "$2a$12$invalidinvalidinvalidinvalidinvalidinvalidinvalidinvali");
+  if (!user || !user.password_hash || !ok) {
+    await Promise.all([rateLimitHit(`login:fail:em:${email}`, FAIL.email[1]), rateLimitHit(`login:fail:ip:${ip}`, FAIL.ip[1]), rateLimitHit(`login:fail:ipd:${ip}`, FAIL.ipDay[1])]);
+    return { errors: { form: t("auth.login.invalid") } };
+  }
   if (user.status !== "active") return { errors: { form: t("auth.login.suspended") } };
   await createSession(user.id);
   redirect(safeNext(str(fd, "next")));
@@ -47,9 +63,13 @@ export async function registerAction(_: FormState, fd: FormData): Promise<FormSt
   if (!(await flag("registration_enabled", true))) return { errors: { form: t("auth.register.closed") } };
   const info = await reqInfo();
   if (!(await rateLimit(`register:ip:${ipHash(info.ip)}`, 5, 3600))) return { errors: { form: t("error.ratelimit") } };
+  const human = await verifyTurnstile(fd, info.ip);
+  if (human) return { errors: { form: human } };
   const p = registerSchema.safeParse({ email: str(fd, "email"), password: str(fd, "password") });
   if (!p.success) return { errors: fieldErrors(p.error) };
   const { email, password } = p.data;
+  const domainError = await emailDomainError(email); // keeps disposable mailboxes out
+  if (domainError) return { errors: { email: domainError } };
   if (await queryOne("SELECT id FROM users WHERE email = ?", [email])) return { errors: { email: "An account with this email already exists." } };
   const id = await createUser({ email, password }); // no username: a bio page is created later from the dashboard
   void sendVerification({ id, email }).catch(() => {});
@@ -67,6 +87,8 @@ export async function forgotAction(_: FormState, fd: FormData): Promise<FormStat
   const t = await getT();
   if (!(await emailAvailable("password_reset"))) return { errors: { form: t("auth.forgot.disabled") } };
   const info = await reqInfo();
+  const human = await verifyTurnstile(fd, info.ip);
+  if (human) return { errors: { form: human } };
   const e = emailSchema.safeParse(str(fd, "email"));
   if (!e.success) return { errors: { email: e.error.issues[0].message } };
   // Max 3 reset emails per hour per address and per IP; the reply is identical either way.

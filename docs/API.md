@@ -22,7 +22,7 @@ Failures return a non-2xx status and:
 
 ## Rate limits
 
-Each key gets a fixed number of requests per minute (default 60, set by the server owner in **Admin > Settings > API**). Past it you get `429` with a `Retry-After` header.
+Limits are low by default: **20 requests per minute per key**, **1,000 requests per day per account**, **100 links in total** per account and **3 active keys**. Past a request limit you get `429` with a `Retry-After` header and `error.limit` / `error.window` (`minute` or `day`). Only an administrator can change them, for everyone (**Admin > Security**) or for one account (**Admin > Users**). Super admins are not limited. A create that would pass the link limit returns `422`. The API keys page shows your own limits.
 
 ## Endpoints
 
@@ -101,7 +101,7 @@ Responses include `domain`, `domain_id` and a `short_url` built from that domain
 
 ## Abuse limits
 
-500 new links per account per day (50 until the email is confirmed), 10 active keys, 5 new keys per hour, and 30 wrong-key attempts per 10 minutes per IP.
+500 new links per account per day (50 until the email is confirmed), 5 new keys per hour, and 30 wrong-key attempts per 10 minutes per IP.
 
 
 ## Bulk create
@@ -123,3 +123,10 @@ No API call is needed; this is built in.
 - `/sitemap.xml`: the main domain lists the site pages, the bio domain lists every published bio page with `lastmod`. Submit each in Google Search Console and Bing Webmaster Tools.
 - `/robots.txt`: explicit `Allow: /` groups for search engines (Googlebot, Bingbot, DuckDuckBot, YandexBot, Baiduspider, Applebot, Slurp and more), social preview bots (facebookexternalhit, Twitterbot, LinkedInBot, Slackbot, WhatsApp, TelegramBot, Discordbot) and AI assistants (OAI-SearchBot, PerplexityBot, ClaudeBot and more). App pages, `/api/` and sign-in stay disallowed. Link domains and the API domain disallow everything.
 - IndexNow: publishing or editing a bio page pings `api.indexnow.org` (at most once per page per 10 minutes). The key file is served at `/<key>.txt` on the main and bio domains. Admin > Search shows the key files, can send every page at once, and can turn pings off.
+
+## Sign-up and sign-in protection
+
+- Sign-up (email or Google) is limited to allowed email domains: Gmail and Outlook by default (`gmail.com`, `googlemail.com`, `outlook.com`, `hotmail.com`, `live.com`, `msn.com`). A super admin edits the list in **Admin > Security**. Existing accounts are not affected.
+- Cloudflare Turnstile can be switched on in **Admin > Security** (site key and secret key). It appears on sign-in, sign-up and password reset.
+- Brute force: only failed sign-ins count. 5 failures for one email or 20 from one connection lock sign-in for 15 minutes; 100 from one connection lock it for a day.
+- SQL injection: all queries use prepared statements, a test blocks new text inside SQL, and scanner payloads in a URL get a `400`.

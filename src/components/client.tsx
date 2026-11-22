@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useTransition, useActionState, useRef, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Check, Copy, Menu, Moon, Sun, X } from "lucide-react";
+import { TurnstileField } from "./turnstile";
 
 export function CopyButton({ value, label = "Copy", className = "btn btn-sm" }: { value: string; label?: string; className?: string }) {
   const [done, setDone] = useState(false);
@@ -68,7 +69,7 @@ const ErrCtx = createContext<Record<string, string>>({});
 
 /** Wraps a server action with pending state and field errors. */
 export function ActionForm({
-  action, children, submit, pendingLabel, className, resetOnSuccess, submitClass = "btn btn-primary", extra,
+  action, children, submit, pendingLabel, className, resetOnSuccess, submitClass = "btn btn-primary", extra, turnstile,
 }: {
   action: (s: FormState, fd: FormData) => Promise<FormState>;
   children: React.ReactNode;
@@ -78,6 +79,8 @@ export function ActionForm({
   resetOnSuccess?: boolean;
   submitClass?: string;
   extra?: React.ReactNode;
+  /** Cloudflare Turnstile site key. When set, the form shows the check and the server action verifies it. */
+  turnstile?: string | null;
 }) {
   const [state, formAction, pending] = useActionState(action, {});
   const ref = useRef<HTMLFormElement>(null);
@@ -89,6 +92,7 @@ export function ActionForm({
       {state.errors?.form && <div className="notice bad" role="alert">{state.errors.form}</div>}
       {state.message && <div className={`notice ${state.ok ? "good" : ""}`} role="status">{state.message}</div>}
       <ErrCtx.Provider value={state.errors ?? {}}>{children}</ErrCtx.Provider>
+      {turnstile && <TurnstileField siteKey={turnstile} resetKey={state} />}
       <div className="row">
         <button className={submitClass} disabled={pending}>{pending ? pendingLabel ?? "Working..." : submit}</button>
         {extra}

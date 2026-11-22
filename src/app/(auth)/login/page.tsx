@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuthShell } from "@/components/auth-shell";
 import { ActionForm, Field } from "@/components/client";
+import { turnstileSiteKey } from "@/lib/security";
 import { loginAction } from "@/app/actions/auth";
 import { currentUser } from "@/lib/auth";
 import { ensureInstalled } from "@/lib/install";
@@ -23,10 +24,10 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       {sp.reset && <div className="notice good" role="status">Password updated. Sign in with the new one.</div>}
       {sp.error && (
         <div className="notice bad" role="alert">
-          {{ google: "Google sign-in did not complete. Try again.", closed: "Registration is closed on this site.", suspended: "This account is suspended." }[sp.error] ?? "Sign-in failed."}
+          {{ google: "Google sign-in did not complete. Try again.", closed: "Registration is closed on this site.", domain: "Sign-up is limited to certain email providers. Use an allowed address.", suspended: "This account is suspended." }[sp.error] ?? "Sign-in failed."}
         </div>
       )}
-      <ActionForm action={loginAction} submit={t("auth.login.submit")} pendingLabel="Signing in...">
+      <ActionForm turnstile={await turnstileSiteKey()} action={loginAction} submit={t("auth.login.submit")} pendingLabel="Signing in...">
         <>
             <input type="hidden" name="next" value={safeNext(sp.next, "")} />
             <Field label={t("auth.email")} name="email" type="email" autoComplete="email" required />
