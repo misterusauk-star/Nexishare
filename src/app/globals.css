@@ -381,3 +381,102 @@ html, body { overflow-x: clip; }
   .site-main h1 { font-size: 26px; }
   .stat .v { font-size: 32px; }
 }
+
+/* ---- Polish pass: presentation only (no behaviour) ---- */
+::selection { background: var(--accent-soft); color: var(--ink); }
+::placeholder { color: var(--muted); opacity: 0.75; }
+* { scrollbar-color: var(--line-strong) transparent; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+[id] { scroll-margin-top: 24px; }
+
+/* Controls: a clear focus edge and a visible disabled state */
+.input:focus-visible { border-color: var(--focus); outline-offset: 0; }
+.input:disabled, .input[readonly] { background: var(--sunken); color: var(--muted); cursor: not-allowed; }
+.input[readonly] { cursor: text; }
+.btn[aria-busy="true"] { cursor: progress; opacity: 0.7; }
+.btn-primary:focus-visible { outline-offset: 3px; }
+.hint { line-height: 1.45; max-width: 60ch; }
+.err { font-weight: 500; }
+
+/* Collapsible sections (utm, device destinations, language samples, panels): one consistent disclosure look */
+details.utm { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); margin: 0 0 16px; }
+details.utm > summary, details.panel > summary, .lang-samples summary { display: flex; align-items: center; gap: 10px; cursor: pointer; list-style: none; font-weight: 600; font-size: 14px; }
+details.utm > summary { padding: 12px 14px; min-height: 44px; }
+details.utm[open] > summary { border-bottom: 1px solid var(--line); }
+details.utm > :not(summary) { margin-left: 14px; margin-right: 14px; }
+details.utm > :last-child { margin-bottom: 14px; }
+details.utm > summary + * { margin-top: 14px; }
+details.utm > summary::-webkit-details-marker, details.panel > summary::-webkit-details-marker, .lang-samples summary::-webkit-details-marker { display: none; }
+details.utm > summary::before, details.panel > summary::before, .lang-samples summary::before {
+  content: ""; width: 7px; height: 7px; flex: none; margin: 0 2px 0 1px;
+  border-right: 1.75px solid var(--muted); border-bottom: 1.75px solid var(--muted);
+  transform: rotate(-45deg); transition: transform 150ms var(--ease);
+}
+details[open] > summary::before { transform: rotate(45deg); }
+details.utm > summary:hover, .lang-samples summary:hover { background: var(--sunken); }
+details.utm > summary:hover { border-radius: var(--radius) var(--radius) 0 0; }
+details.utm:not([open]) > summary:hover { border-radius: var(--radius); }
+.lang-samples details { background: var(--surface); overflow: hidden; }
+.lang-samples details[open] > summary { border-bottom: 0; }
+
+/* Docs: readable inline code, calmer side navigation, tidy lists */
+.docs p code, .docs li code, .docs td code, .docs h3 code, .prose p code, .prose li code { background: var(--sunken); border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; font-size: 0.88em; overflow-wrap: anywhere; }
+.docs h2 code { font-size: 0.8em; font-weight: 500; overflow-wrap: anywhere; }
+.docs ul, .docs ol { padding-left: 20px; margin: 0 0 12px; max-width: 68ch; }
+.docs li { margin-bottom: 4px; }
+.docs p { max-width: 72ch; }
+.docs nav a { padding: 4px 0 4px 12px; margin-left: -1px; border-left: 2px solid transparent; line-height: 1.35; }
+.docs nav a:hover { border-left-color: var(--accent); }
+.docs nav a:focus-visible { border-radius: 3px; }
+.docs section:last-of-type { border-bottom: 0; }
+.docs .method { vertical-align: 2px; }
+@media (max-width: 860px) {
+  .docs { padding: 16px 16px 64px; }
+  .docs nav { gap: 4px 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+  .docs nav a { padding: 8px 10px; min-height: 44px; display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+  .docs nav a:hover { border-color: var(--accent); }
+}
+
+/* Tables and lists: gentler rhythm, tidy last column */
+.tbl tr:last-child td { border-bottom-color: var(--line-strong); }
+.tbl td:last-child, .tbl th:last-child { padding-right: 4px; }
+.page-head h1 { overflow-wrap: anywhere; }
+.page-head { gap: 12px 16px; }
+.empty { border-left: 2px solid var(--line-strong); padding: 8px 0 8px 20px; margin: 32px 0; }
+.empty h3 + p { margin-bottom: 16px; }
+.panel > h2:first-child, .panel > h3:first-child { margin-bottom: 12px; }
+.section-title h2, .section-title h3 { margin: 0; }
+
+/* Stats: calmer numerals on small screens, dividers that do not double up */
+@media (max-width: 700px) {
+  .stat:nth-child(odd) { border-left: 0; padding-left: 0; }
+  .stat:nth-child(even) { padding-left: 16px; border-left: 1px solid var(--line); }
+  .stat:nth-last-child(-n+2) { border-bottom: 0; }
+}
+
+/* Navigation: clearer active and hover cues, group headings that read as headings */
+.nav .group { margin-top: 4px; letter-spacing: 0; }
+.nav a svg.icon { opacity: 0.8; }
+.nav a[aria-current="page"] svg.icon, .nav a:hover svg.icon { opacity: 1; color: var(--accent-text); }
+.side-foot .row { flex-wrap: wrap; }
+.topbar .brand { padding: 0; }
+
+/* Auth pages: comfortable gutters on phones */
+@media (max-width: 860px) {
+  .auth-form { padding: 32px max(20px, env(safe-area-inset-left)) calc(32px + env(safe-area-inset-bottom)); align-items: flex-start; }
+}
+
+/* Dialogs and sheets: animate in briefly, only in answer to opening */
+@media (prefers-reduced-motion: no-preference) {
+  dialog.sheet[open] { animation: sheet-in 160ms var(--ease); }
+  dialog.sheet[open]::backdrop { animation: fade-in 160ms var(--ease); }
+}
+@keyframes sheet-in { from { opacity: 0; transform: translateY(8px); } }
+@keyframes fade-in { from { opacity: 0; } }
+
+@media print {
+  .side, .topbar, .docs nav, .site-head nav, .btn { display: none !important; }
+  .shell { display: block; }
+  .main, .docs { padding: 0; max-width: none; grid-template-columns: 1fr; }
+  body { background: #fff; color: #000; }
+}

@@ -36,6 +36,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 - `/docs` now has a field table (required vs optional), more curl examples and samples in JavaScript, Python, PHP, Go and Ruby.
 
 ### Changed
+- UI polish (presentation only, no behaviour change): one consistent look for collapsible sections, clearer focus and disabled fields, readable inline code and a calmer side navigation in the docs (tappable section chips on phones), cleaner stat dividers on small screens, a marked empty state, a short open animation for dialogs, and a print stylesheet.
 - **Breaking:** user-owned custom domains are gone. Domains are now managed by the Super Admin in Admin > Domains. Run `npm run migrate`: migration 004 is additive and copies old user domains in as *pending* admin domains, 005 drops the old `domains` table. Remove `APP_SERVER_IP` and `APP_CNAME_TARGET` from your environment if you set them.
 - Links and bio pages are served only on the default domain. Every other host returns 404 for them. App pages (home, login, dashboard, admin) run on the main domain (`APP_URL` host); other domains redirect them there. The REST API (`/api/v1`) is accepted only on an API domain once one is active. Unknown hosts return 404.
 - Every public URL is built from the current default domain at render time. Nothing about a domain is stored on links or pages.
