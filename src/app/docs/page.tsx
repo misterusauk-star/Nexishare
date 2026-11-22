@@ -398,6 +398,7 @@ curl -X POST ${base}/links -H "Authorization: Bearer ob_your_key" -H "Content-Ty
     "android_url": "https://play.google.com/store/apps/details?id=com.example.app",
     "windows_url": "https://apps.microsoft.com/detail/9NBLGGH4NNS1",
     "mac_url": "https://apps.apple.com/app/id987654321",
+    "linux_url": "https://example.com/download/linux",
     "expires_in": "30d",
     "expired_url": "https://example.com/campaign-ended"
   }'`}</pre>
@@ -410,7 +411,7 @@ await fetch("${base}/links", {
 
 # Python
 requests.post("${base}/links", headers={"Authorization": "Bearer ob_your_key"},
-  json={"target_url": "https://example.com/app", "ios_url": "https://apps.apple.com/app/id1", "expires_in": "2w"}, timeout=15)`}</pre>
+  json={"target_url": "https://example.com/app", "ios_url": "https://apps.apple.com/app/id1", "linux_url": "https://example.com/linux", "expires_in": "2w"}, timeout=15)`}</pre>
           </section>
 
           <Endpoint id="create" method="post" path="/links">
