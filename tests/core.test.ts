@@ -144,3 +144,16 @@ test("crawler files are static on every host: robots.txt, sitemap.xml, llms.txt"
     assert.deepEqual(d("api.example.com", p), allow, p);
   }
 });
+
+test("smart links: platform destinations and fallback to the normal target", async () => {
+  const { detectOs, pickDestination } = await import("../src/lib/smart-link.ts");
+  const iphone = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1";
+  const pixel = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36";
+  const desktop = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120 Safari/537.36";
+  assert.deepEqual([detectOs(iphone), detectOs(pixel), detectOs(desktop), detectOs("")], ["ios", "android", "other", "other"]);
+  const link = { target_url: "https://example.com/", ios_url: "https://apps.apple.com/app/x", android_url: null };
+  assert.equal(pickDestination(link, iphone), "https://apps.apple.com/app/x");
+  assert.equal(pickDestination(link, pixel), "https://example.com/"); // no Android URL set
+  assert.equal(pickDestination(link, desktop), "https://example.com/");
+  assert.equal(pickDestination({ target_url: "https://example.com/" }, iphone), "https://example.com/");
+});

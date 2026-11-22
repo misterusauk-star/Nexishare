@@ -6,6 +6,7 @@ import { currentHost, enforceHost } from "@/lib/host-guard";
 import { bioUrl, getDomainState, linkHost } from "@/lib/domains";
 import { reqInfo } from "@/lib/request";
 import { recordClick } from "@/lib/analytics";
+import { pickDestination } from "@/lib/smart-link.ts";
 import { isBlocked } from "@/lib/validation";
 import { getLinkBySlug, getPublicPage } from "@/lib/services/public";
 import { linkState } from "@/lib/services/links";
@@ -62,6 +63,8 @@ export default async function SlugPage({ params, searchParams }: Props) {
   if (host !== linkHost(st, link.domain_id)) notFound(); // a link answers only on its own domain
 
   const state = !link.owner_active ? "moderated" : linkState(link);
+  // An expired link can send visitors to a fallback page instead of the "expired" notice.
+  if (state === "expired" && link.expired_url && link.owner_active && !(await isBlocked(link.expired_url))) redirect(link.expired_url);
   if (state !== "active") return <Gone state={state} slug={slug} />;
   if (await isBlocked(link.target_url)) return <Gone state="moderated" slug={slug} />;
   // A link with an open abuse report is not followed automatically: the visitor sees where it goes and decides.
@@ -87,7 +90,9 @@ export default async function SlugPage({ params, searchParams }: Props) {
     type: "link", id: link.id, userId: link.user_id, info, ownHost: b.host,
     utm: { source: first(sp.utm_source), medium: first(sp.utm_medium), campaign: first(sp.utm_campaign) },
   });
-  redirect(link.target_url);
+  const dest = pickDestination(link, info.ua); // iPhone and Android visitors can have their own destination
+  if (dest !== link.target_url && (await isBlocked(dest))) return <Gone state="moderated" slug={slug} />;
+  redirect(dest);
 }
 
 const COPY: Record<string, { title: string; body: string }> = {

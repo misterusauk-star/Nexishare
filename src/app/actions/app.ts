@@ -64,6 +64,7 @@ export async function createLinkAction(_: FormState, fd: FormData): Promise<Form
     target_url: s(fd, "target_url"), slug: s(fd, "slug"), title: s(fd, "title"), password: s(fd, "password"),
     expires_at: s(fd, "expires_at"), starts_at: s(fd, "starts_at"), group_id: s(fd, "group_id") || null,
     domain_id: s(fd, "domain_id") || null,
+    ios_url: s(fd, "ios_url"), android_url: s(fd, "android_url"), expired_url: s(fd, "expired_url"),
     utm_source: s(fd, "utm_source"), utm_medium: s(fd, "utm_medium"), utm_campaign: s(fd, "utm_campaign"),
   });
   if (!r.ok) return fail(r.errors);
@@ -81,6 +82,7 @@ export async function updateLinkAction(id: number, _: FormState, fd: FormData): 
   };
   if (fd.has("group_id")) raw.group_id = s(fd, "group_id") || null;
   if (fd.has("domain_id")) raw.domain_id = s(fd, "domain_id") || null;
+  for (const k of ["ios_url", "android_url", "expired_url"]) if (fd.has(k)) raw[k] = s(fd, k);
   if (fd.get("remove_password") === "on") raw.password = "";
   else if (s(fd, "password")) raw.password = s(fd, "password");
   const r = await updateLink(u.id, id, b.host, raw, u.role === "super_admin");

@@ -5,6 +5,8 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 ## [Unreleased]
 
 ### Added
+- Smart destinations per link: iPhone/iPad and Android visitors can go to their own URL (for example an app store page), and an expired link can redirect to a fallback URL instead of the expired notice. Dashboard: "Different destinations" on new and existing links. API: `ios_url`, `android_url`, `expired_url`. Migration 009.
+- API: `POST /api/v1/links/bulk` creates up to 50 links per request with a result per item.
 - Admin > Domains opens with a table "What each address does right now" (main, default, bio pages, API) that shows whether the bio and API domains are active or still waiting for Check & activate. Saving a domain before the database updates are applied now shows a clear message instead of an error page.
 - `llms.txt` on every domain (a plain-text map for language models: product and docs on the main domain, public pages on the bio domain). `robots.txt` is now per domain: link and API domains disallow everything, the bio domain allows bio pages only. `sitemap.xml` lists site pages on the main domain and bio pages on the bio host, with change frequency and priority.
 - Bio domain: a domain type "Bio pages only" (for example bio.example.com). Bio pages, their redirects and vCards are served only there, short links only on link domains. Bio page URLs (dashboard, admin, QR, vCard, sitemap, canonical tags) follow it. Migration 008.

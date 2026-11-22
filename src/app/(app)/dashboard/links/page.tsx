@@ -52,6 +52,13 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
             <Field label="Starts (UTC)" name="starts_at" type="datetime-local" />
             <Field label="Expires (UTC)" name="expires_at" type="datetime-local" />
           </div>
+            <details className="utm">
+              <summary className="small link-like">Different destinations (optional)</summary>
+              <p className="small muted">Send iPhone and Android visitors to their own page, for example an app store listing, and choose where an expired link goes instead of the expired notice.</p>
+              <Field label="iPhone and iPad destination" name="ios_url" type="url" placeholder="https://apps.apple.com/app/..." maxLength={2048} />
+              <Field label="Android destination" name="android_url" type="url" placeholder="https://play.google.com/store/apps/..." maxLength={2048} />
+              <Field label="After it expires, go to" name="expired_url" type="url" placeholder="https://example.com/offer-ended" maxLength={2048} />
+            </details>
           <details className="utm">
             <summary className="small link-like">Campaign tags (optional)</summary>
             <p className="small muted">Added to the destination as utm_source, utm_medium and utm_campaign so your analytics can tell where visits came from.</p>

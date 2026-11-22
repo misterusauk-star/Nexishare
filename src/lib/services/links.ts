@@ -24,6 +24,9 @@ export interface LinkRow {
   target_url: string;
   password_hash: string | null;
   domain_id?: number | null;
+  ios_url?: string | null;
+  android_url?: string | null;
+  expired_url?: string | null;
   expires_at: Date | null;
   starts_at: Date | null;
   enabled: number;
@@ -62,6 +65,10 @@ export const linkInput = z.object({
   domain_id: z.coerce.number().int().positive().nullish(),
   domain: z.string().trim().toLowerCase().max(190).nullish(),
   // Campaign tags, added to the destination URL as utm_* parameters.
+  // Optional extra destinations: platform-specific URLs and a fallback shown after the link expires.
+  ios_url: z.string().trim().max(2048).nullish(),
+  android_url: z.string().trim().max(2048).nullish(),
+  expired_url: z.string().trim().max(2048).nullish(),
   utm_source: z.string().trim().max(100).nullish(),
   utm_medium: z.string().trim().max(100).nullish(),
   utm_campaign: z.string().trim().max(100).nullish(),
@@ -85,6 +92,22 @@ async function resolveDomain(v: { domain_id?: number | null; domain?: string | n
     return d ? { ok: true, id: d.id } : { ok: false, error: "That domain is not available for links. See GET /domains." };
   }
   return { ok: true, id: null };
+}
+
+const EXTRA_URLS = ["ios_url", "android_url", "expired_url"] as const;
+
+/** Checks the optional extra destinations with the same rules as the main one. Empty means "none". */
+async function checkExtras(v: Partial<Record<(typeof EXTRA_URLS)[number], string | null | undefined>>, ownHost: string): Promise<{ ok: true; urls: Record<string, string | null> } | { ok: false; errors: Record<string, string> }> {
+  const urls: Record<string, string | null> = {};
+  for (const k of EXTRA_URLS) {
+    const raw = v[k];
+    if (raw === undefined) continue;
+    if (!raw) { urls[k] = null; continue; }
+    const r = await assessDestination(raw, ownHost);
+    if (!r.ok) return { ok: false, errors: { [k]: r.error } };
+    urls[k] = r.url;
+  }
+  return { ok: true, urls };
 }
 
 /** Links one account may create per day (any route: dashboard, API, import). Unverified accounts get a smaller cap. */
@@ -119,6 +142,8 @@ export async function createLink(userId: number, ownHost: string, raw: unknown):
   if (!dom.ok) return { ok: false, errors: { domain_id: dom.error } };
   const u = await assessDestination(applyUtm(v.target_url, v), ownHost);
   if (!u.ok) return { ok: false, errors: { target_url: u.error } };
+  const extras = await checkExtras(v, ownHost);
+  if (!extras.ok) return { ok: false, errors: extras.errors };
   const appName = (await getBrand()).name;
   let slug = v.slug;
   let review: string | null = null;
@@ -141,8 +166,8 @@ export async function createLink(userId: number, ownHost: string, raw: unknown):
   // Suspicious names wait in the admin review queue and stay inactive until approved. Admins skip the queue.
   const queued = review !== null && !(await isAdminUser(userId));
   const res = await exec(
-    "INSERT INTO links (user_id, team_id, group_id, domain_id, slug, title, target_url, password_hash, expires_at, starts_at, enabled, review_status, review_reason, checked_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())",
-    [userId, v.team_id ?? null, v.group_id ?? null, dom.id, slug, v.title, u.url, pw, v.expires_at, v.starts_at, v.enabled === false ? 0 : 1, queued ? "pending" : "none", queued ? review : null],
+    "INSERT INTO links (user_id, team_id, group_id, domain_id, slug, title, target_url, ios_url, android_url, expired_url, password_hash, expires_at, starts_at, enabled, review_status, review_reason, checked_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())",
+    [userId, v.team_id ?? null, v.group_id ?? null, dom.id, slug, v.title, u.url, extras.urls.ios_url ?? null, extras.urls.android_url ?? null, extras.urls.expired_url ?? null, pw, v.expires_at, v.starts_at, v.enabled === false ? 0 : 1, queued ? "pending" : "none", queued ? review : null],
   );
   invalidateSlug(slug);
   const row = await queryOne<LinkRow>("SELECT * FROM links WHERE id = ?", [res.insertId]);
@@ -171,6 +196,11 @@ export async function updateLink(userId: number, id: number, ownHost: string, ra
       sets.push("slug = ?"); vals.push(s.slug);
       if (s.review && !isAdmin) { sets.push("review_status = 'pending'", "review_reason = ?"); vals.push(s.review); }
     }
+  }
+  if (raw && typeof raw === "object" && EXTRA_URLS.some((k) => k in raw)) {
+    const extras = await checkExtras(Object.fromEntries(EXTRA_URLS.filter((k) => k in (raw as object)).map((k) => [k, v[k] ?? ""])), ownHost);
+    if (!extras.ok) return { ok: false, errors: extras.errors };
+    for (const [k, val] of Object.entries(extras.urls)) { sets.push(`${k} = ?`); vals.push(val); }
   }
   if (v.title !== undefined) { sets.push("title = ?"); vals.push(v.title); }
   if (raw && typeof raw === "object" && "password" in raw) {

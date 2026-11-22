@@ -13,6 +13,7 @@ import { recordClick } from "@/lib/analytics";
 import { emailSchema, fieldErrors, isBlocked } from "@/lib/validation";
 import { getLinkBySlug } from "@/lib/services/public";
 import { linkState } from "@/lib/services/links";
+import { pickDestination } from "@/lib/smart-link.ts";
 import { sendEmail } from "@/lib/email/mailer";
 import { submitReport } from "@/lib/services/reports";
 import { phase2Enabled } from "@/lib/features";
@@ -27,11 +28,12 @@ export async function unlockLinkAction(slug: string, _: FormState, fd: FormData)
   if (!link || !link.password_hash || linkState(link) !== "active" || !link.owner_active) return { errors: { password: "This link is no longer available." } };
   const ok = await verifyPassword(String(fd.get("password") ?? ""), link.password_hash);
   if (!ok) return { errors: { password: "That password is not right." } };
-  const blocked = await isBlocked(link.target_url);
+  const dest = pickDestination(link, info.ua);
+  const blocked = await isBlocked(dest);
   if (blocked) return { errors: { password: "This link has been blocked." } };
   const b = await getBrand();
   await recordClick({ type: "link", id: link.id, userId: link.user_id, info, ownHost: b.host });
-  redirect(link.target_url);
+  redirect(dest);
 }
 
 const contactSchema = z.object({

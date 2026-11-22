@@ -55,7 +55,7 @@ curl -X POST https://your-domain/api/v1/links \
 
 Returns `201` with the link. A taken slug, a blocked destination or a private address returns `422`.
 
-Only `target_url` is required. Optional fields: `slug`, `title`, `password`, `starts_at`, `expires_at`, `enabled`, `group_id`, `team_id`, `domain_id` / `domain`, and the campaign tags `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content` (added to `target_url` as query parameters). Leave a field out (or send `null` for the dates) to skip it. Dates are ISO 8601, e.g. `2026-12-31T23:59:00Z`; without an offset they are read as UTC. `expires_at` must be later than `starts_at`.
+Only `target_url` is required. Optional fields: `slug`, `title`, `password`, `starts_at`, `expires_at`, `enabled`, `group_id`, `team_id`, `domain_id` / `domain`, `ios_url`, `android_url` (platform-specific destinations), `expired_url` (where to go after expiry), and the campaign tags `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content` (added to `target_url` as query parameters). Leave a field out (or send `null` for the dates) to skip it. Dates are ISO 8601, e.g. `2026-12-31T23:59:00Z`; without an offset they are read as UTC. `expires_at` must be later than `starts_at`.
 
 Minimal request:
 
@@ -94,3 +94,10 @@ Responses include `domain`, `domain_id` and a `short_url` built from that domain
 ## Abuse limits
 
 500 new links per account per day (50 until the email is confirmed), 10 active keys, 5 new keys per hour, and 30 wrong-key attempts per 10 minutes per IP.
+
+
+## Bulk create
+
+`POST /links/bulk` with `{"links": [ {...}, {...} ]}` creates up to 50 links. Each item takes the fields of `POST /links` and is validated on its own.
+The response is `{"created": n, "failed": m, "results": [{"ok": true, "data": {...}} | {"ok": false, "fields": {...}}]}` in request order.
+Status `201` if at least one link was created, `422` if none. The daily limit counts every item.

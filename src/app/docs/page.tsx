@@ -243,6 +243,7 @@ export default async function Docs() {
           <a href="#auth">Authentication</a>
           <a href="#errors">Errors and limits</a>
           <a href="#domains">Domains</a>
+          <a href="#bulk">Bulk create</a>
           <a href="#list">List links</a>
           <a href="#fields">Link fields</a>
           <a href="#create">Create a link</a>
@@ -292,6 +293,28 @@ curl -X PATCH ${base}/links/12 \\
   -d '{ "domain": "go.example.com" }'`}</pre>
           </Endpoint>
 
+          <Endpoint id="bulk" method="post" path="/links/bulk">
+            <p>Create up to 50 links in one request. Every item takes the same fields as <code>POST /links</code> and is checked on its own, so one bad item does not stop the rest. Results come back in the same order.</p>
+            <pre className="code">{`curl -X POST ${base}/links/bulk \\
+  -H "Authorization: Bearer ob_your_key" \\
+  -H "Content-Type: application/json" \\
+  -d '{ "links": [
+    { "target_url": "https://example.com/a", "slug": "promo-a" },
+    { "target_url": "https://example.com/b", "ios_url": "https://apps.apple.com/app/id1" },
+    { "target_url": "not a url" }
+  ] }'`}</pre>
+            <pre className="code">{`{
+  "created": 2,
+  "failed": 1,
+  "results": [
+    { "ok": true, "data": { "id": 21, "slug": "promo-a", "short_url": "${b.url}/promo-a" } },
+    { "ok": true, "data": { "id": 22, "slug": "k3f9x2", "short_url": "${b.url}/k3f9x2" } },
+    { "ok": false, "fields": { "target_url": "Enter a valid web address." } }
+  ]
+}`}</pre>
+            <p>Status is <code>201</code> when at least one link was created and <code>422</code> when none were. The daily link limit counts every item.</p>
+          </Endpoint>
+
           <Endpoint id="list" method="get" path="/links">
             <p>Your links, newest first. Query: <code>q</code> (search), <code>page</code>, <code>limit</code> (max 100).</p>
             <pre className="code">{`curl "${base}/links?q=launch&limit=10" -H "Authorization: Bearer ob_your_key"`}</pre>
@@ -329,6 +352,9 @@ curl -X PATCH ${base}/links/12 \\
                   <Field name="enabled" type="boolean">Default <code>true</code>. <code>false</code> pauses the link.</Field>
                   <Field name="domain_id" type="number | null">Which domain the short link lives on, by id from <code>GET /domains</code>. Leave it out, or send <code>null</code>, to use the default domain.</Field>
                   <Field name="domain" type="string | null">Same thing by host name, for example <code>go.example.com</code>. Use either this or <code>domain_id</code>.</Field>
+                  <Field name="ios_url" type="string | null">Where iPhone and iPad visitors go instead of <code>target_url</code>, for example an App Store page. Same rules as <code>target_url</code>. Send <code>null</code> to remove.</Field>
+                  <Field name="android_url" type="string | null">Same for Android visitors.</Field>
+                  <Field name="expired_url" type="string | null">Where visitors go after <code>expires_at</code> has passed, instead of the expired notice.</Field>
                   <Field name="utm_source" type="string">Also <code>utm_medium</code>, <code>utm_campaign</code>, <code>utm_term</code> and <code>utm_content</code> (up to 100 characters each). Added to <code>target_url</code> as query parameters, replacing the same tag if it is already there. Sent together with <code>target_url</code>.</Field>
                   <Field name="group_id" type="number | null">Id of one of your link groups.</Field>
                   <Field name="team_id" type="number | null">Id of a team you belong to.</Field>
