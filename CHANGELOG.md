@@ -5,6 +5,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 ## [Unreleased]
 
 ### Added
+- Sitemap: `lastmod` on the site pages (deploy time) and on bio pages (newest block), up to 40,000 bio pages. `llms.txt` describes the current API features.
 - Universal links: one short link with only device URLs and no destination of its own. Visitors on a device with a URL go there; other devices see a chooser page. New dashboard page "Universal links", API (`target_url` is optional when a device URL is given, `universal` in responses), docs section. Migration 012.
 - Click limit per link (`max_clicks`): after that many visits the link behaves as expired and can redirect to `expired_url`. Counted atomically, so the last click is never shared. Dashboard field on new and existing links, API field, `click_count` in responses, docs section. Migration 011.
 - Scheduling: `starts_in` / `expires_in` (30m, 12h, 7d, 2w) in the API, explicit defaults (no start = live now, no expiry = never), start/expiry order checked on update too, and a `status` field on every link in API responses. New docs sections "Scheduling" and "Device destinations" with examples.

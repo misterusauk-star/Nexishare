@@ -28,7 +28,7 @@ export async function GET() {
 
 ## Product
 - [Home](${b.appUrl}/): what ${b.name} does and how to sign up
-- [API reference](${b.appUrl}/docs): create and manage short links with an API key, with curl, JavaScript, Python, PHP, Go and Ruby examples
+- [API reference](${b.appUrl}/docs): create and manage short links with an API key: device destinations, universal links, scheduling, click limits, custom domains and bulk create, with curl, JavaScript, Python, PHP, Go and Ruby examples
 - [Terms of service](${b.appUrl}/terms)
 - [Privacy policy](${b.appUrl}/privacy)
 
