@@ -250,6 +250,7 @@ export default async function Docs() {
           <a href="#devices">Device destinations</a>
           <a href="#universal">Universal links</a>
           <a href="#limit">Click limit</a>
+          <a href="#search">Search engines</a>
           <a href="#create">Create a link</a>
           <a href="#get">Get a link</a>
           <a href="#update">Update a link</a>
@@ -434,6 +435,17 @@ requests.post("${base}/links", headers={"Authorization": "Bearer ob_your_key"},
             <p>Set <code>max_clicks</code> to stop a link after a number of visits, for example a coupon for the first 100 people. The count is exact: two visitors can never take the same last click. When the limit is used up the link shows <code>status: "expired"</code>, visitors see the expired notice or are sent to <code>expired_url</code>, and the response shows <code>click_count</code> next to <code>max_clicks</code>. On update, send a higher number to extend it, or <code>null</code> to remove the limit.</p>
             <pre className="code">{`curl -X POST ${base}/links -H "Authorization: Bearer ob_your_key" -H "Content-Type: application/json" \\
   -d '{ "target_url": "https://example.com/coupon", "max_clicks": 100, "expires_in": "7d", "expired_url": "https://example.com/sold-out" }'`}</pre>
+          </section>
+
+          <section id="search">
+            <h2>Search engines and crawlers</h2>
+            <p>Public pages are built to be found. Nothing here needs an API call; it is handled for you:</p>
+            <ul>
+              <li><code>/sitemap.xml</code> on the main domain lists the site pages, and on the bio domain lists every published bio page with its last change. Submit each address once in Google Search Console and Bing Webmaster Tools.</li>
+              <li><code>/robots.txt</code> names the major search engines (Google, Bing, DuckDuckGo, Yandex, Baidu, Apple, Yahoo and more), social preview bots (Facebook, X, LinkedIn, Slack, WhatsApp, Telegram, Discord) and AI search assistants, and allows them on public pages. Short link and API domains are never indexed.</li>
+              <li>IndexNow: when a bio page is published or edited, Bing, Yandex, Seznam and Naver are notified at once, at most once per page every 10 minutes. The key file is served at <code>/&lt;key&gt;.txt</code> on the main and bio domains. Admins manage it under Admin, Search.</li>
+              <li><code>/llms.txt</code> gives language models a plain-text map of the site on every domain.</li>
+            </ul>
           </section>
 
           <Endpoint id="create" method="post" path="/links">

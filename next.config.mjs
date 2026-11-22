@@ -18,6 +18,10 @@ const nextConfig = {
     "/**": ["./migrations/**/*"],
   },
   experimental: { serverActions: { bodySizeLimit: "6mb" } },
+  // IndexNow key file: /<key>.txt is answered by a route handler (the key is a setting, so the file is not static).
+  async rewrites() {
+    return { beforeFiles: [{ source: "/:key([A-Za-z0-9-]{8,128}).txt", destination: "/api/indexnow/:key" }] };
+  },
   async headers() {
     const csp = [
       "default-src 'self'",

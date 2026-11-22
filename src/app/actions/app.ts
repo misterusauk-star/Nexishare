@@ -16,6 +16,7 @@ import { sendVerification, verificationRequired } from "@/lib/services/users";
 import { validateNewSlug, slugRateOk, SLUG_RATE_MESSAGE } from "@/lib/slug-service";
 import { reqInfo } from "@/lib/request";
 import { slugSchema } from "@/lib/validation";
+import { notifyBioPage } from "@/lib/indexnow";
 import {
   BLOCK_TYPES_P1, BLOCK_TYPES_P2, deleteBlock, ensurePage, reorderBlocks, saveBlock, toggleBlock, updateCustom, updateProfile, updateSocials,
 } from "@/lib/services/pages";
@@ -50,6 +51,7 @@ export async function claimBioAction(_: FormState, fd: FormData): Promise<FormSt
   await ensurePage(u.id, named.slug);
   if (named.review) await exec("UPDATE pages SET review_status = 'pending', review_reason = ? WHERE user_id = ?", [named.review.slice(0, 190), u.id]);
   await audit(u.id, "bio.create", named.slug);
+  void notifyBioPage(u.id);
   revalidatePath("/dashboard", "layout");
   redirect("/dashboard/page");
 }

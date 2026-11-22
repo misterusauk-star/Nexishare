@@ -37,6 +37,7 @@ export async function GET() {
 - Public bio pages live on ${st.bioHost}, one page per person.
 - The REST API base URL is ${apiBase}. It needs an API key (Authorization: Bearer ob_...), is rate limited, and has no public endpoints.
 - Sitemap: ${b.appUrl}/sitemap.xml
+- Crawlers: search engines, social preview bots and AI assistants are allowed on public pages (see robots.txt). Bio pages are announced through IndexNow.
 `);
   }
 

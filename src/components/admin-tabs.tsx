@@ -10,6 +10,7 @@ const TABS = [
   { href: "/admin/slugs", label: "Names and safety" },
   { href: "/admin/reports", label: "Reports" },
   { href: "/admin/domains", label: "Domains" },
+  { href: "/admin/search", label: "Search" },
   { href: "/admin/blocklist", label: "Blocklist" },
   { href: "/admin/email", label: "Email" },
   { href: "/admin/settings", label: "Settings" },

@@ -238,3 +238,29 @@ test("universal links: device URL, else a chooser", () => {
   // a normal link still falls back to its destination
   assert.deepEqual(resolveDestination({ target_url: "https://x.example", ios_url: "https://i.example" }, WIN), { kind: "redirect", url: "https://x.example" });
 });
+
+import { BOT_GROUPS, ALL_BOTS, robotsGroups } from "../src/lib/crawlers.ts";
+import { buildPayloads, groupByHost, isValidKey, newIndexNowKey, keyFileUrl, MAX_URLS_PER_REQUEST } from "../src/lib/indexnow-rules.ts";
+
+test("crawler allow list covers the major engines, with no duplicates", () => {
+  for (const b of ["Googlebot", "Bingbot", "DuckDuckBot", "YandexBot", "Baiduspider", "Applebot", "facebookexternalhit", "Twitterbot", "LinkedInBot", "OAI-SearchBot", "PerplexityBot", "ClaudeBot"]) assert.ok(ALL_BOTS.includes(b), b);
+  assert.equal(new Set(ALL_BOTS).size, ALL_BOTS.length);
+  const groups = robotsGroups(["/dashboard", "/api/"]);
+  assert.equal(groups.length, BOT_GROUPS.length);
+  for (const g of groups) { assert.equal(g.allow, "/"); assert.deepEqual(g.disallow, ["/dashboard", "/api/"]); }
+});
+
+test("IndexNow payloads", () => {
+  const k = newIndexNowKey();
+  assert.ok(isValidKey(k) && k.length === 32);
+  assert.ok(!isValidKey("short") && !isValidKey("bad key!!!!"));
+  assert.equal(keyFileUrl("bio.example.com", k), `https://bio.example.com/${k}.txt`);
+  const m = groupByHost(["https://a.example/x", "https://a.example/x", "http://a.example/y", "https://b.example/z", "nope"]);
+  assert.deepEqual([...m.keys()].sort(), ["a.example", "b.example"]);
+  assert.equal(m.get("a.example")?.length, 1);
+  const p = buildPayloads(["https://a.example/1", "https://b.example/2"], k);
+  assert.equal(p.length, 2);
+  assert.ok(p.every((x) => x.keyLocation === `https://${x.host}/${k}.txt` && x.urlList.every((u) => new URL(u).host === x.host)));
+  const many = Array.from({ length: MAX_URLS_PER_REQUEST + 5 }, (_, i) => `https://a.example/p${i}`);
+  assert.equal(buildPayloads(many, k).length, 2);
+});

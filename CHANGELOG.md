@@ -5,6 +5,8 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 ## [Unreleased]
 
 ### Added
+- IndexNow for the main and bio domains: publishing or editing a bio page notifies Bing, Yandex, Seznam and Naver at once (once per page per 10 minutes). Key file at `/<key>.txt`. New Admin > Search page with the sitemap addresses, key files, a "Submit all pages" button and an on/off switch.
+- robots.txt names the major search engines, social preview bots and AI assistants with explicit Allow groups (same disallow list for everyone).
 - Sitemap: `lastmod` on the site pages (deploy time) and on bio pages (newest block), up to 40,000 bio pages. `llms.txt` describes the current API features.
 - Universal links: one short link with only device URLs and no destination of its own. Visitors on a device with a URL go there; other devices see a chooser page. New dashboard page "Universal links", API (`target_url` is optional when a device URL is given, `universal` in responses), docs section. Migration 012.
 - Click limit per link (`max_clicks`): after that many visits the link behaves as expired and can redirect to `expired_url`. Counted atomically, so the last click is never shared. Dashboard field on new and existing links, API field, `click_count` in responses, docs section. Migration 011.

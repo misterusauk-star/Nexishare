@@ -3,6 +3,7 @@ import { exec, query, queryOne } from "../db";
 import { checkTargetUrl, isBlocked, safeImageUrl, fieldErrors } from "../validation";
 import { SOCIALS, THEMES, type PageCustom, type Socials } from "../themes";
 import type { Result } from "./links";
+import { notifyBioPage } from "../indexnow";
 
 export interface PageRow {
   id: number;
@@ -65,6 +66,7 @@ export async function updateProfile(userId: number, raw: unknown): Promise<Resul
   }
   if (v.published !== undefined) { sets.push("published = ?"); vals.push(v.published ? 1 : 0); }
   if (sets.length) await exec(`UPDATE pages SET ${sets.join(", ")} WHERE user_id = ?`, [...vals, userId]);
+  void notifyBioPage(userId); // search engines hear about the change (rate limited, never fails the save)
   return { ok: true, data: true };
 }
 
@@ -157,6 +159,7 @@ export async function saveBlock(
       "UPDATE blocks SET title = ?, url = ?, data = ?, group_id = ?, enabled = ?, starts_at = ?, ends_at = ? WHERE id = ?",
       [v.title ?? null, url, data, v.group_id ?? null, v.enabled === false ? 0 : 1, starts, ends, blockId],
     );
+    void notifyBioPage(page.user_id);
     return { ok: true, data: blockId };
   }
   const max = await queryOne<{ m: number | null }>("SELECT MAX(sort_order) AS m FROM blocks WHERE page_id = ?", [page.id]);
@@ -164,6 +167,7 @@ export async function saveBlock(
     "INSERT INTO blocks (page_id, type, title, url, data, group_id, sort_order, enabled, starts_at, ends_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [page.id, v.type, v.title ?? null, url, data, v.group_id ?? null, (max?.m ?? 0) + 1, v.enabled === false ? 0 : 1, starts, ends],
   );
+  void notifyBioPage(page.user_id);
   return { ok: true, data: res.insertId };
 }
 

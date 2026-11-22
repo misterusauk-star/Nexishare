@@ -109,3 +109,11 @@ Responses include `domain`, `domain_id` and a `short_url` built from that domain
 `POST /links/bulk` with `{"links": [ {...}, {...} ]}` creates up to 50 links. Each item takes the fields of `POST /links` and is validated on its own.
 The response is `{"created": n, "failed": m, "results": [{"ok": true, "data": {...}} | {"ok": false, "fields": {...}}]}` in request order.
 Status `201` if at least one link was created, `422` if none. The daily limit counts every item.
+
+## Search engines and crawlers
+
+No API call is needed; this is built in.
+
+- `/sitemap.xml`: the main domain lists the site pages, the bio domain lists every published bio page with `lastmod`. Submit each in Google Search Console and Bing Webmaster Tools.
+- `/robots.txt`: explicit `Allow: /` groups for search engines (Googlebot, Bingbot, DuckDuckBot, YandexBot, Baiduspider, Applebot, Slurp and more), social preview bots (facebookexternalhit, Twitterbot, LinkedInBot, Slackbot, WhatsApp, TelegramBot, Discordbot) and AI assistants (OAI-SearchBot, PerplexityBot, ClaudeBot and more). App pages, `/api/` and sign-in stay disallowed. Link domains and the API domain disallow everything.
+- IndexNow: publishing or editing a bio page pings `api.indexnow.org` (at most once per page per 10 minutes). The key file is served at `/<key>.txt` on the main and bio domains. Admin > Search shows the key files, can send every page at once, and can turn pings off.
