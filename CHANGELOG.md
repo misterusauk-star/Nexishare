@@ -5,6 +5,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 ## [Unreleased]
 
 ### Added
+- Read-only API keys (can only GET), `GET /links/{id}/qr` (SVG or PNG, colours, size, logo, scan tracking) and `GET /links/export` (all links as CSV with device URLs, schedule, limits and click totals). Migration 014.
 - Usage limits with low defaults (20 API requests per minute per key, 1,000 per day per account, 100 links, 3 keys), editable by a super admin for everyone (Admin > Security) or per account (Admin > Users). API 429 responses name the limit. The API keys page shows your limits. Migration 013.
 - Sign-up limited to allowed email domains (Gmail and Outlook by default, super admin adds more) for email and Google sign-up, and when changing email.
 - Cloudflare Turnstile on sign-in, sign-up and password reset, set up in Admin > Security (secret stored encrypted).

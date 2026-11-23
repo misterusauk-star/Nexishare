@@ -116,6 +116,12 @@ Status `201` if at least one link was created, `422` if none. The daily limit co
 - `POST /links/bulk/action`: `{"action": "enable" | "disable" | "delete", "ids": [1, 2, 3]}`, up to 200 ids. Returns `done`, `failed` and one `{id, ok}` per id.
 - `GET /links/{id}/routes`: where each device ends up (`ios`, `android`, `windows`, `macos`, `linux`, `other`) with `source` = `device`, `default` or `chooser`. `url` is `null` for a universal link's chooser page.
 
+## Read-only keys, QR codes and CSV export
+
+- **Read-only keys:** tick *Read-only* when creating a key. It can use `GET` but `POST`, `PATCH` and `DELETE` return `403`.
+- `GET /links/{id}/qr`: the QR code of a link as SVG (default) or PNG (`format=png`). Options: `size` (64 to 2048, PNG), `fg` and `bg` (`#rrggbb`), `margin` (0 to 8), `logo` (https image, SVG only), `track=1` (adds `utm_source=qr`).
+- `GET /links/export`: all your links as CSV (id, short_url, domain, slug, target_url, universal, device URLs, expired_url, title, status, starts_at, expires_at, max_clicks, clicks, unique_clicks, created_at). Up to 50,000 rows, 6 exports per 10 minutes. Works with read-only keys.
+
 ## Search engines and crawlers
 
 No API call is needed; this is built in.

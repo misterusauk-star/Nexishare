@@ -3,6 +3,7 @@ import { exec, queryOne } from "./db";
 import { ipHash, sha256 } from "./crypto";
 import { rateLimit } from "./ratelimit";
 import { limitsFor } from "./user-limits";
+import { READ_ONLY_MESSAGE, methodAllowed } from "./key-access";
 import { fromHeaders } from "./request";
 import { linkState, type LinkRow } from "./services/links";
 import { linkHost, linkUrl, type DomainState } from "./domains";
@@ -27,8 +28,9 @@ export async function authApi(req: Request): Promise<{ user: ApiUser } | { res: 
   }
   const m = /^Bearer\s+(ob_[A-Za-z0-9_-]{20,})$/.exec(req.headers.get("authorization") ?? "");
   if (!m) return { res: apiError(401, "Send your key as an Authorization: Bearer ob_... header.", undefined, { "WWW-Authenticate": "Bearer" }) };
-  const row = await queryOne<{ id: number; user_id: number; username: string | null; role: "super_admin" | "user"; status: string }>(
-    `SELECT k.id, k.user_id, u.username, u.role, u.status FROM api_keys k JOIN users u ON u.id = k.user_id
+  // k.* so a database without the read_only column (migration 014) keeps working: the key is then full access.
+  const row = await queryOne<{ id: number; user_id: number; username: string | null; role: "super_admin" | "user"; status: string; read_only?: number }>(
+    `SELECT k.*, u.username, u.role, u.status FROM api_keys k JOIN users u ON u.id = k.user_id
       WHERE k.key_hash = ? AND k.revoked_at IS NULL`,
     [sha256(m[1])],
   );
@@ -37,6 +39,7 @@ export async function authApi(req: Request): Promise<{ user: ApiUser } | { res: 
     if (!(await rateLimit(`api:bad:${ipHash(info.ip)}`, 30, 600))) return { res: apiError(429, "Too many failed attempts.", undefined, { "Retry-After": "600" }) };
     return { res: apiError(401, "That key is invalid or has been revoked.") };
   }
+  if (!methodAllowed(!!row.read_only, req.method)) return { res: apiError(403, READ_ONLY_MESSAGE) };
   // Limits are low by default; an administrator raises them for everyone or for one account (Admin > Security, Admin > Users).
   const lim = await limitsFor(row.user_id);
   if (!lim.unlimited) {

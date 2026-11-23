@@ -235,8 +235,14 @@ export async function createApiKeyAction(_: FormState, fd: FormData): Promise<Fo
   const cap = await limitsFor(u.id);
   if (!cap.unlimited && (await countActiveKeys(u.id)) >= cap.values.max_api_keys) return fail({ form: `You can have ${cap.values.max_api_keys} active key${cap.values.max_api_keys === 1 ? "" : "s"}. Revoke one first, or ask the administrator to raise the limit.` });
   const secret = `ob_${randomToken(24)}`;
-  await exec("INSERT INTO api_keys (user_id, name, prefix, key_hash) VALUES (?, ?, ?, ?)", [u.id, name, secret.slice(0, 10), sha256(secret)]);
-  await audit(u.id, "api_key.create", name);
+  const readOnly = fd.get("read_only") === "on";
+  try {
+    if (readOnly) await exec("INSERT INTO api_keys (user_id, name, prefix, key_hash, read_only) VALUES (?, ?, ?, ?, 1)", [u.id, name, secret.slice(0, 10), sha256(secret)]);
+    else await exec("INSERT INTO api_keys (user_id, name, prefix, key_hash) VALUES (?, ?, ?, ?)", [u.id, name, secret.slice(0, 10), sha256(secret)]);
+  } catch {
+    return fail({ form: "Could not create a read-only key yet. The administrator needs to press Run database updates first." });
+  }
+  await audit(u.id, "api_key.create", readOnly ? `${name} (read-only)` : name);
   revalidatePath("/dashboard/api");
   return { ok: true, message: `KEY:${secret}` };
 }

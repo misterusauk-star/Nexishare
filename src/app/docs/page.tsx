@@ -251,6 +251,7 @@ export default async function Docs() {
           <a href="#universal">Universal links</a>
           <a href="#limit">Click limit</a>
           <a href="#more-links">Duplicate and bulk</a>
+          <a href="#keys-qr-export">Keys, QR and export</a>
           <a href="#search">Search engines</a>
           <a href="#create">Create a link</a>
           <a href="#get">Get a link</a>
@@ -450,6 +451,16 @@ curl -X POST ${base}/links/bulk/action -H "Authorization: Bearer ob_your_key" -H
   -d '{ "action": "disable", "ids": [12, 13, 14] }'
 
 curl ${base}/links/12/routes -H "Authorization: Bearer ob_your_key"`}</pre>
+          </section>
+
+          <section id="keys-qr-export">
+            <h2>Read-only keys, QR codes and CSV export</h2>
+            <p><strong>Read-only keys.</strong> When you create a key you can tick <em>Read-only</em>. It can list and read (<code>GET</code>) but any <code>POST</code>, <code>PATCH</code> or <code>DELETE</code> returns <code>403</code>. Use it for dashboards and reporting scripts so a leaked key cannot change anything.</p>
+            <p><code>GET /links/{"{id}"}/qr</code> returns the QR code of one of your links as SVG, or PNG with <code>format=png</code>. Options: <code>size</code> (64 to 2048, PNG), <code>fg</code> and <code>bg</code> as <code>#rrggbb</code>, <code>margin</code> (0 to 8), <code>logo</code> (https image, SVG only), and <code>track=1</code> to add <code>utm_source=qr</code> so scans show up as a campaign in the stats. The code points at the link's own domain.</p>
+            <p><code>GET /links/export</code> returns all your links as CSV: id, short_url, domain, slug, target_url, universal, the device URLs, expired_url, title, status, starts_at, expires_at, max_clicks, clicks, unique_clicks and created_at (up to 50,000 rows, 6 exports per 10 minutes). It works with read-only keys.</p>
+            <pre className="code">{`curl "${base}/links/12/qr?format=png&size=800&fg=%230e7c66&track=1" -H "Authorization: Bearer ob_your_key" -o qr.png
+
+curl ${base}/links/export -H "Authorization: Bearer ob_your_key" -o links.csv`}</pre>
           </section>
 
           <section id="search">

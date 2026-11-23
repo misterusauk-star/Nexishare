@@ -86,6 +86,7 @@ const SAFE = [
   /^sets\.join\(", "\)$/, /^limit \| 0$/, /^offset \| 0$/, /^\(page - 1\) \* PER$/, /^part\.map\(\(\) => "\(\?,\?,\?\)"\)\.join\(","\)$/,
   /^batch\.map\(\(\) => "\([?,]+\)"\)\.join\(","\)$/, /^Math\.max\(1, Math\.min\(50, limit \| 0\)\)$/,
   /^status === "open" \? "WHERE r\.status = \'open\'" : ""$/, /^\w+\.map\(\(\) => "\?"\)\.join\(","\)$/,
+  /^MAX_ROWS$/, // a module constant integer
   /^where$/, /^clauses\.join\(" AND "\)$/, /^marks$/, /^q$/,
 ];
 test("SQL template strings only interpolate reviewed expressions", () => {
@@ -102,4 +103,11 @@ test("SQL template strings only interpolate reviewed expressions", () => {
     }
   }
   assert.deepEqual(problems, [], "Review these interpolations in SQL strings, then add them to the SAFE list only if they are fixed text or coerced integers");
+});
+
+import { methodAllowed } from "../src/lib/key-access.ts";
+test("read-only keys can only read", () => {
+  for (const m of ["GET", "get", "HEAD", "OPTIONS"]) assert.equal(methodAllowed(true, m), true, m);
+  for (const m of ["POST", "PATCH", "PUT", "DELETE"]) assert.equal(methodAllowed(true, m), false, m);
+  for (const m of ["GET", "POST", "PATCH", "DELETE"]) assert.equal(methodAllowed(false, m), true, m);
 });

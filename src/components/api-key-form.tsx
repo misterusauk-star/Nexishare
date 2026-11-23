@@ -25,6 +25,7 @@ export function ApiKeyForm() {
         <input id="f-keyname" name="name" className="input" maxLength={80} placeholder="Zapier, backup script..." aria-invalid={state.errors?.name ? true : undefined} />
         {state.errors?.name ? <div className="err">{state.errors.name}</div> : null}
       </div>
+      <label className="check"><input type="checkbox" name="read_only" /> Read-only: can list and read, never create, change or delete</label>
       <button className="btn btn-primary" disabled={pending}>{pending ? "Creating..." : "Create key"}</button>
     </form>
   );
