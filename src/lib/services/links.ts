@@ -15,6 +15,7 @@ import { resolveSchedule } from "../duration";
 import { clicksExhausted, MAX_CLICK_LIMIT } from "../click-limit";
 import { firstDeviceUrl } from "../smart-link";
 import { countLinks, limitsFor } from "../user-limits";
+import { cleanTagFilter, parseTags, tagsToColumn } from "../tags";
 
 export type Result<T> = { ok: true; data: T } | { ok: false; errors: Record<string, string> };
 
@@ -37,6 +38,7 @@ export interface LinkRow {
   max_clicks?: number | null;
   click_count?: number;
   universal?: number;
+  tags?: string | null;
   expires_at: Date | null;
   starts_at: Date | null;
   enabled: number;
@@ -73,6 +75,8 @@ export const linkInput = z.object({
   expires_in: z.string().trim().max(20).nullish(),
   // Optional click limit: the link behaves as expired after this many visits. Missing or null = unlimited.
   max_clicks: z.coerce.number("Enter a whole number of 1 or more.").int("Enter a whole number of 1 or more.").min(1, "Enter a whole number of 1 or more.").max(MAX_CLICK_LIMIT, "That number is too large.").nullish(),
+  // Up to 5 short labels to group links: "sale, summer-2026" or ["sale", "summer-2026"].
+  tags: z.union([z.string().max(200), z.array(z.string().max(40)).max(10)]).nullish(),
   enabled: z.boolean().optional(),
   group_id: z.coerce.number().int().positive().nullish(),
   team_id: z.coerce.number().int().positive().nullish(),
@@ -196,6 +200,8 @@ export async function createLink(userId: number, ownHost: string, raw: unknown):
   }
   const sched = resolveSchedule(v);
   if (!sched.ok) return { ok: false, errors: { [sched.field]: sched.error } };
+  const tg = parseTags(v.tags);
+  if (!tg.ok) return { ok: false, errors: { tags: tg.error } };
   const pw = v.password ? await hashPassword(v.password) : null;
   // Suspicious names wait in the admin review queue and stay inactive until approved. Admins skip the queue.
   const queued = review !== null && !(await isAdminUser(userId));
@@ -203,6 +209,14 @@ export async function createLink(userId: number, ownHost: string, raw: unknown):
     "INSERT INTO links (user_id, team_id, group_id, domain_id, slug, title, target_url, ios_url, android_url, windows_url, mac_url, linux_url, expired_url, max_clicks, universal, password_hash, expires_at, starts_at, enabled, review_status, review_reason, checked_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())",
     [userId, v.team_id ?? null, v.group_id ?? null, dom.id, slug, v.title, u.url, extras.urls.ios_url ?? null, extras.urls.android_url ?? null, extras.urls.windows_url ?? null, extras.urls.mac_url ?? null, extras.urls.linux_url ?? null, extras.urls.expired_url ?? null, v.max_clicks ?? null, universal ? 1 : 0, pw, sched.expires_at, sched.starts_at, v.enabled === false ? 0 : 1, queued ? "pending" : "none", queued ? review : null],
   );
+  if (tg.tags.length) {
+    try {
+      await exec("UPDATE links SET tags = ? WHERE id = ?", [tagsToColumn(tg.tags), res.insertId]);
+    } catch {
+      await exec("DELETE FROM links WHERE id = ?", [res.insertId]); // no half-created link
+      return { ok: false, errors: { tags: "Tags need a database update. The administrator can press Run database updates in Admin > Domains." } };
+    }
+  }
   invalidateSlug(slug);
   const row = await queryOne<LinkRow>("SELECT * FROM links WHERE id = ?", [res.insertId]);
   return { ok: true, data: row! };
@@ -266,6 +280,11 @@ export async function updateLink(userId: number, id: number, ownHost: string, ra
     if (touchExpiry) { sets.push("expires_at = ?"); vals.push(sched.expires_at); }
   }
   if (raw && typeof raw === "object" && "max_clicks" in raw) { sets.push("max_clicks = ?"); vals.push(v.max_clicks ?? null); }
+  if (raw && typeof raw === "object" && "tags" in raw && "tags" in cur) { // "tags" in cur: the column exists (migration 015)
+    const tg = parseTags(v.tags);
+    if (!tg.ok) return { ok: false, errors: { tags: tg.error } };
+    sets.push("tags = ?"); vals.push(tagsToColumn(tg.tags));
+  }
   if (v.enabled !== undefined) { sets.push("enabled = ?"); vals.push(v.enabled ? 1 : 0); }
   if (raw && typeof raw === "object" && ("domain_id" in raw || "domain" in raw)) {
     const dom = await resolveDomain(v);
@@ -303,7 +322,7 @@ export async function deleteLink(userId: number, id: number, isAdmin = false): P
   return true;
 }
 
-export interface ListOpts { userId: number; q?: string; status?: string; limit?: number; offset?: number; teamIds?: number[] }
+export interface ListOpts { userId: number; q?: string; status?: string; tag?: string; limit?: number; offset?: number; teamIds?: number[] }
 
 export async function listLinks(o: ListOpts): Promise<{ rows: LinkRow[]; total: number }> {
   const where: string[] = [];
@@ -317,6 +336,14 @@ export async function listLinks(o: ListOpts): Promise<{ rows: LinkRow[]; total: 
   if (o.status === "disabled") where.push("(enabled = 0 OR moderated = 1)");
   if (o.status === "expired") where.push("expires_at IS NOT NULL AND expires_at <= UTC_TIMESTAMP()");
   if (o.status === "protected") where.push("password_hash IS NOT NULL");
+  if (o.status === "scheduled") where.push("starts_at IS NOT NULL AND starts_at > UTC_TIMESTAMP()");
+  if (o.status === "expiring") where.push("expires_at IS NOT NULL AND expires_at > UTC_TIMESTAMP() AND expires_at <= DATE_ADD(UTC_TIMESTAMP(), INTERVAL 7 DAY)");
+  if (o.status === "limited") where.push("max_clicks IS NOT NULL");
+  if (o.status === "limit_near") where.push("max_clicks IS NOT NULL AND click_count < max_clicks AND click_count >= max_clicks * 0.8");
+  if (o.status === "universal") where.push("universal = 1");
+  if (o.status === "review") where.push("review_status = 'pending'");
+  const tag = cleanTagFilter(o.tag);
+  if (tag) { where.push("FIND_IN_SET(?, tags) > 0"); params.push(tag); }
   const w = where.join(" AND ");
   const total = Number((await queryOne<{ n: number }>(`SELECT COUNT(*) AS n FROM links WHERE ${w}`, params))?.n ?? 0);
   const limit = Math.max(1, Math.min(100, o.limit ?? 25));
@@ -358,6 +385,7 @@ export async function duplicateLink(userId: number, id: number, ownHost: string,
     ios_url: l.ios_url ?? null, android_url: l.android_url ?? null, windows_url: l.windows_url ?? null,
     mac_url: l.mac_url ?? null, linux_url: l.linux_url ?? null, expired_url: l.expired_url ?? null,
     max_clicks: l.max_clicks ?? null,
+    tags: l.tags ?? null,
     starts_at: iso(l.starts_at), expires_at: iso(l.expires_at),
     enabled: !!l.enabled,
     group_id: l.group_id ?? null, team_id: l.team_id ?? null,

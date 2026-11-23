@@ -65,7 +65,7 @@ export async function createLinkAction(_: FormState, fd: FormData): Promise<Form
   if (!(await rateLimit(`link:create:${u.id}`, 120, 3600))) return fail({ form: "You are creating links too fast. Wait a few minutes." });
   const b = await getBrand();
   const r = await createLink(u.id, b.host, {
-    target_url: s(fd, "target_url"), slug: s(fd, "slug"), title: s(fd, "title"), password: s(fd, "password"),
+    target_url: s(fd, "target_url"), slug: s(fd, "slug"), title: s(fd, "title"), tags: s(fd, "tags"), password: s(fd, "password"),
     expires_at: s(fd, "expires_at"), starts_at: s(fd, "starts_at"), group_id: s(fd, "group_id") || null,
     domain_id: s(fd, "domain_id") || null,
     max_clicks: s(fd, "max_clicks") || null,
@@ -106,6 +106,7 @@ export async function updateLinkAction(id: number, _: FormState, fd: FormData): 
   };
   if (s(fd, "target_url")) raw.target_url = s(fd, "target_url"); // empty on a universal link = keep it universal
   if (fd.has("group_id")) raw.group_id = s(fd, "group_id") || null;
+  if (fd.has("tags")) raw.tags = s(fd, "tags");
   if (fd.has("domain_id")) raw.domain_id = s(fd, "domain_id") || null;
   if (fd.has("max_clicks")) raw.max_clicks = s(fd, "max_clicks") || null;
   for (const k of ["ios_url", "android_url", "windows_url", "mac_url", "linux_url", "expired_url"]) if (fd.has(k)) raw[k] = s(fd, k);

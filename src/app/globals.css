@@ -480,3 +480,11 @@ details.utm:not([open]) > summary:hover { border-radius: var(--radius); }
   .main, .docs { padding: 0; max-width: none; grid-template-columns: 1fr; }
   body { background: #fff; color: #000; }
 }
+
+/* Link tags */
+.tag-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.tag-pill { display: inline-flex; align-items: center; border: 1px solid var(--line-strong); border-radius: 3px; padding: 0 6px; font-size: 12px; line-height: 20px; color: var(--ink); background: var(--surface); text-decoration: none; overflow-wrap: anywhere; }
+a.tag-pill:hover { background: var(--sunken); }
+.attention { list-style: none; margin: 0; padding: 0; }
+.attention li { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-top: 1px solid var(--line); }
+.attention li:first-child { border-top: 0; }

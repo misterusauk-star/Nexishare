@@ -15,7 +15,7 @@ export async function GET(req: Request) {
   const u = new URL(req.url);
   const limit = Math.min(100, num(u.searchParams.get("limit"), 25));
   const page = num(u.searchParams.get("page"), 1);
-  const { rows, total } = await listLinks({ userId: a.user.id, q: u.searchParams.get("q") ?? undefined, limit, offset: (page - 1) * limit });
+  const { rows, total } = await listLinks({ userId: a.user.id, q: u.searchParams.get("q") ?? undefined, status: u.searchParams.get("status") ?? undefined, tag: u.searchParams.get("tag") ?? undefined, limit, offset: (page - 1) * limit });
   return NextResponse.json({ data: rows.map((l) => linkJson(l, st)), meta: { total, page, limit } });
 }
 

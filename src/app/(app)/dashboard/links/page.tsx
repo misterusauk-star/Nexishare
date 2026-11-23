@@ -13,7 +13,7 @@ import { phase2Enabled } from "@/lib/features";
 export const metadata = { title: "Links" };
 const PER = 25;
 
-export default async function LinksPage({ searchParams }: { searchParams: Promise<{ q?: string; status?: string; page?: string }> }) {
+export default async function LinksPage({ searchParams }: { searchParams: Promise<{ q?: string; status?: string; tag?: string; page?: string }> }) {
   const user = await requireUser();
   const sp = await searchParams;
   const b = await getBrand();
@@ -23,15 +23,15 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
   if (phase2Enabled()) {
     teamIds = await query<{ team_id: number }>("SELECT team_id FROM team_members WHERE user_id = ?", [user.id]).then((r) => r.map((x) => x.team_id)).catch(() => []);
   }
-  const { rows, total } = await listLinks({ userId: user.id, q: sp.q?.slice(0, 100), status: sp.status, limit: PER, offset: (page - 1) * PER, teamIds });
+  const { rows, total } = await listLinks({ userId: user.id, q: sp.q?.slice(0, 100), status: sp.status, tag: sp.tag, limit: PER, offset: (page - 1) * PER, teamIds });
   const totals = await totalsFor("link", rows.map((r) => r.id));
   const items = rows.map((r) => ({
     id: r.id, slug: r.slug, title: r.title, target: r.target_url, short: linkUrl(st, r.domain_id, r.slug), state: linkState(r),
-    locked: !!r.password_hash, clicks: totals[r.id]?.total ?? 0, unique: totals[r.id]?.unique ?? 0,
+    tags: r.tags ? r.tags.split(",").filter(Boolean) : [], locked: !!r.password_hash, clicks: totals[r.id]?.total ?? 0, unique: totals[r.id]?.unique ?? 0,
     created: new Date(r.created_at).toISOString(), expires: r.expires_at ? new Date(r.expires_at).toISOString() : null,
   }));
   const pages = Math.max(1, Math.ceil(total / PER));
-  const qs = (p: number) => `?${new URLSearchParams({ ...(sp.q ? { q: sp.q } : {}), ...(sp.status ? { status: sp.status } : {}), page: String(p) })}`;
+  const qs = (p: number) => `?${new URLSearchParams({ ...(sp.q ? { q: sp.q } : {}), ...(sp.status ? { status: sp.status } : {}), ...(sp.tag ? { tag: sp.tag } : {}), page: String(p) })}`;
   return (
     <>
       <div className="page-head">
@@ -50,6 +50,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
           </div>
           <div className="grid2">
             <Field label="Starts (UTC)" name="starts_at" type="datetime-local" hint="Leave empty to go live right away." />
+            <Field label="Tags" name="tags" hint="Optional. Up to 5, comma separated, e.g. sale, summer." maxLength={200} />
             <Field label="Expires (UTC)" name="expires_at" type="datetime-local" hint="Leave empty for no expiry." />
           </div>
           <Field label="Click limit" name="max_clicks" type="number" min={1} max={1000000000} inputMode="numeric" placeholder="Unlimited" hint="Optional. After this many visits the link behaves as expired." />
@@ -81,9 +82,19 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
         <select className="input" name="status" defaultValue={sp.status ?? ""} aria-label="Filter by status">
           <option value="">All statuses</option><option value="active">Active</option><option value="disabled">Disabled</option>
           <option value="expired">Expired</option><option value="protected">Password protected</option>
+          <option value="scheduled">Scheduled (not live yet)</option><option value="expiring">Expiring within 7 days</option>
+          <option value="limited">Has a click limit</option><option value="limit_near">Near its click limit</option>
+          <option value="universal">Universal links</option><option value="review">Held for review</option>
         </select>
+        {sp.tag && <input type="hidden" name="tag" value={sp.tag} />}
         <button className="btn">Filter</button>
       </form>
+
+      {sp.tag && (
+        <p className="small" style={{ marginTop: 12 }}>
+          Tag: <span className="tag-pill">{sp.tag.slice(0, 24)}</span> <Link href={qs(1).replace(/[?&]tag=[^&]*/, "").replace(/^&/, "?")}>Clear tag</Link>
+        </p>
+      )}
 
       {items.length === 0 ? (
         <div className="empty">

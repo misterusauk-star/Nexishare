@@ -277,3 +277,27 @@ test("deviceRoutes shows where each device goes", () => {
   assert.equal(uni.find((r) => r.device === "android")?.source, "chooser");
   assert.equal(uni.find((r) => r.device === "android")?.url, null);
 });
+
+import { cleanTagFilter, parseTags, tagsFromColumn, tagsToColumn } from "../src/lib/tags.ts";
+
+test("tags parse, dedupe and validate", () => {
+  assert.deepEqual(parseTags("Sale, summer 2026,SALE"), { ok: true, tags: ["sale", "summer-2026"] });
+  assert.deepEqual(parseTags(["a", "b"]), { ok: true, tags: ["a", "b"] });
+  assert.deepEqual(parseTags(""), { ok: true, tags: [] });
+  assert.deepEqual(parseTags(null), { ok: true, tags: [] });
+  assert.equal(parseTags("a,b,c,d,e,f").ok, false);
+  assert.equal(parseTags("bad!tag").ok, false);
+  assert.equal(parseTags("x".repeat(25)).ok, false);
+  assert.equal(tagsToColumn(["a", "b"]), "a,b");
+  assert.equal(tagsToColumn([]), null);
+  assert.deepEqual(tagsFromColumn("a,b"), ["a", "b"]);
+  assert.deepEqual(tagsFromColumn(null), []);
+  assert.equal(cleanTagFilter(" Sale "), "sale");
+  assert.equal(cleanTagFilter("a;drop"), null);
+});
+
+test("tag filter cleaning drops unsafe values", async () => {
+  const { cleanTagFilter } = await import("../src/lib/tags.ts");
+  assert.equal(cleanTagFilter("Sale"), "sale");
+  assert.equal(cleanTagFilter("a,b"), null);
+});

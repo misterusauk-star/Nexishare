@@ -122,6 +122,13 @@ Status `201` if at least one link was created, `422` if none. The daily limit co
 - `GET /links/{id}/qr`: the QR code of a link as SVG (default) or PNG (`format=png`). Options: `size` (64 to 2048, PNG), `fg` and `bg` (`#rrggbb`), `margin` (0 to 8), `logo` (https image, SVG only), `track=1` (adds `utm_source=qr`).
 - `GET /links/export`: all your links as CSV (id, short_url, domain, slug, target_url, universal, device URLs, expired_url, title, status, starts_at, expires_at, max_clicks, clicks, unique_clicks, created_at). Up to 50,000 rows, 6 exports per 10 minutes. Works with read-only keys.
 
+## Tags and filters
+
+- `tags` on create/update: up to 5 labels, each up to 24 characters (letters, numbers, `-`, `_`). Send a string (`"sale, summer"`) or an array. Responses return an array. On update `[]` or `""` clears them.
+- `GET /links?tag=sale` lists links with that tag.
+- `GET /links?status=` accepts `active`, `disabled`, `expired`, `protected`, `scheduled`, `expiring` (expires within 7 days), `limited` (has a click limit), `limit_near` (80% or more used), `universal`, `review`. Works together with `q` and `tag`.
+- Tags need migration 015; before it runs, creating a link with tags returns a `tags` error and nothing is created.
+
 ## Search engines and crawlers
 
 No API call is needed; this is built in.

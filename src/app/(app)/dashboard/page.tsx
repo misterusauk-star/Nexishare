@@ -26,6 +26,20 @@ export default async function Overview() {
       WHERE l.user_id = ? GROUP BY l.id, l.slug, l.title ORDER BY n DESC LIMIT 5`,
     [user.id],
   );
+  // Counts for the "Needs attention" panel. Each is optional: a missing column (database update
+  // not run yet) just hides that row instead of breaking the page.
+  const count = async (where: string) =>
+    queryOne<{ n: number }>(`SELECT COUNT(*) AS n FROM links WHERE user_id = ? AND ${where}`, [user.id]).then((r) => Number(r?.n ?? 0)).catch(() => 0);
+  const [expiring, nearLimit, review] = await Promise.all([
+    count("expires_at IS NOT NULL AND expires_at > UTC_TIMESTAMP() AND expires_at <= DATE_ADD(UTC_TIMESTAMP(), INTERVAL 7 DAY)"),
+    count("max_clicks IS NOT NULL AND click_count < max_clicks AND click_count >= max_clicks * 0.8"),
+    count("review_status = 'pending'"),
+  ]);
+  const attention = [
+    { n: expiring, text: "expire within 7 days", href: "/dashboard/links?status=expiring" },
+    { n: nearLimit, text: "near their click limit", href: "/dashboard/links?status=limit_near" },
+    { n: review, text: "held for review", href: "/dashboard/links?status=review" },
+  ].filter((x) => x.n > 0);
   const page = user.username ? bioUrl(st, user.username) : null;
   const fresh = !Number(counts?.links) && !Number(counts?.blocks);
   return (
@@ -58,6 +72,17 @@ export default async function Overview() {
         { label: "Page views", value: views.total },
         { label: "Short links", value: Number(counts?.links ?? 0) },
       ]} />
+
+      {attention.length > 0 && (
+        <section className="panel" style={{ marginBottom: 32 }} aria-labelledby="attn">
+          <h2 id="attn" style={{ fontSize: 16 }}>Needs attention</h2>
+          <ul className="attention">
+            {attention.map((x) => (
+              <li key={x.href}><span><strong className="num">{x.n.toLocaleString("en-US")}</strong> {x.n === 1 ? "link" : "links"} {x.text}</span><Link href={x.href} className="small">Show</Link></li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="section-title"><h2>Clicks per day</h2></div>
       <TimeSeries series={clicks.series} label="Clicks per day over the last 30 days" />

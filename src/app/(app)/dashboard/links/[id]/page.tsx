@@ -59,6 +59,7 @@ export default async function LinkDetail({ params, searchParams }: { params: Pro
             <DomainSelect domains={st.linkDomains} value={link.domain_id} />
             <Field label="Short name" name="slug" prefix={`${host}/`} defaultValue={link.slug} maxLength={64} required />
             <Field label="Label" name="title" defaultValue={link.title} maxLength={160} />
+            {"tags" in link && <Field label="Tags" name="tags" defaultValue={link.tags ?? ""} hint="Up to 5, comma separated." maxLength={200} />}
             <div className="grid2">
               <Field label="Starts (UTC)" name="starts_at" type="datetime-local" defaultValue={iso(link.starts_at)} />
               <Field label="Expires (UTC)" name="expires_at" type="datetime-local" defaultValue={iso(link.expires_at)} />

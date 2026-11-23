@@ -250,6 +250,7 @@ export default async function Docs() {
           <a href="#devices">Device destinations</a>
           <a href="#universal">Universal links</a>
           <a href="#limit">Click limit</a>
+          <a href="#filters">Tags and filters</a>
           <a href="#more-links">Duplicate and bulk</a>
           <a href="#keys-qr-export">Keys, QR and export</a>
           <a href="#search">Search engines</a>
@@ -354,6 +355,7 @@ curl -X PATCH ${base}/links/12 \\
                   <Field name="target_url" type="string" req>Destination. Must be a public http(s) URL, up to 2048 characters. Required unless you give at least one device URL (see <a href="#universal">Universal links</a>).</Field>
                   <Field name="slug" type="string">3 to 32 characters: letters, numbers, <code>-</code> and <code>_</code>. Leave it out for a random one. Some names are reserved.</Field>
                   <Field name="title" type="string">Up to 160 characters. Only for your own reference.</Field>
+                  <Field name="tags" type="string | string[]">Up to 5 labels, each up to 24 characters (letters, numbers, <code>-</code>, <code>_</code>). Send <code>"sale, summer"</code> or <code>["sale","summer"]</code>. Responses return an array. On update, <code>[]</code> or <code>""</code> clears them. Filter with <code>GET /links?tag=sale</code>.</Field>
                   <Field name="password" type="string">Up to 100 characters. On update, send <code>""</code> to remove protection.</Field>
                   <Field name="starts_at" type="string | null">When the link goes live. Leave it out, or send <code>null</code>, to start at once. Before this time visitors see a not-live-yet page.</Field>
                   <Field name="starts_in" type="string">Relative start: <code>30m</code>, <code>12h</code>, <code>7d</code> or <code>2w</code>, counted from now. Use instead of <code>starts_at</code>, not together with it.</Field>
@@ -438,6 +440,11 @@ requests.post("${base}/links", headers={"Authorization": "Bearer ob_your_key"},
             <p>Set <code>max_clicks</code> to stop a link after a number of visits, for example a coupon for the first 100 people. The count is exact: two visitors can never take the same last click. When the limit is used up the link shows <code>status: "expired"</code>, visitors see the expired notice or are sent to <code>expired_url</code>, and the response shows <code>click_count</code> next to <code>max_clicks</code>. On update, send a higher number to extend it, or <code>null</code> to remove the limit.</p>
             <pre className="code">{`curl -X POST ${base}/links -H "Authorization: Bearer ob_your_key" -H "Content-Type: application/json" \\
   -d '{ "target_url": "https://example.com/coupon", "max_clicks": 100, "expires_in": "7d", "expired_url": "https://example.com/sold-out" }'`}</pre>
+          </section>
+
+          <section id="filters">
+            <h2>Tags and filters</h2>
+            <p><code>GET /links</code> accepts <code>tag</code> (one tag) and <code>status</code>: <code>active</code>, <code>disabled</code>, <code>expired</code>, <code>protected</code>, <code>scheduled</code> (not live yet), <code>expiring</code> (expires within 7 days), <code>limited</code> (has a click limit), <code>limit_near</code> (80% or more of the limit used), <code>universal</code> and <code>review</code>. Combine them with <code>q</code>, for example <code>?tag=sale&amp;status=expiring</code>.</p>
           </section>
 
           <section id="more-links">

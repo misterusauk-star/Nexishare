@@ -6,7 +6,7 @@ import { Copy, CopyPlus, Lock, Trash2, Power } from "lucide-react";
 import { bulkLinksAction, deleteLinkAction, duplicateLinkAction, toggleLinkAction } from "@/app/actions/app";
 
 export interface LinkItem {
-  id: number; slug: string; title: string | null; target: string; short: string; state: string; locked: boolean;
+  id: number; slug: string; title: string | null; tags?: string[]; target: string; short: string; state: string; locked: boolean;
   clicks: number; unique: number; created: string; expires: string | null;
 }
 
@@ -45,6 +45,7 @@ export function LinksTable({ rows }: { rows: LinkItem[] }) {
                 <td>
                   <Link href={`/dashboard/links/${r.id}`} className="title">{r.title || r.slug}</Link>
                   <div className="mono small muted">{r.short.replace(/^https?:\/\//, "")}{r.locked && <Lock className="icon" style={{ width: 12, height: 12, marginLeft: 6 }} aria-label="Password protected" />}</div>
+                  {!!r.tags?.length && <div className="tag-row">{r.tags.map((t) => <Link key={t} className="tag-pill" href={`/dashboard/links?tag=${encodeURIComponent(t)}`}>{t}</Link>)}</div>}
                 </td>
                 <td className="dest" title={r.target}>{r.target}</td>
                 <td><span className={`badge ${BADGE[r.state] ?? ""}`}>{r.state}</span></td>
