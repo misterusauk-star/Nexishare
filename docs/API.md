@@ -2,6 +2,21 @@
 
 JSON over HTTPS. Base URL: `{APP_URL}/api/v1`. The same reference, with your real URL filled in, is served by your install at `/docs`.
 
+## Quickstart
+
+1. Create a key under **API keys** (shown once, starts with `ob_`).
+2. Create a link:
+
+```bash
+export KEY=ob_your_key
+curl -X POST https://your-domain/api/v1/links -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+  -d '{"target_url":"https://example.com/spring-sale","slug":"spring","title":"Spring sale"}'
+```
+
+3. Share `data.short_url` from the answer.
+
+The `/docs` page of your install has a link object reference, recipes (weekend sale, app link, first-100 coupon, tidy expiring links, QR for print, bio page setup, weekly numbers) and Copy buttons on every example.
+
 ## Authentication
 
 Create a key under **API keys** in the dashboard. Keys start with `ob_`. Send it as a bearer token:
@@ -19,6 +34,18 @@ Failures return a non-2xx status and:
 ```json
 { "error": { "message": "Validation failed.", "fields": { "slug": "That short name is already taken." } } }
 ```
+
+### Status codes
+
+| Code | Meaning |
+|---|---|
+| 200, 201, 204 | Done (201 after create, 204 with no body after delete) |
+| 400 | Body is not a JSON object |
+| 401 | Missing, wrong or revoked key |
+| 403 | A read-only key tried to change something |
+| 404 | Link not found, or not yours |
+| 422 | A field is invalid: see `error.fields` |
+| 429 | A limit was reached: `error.window` is `minute` or `day`, wait `Retry-After` seconds |
 
 ## Rate limits
 
