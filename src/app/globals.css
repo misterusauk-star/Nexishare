@@ -488,3 +488,10 @@ a.tag-pill:hover { background: var(--sunken); }
 .attention { list-style: none; margin: 0; padding: 0; }
 .attention li { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-top: 1px solid var(--line); }
 .attention li:first-child { border-top: 0; }
+
+/* UX polish: busy button, sticky bulk bar, copy feedback */
+.spin { width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; display: inline-block; margin-right: 8px; vertical-align: -2px; }
+@media (prefers-reduced-motion: no-preference) { .spin { animation: spin .7s linear infinite; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+.bulk-bar { position: sticky; top: 0; z-index: 5; background: var(--bg); padding-block: 8px; border-bottom: 1px solid var(--line-strong); }
+.btn:disabled { cursor: progress; opacity: .7; }

@@ -86,6 +86,8 @@ export function ActionForm({
   const ref = useRef<HTMLFormElement>(null);
   useEffect(() => {
     if (state.ok && resetOnSuccess) ref.current?.reset();
+    // Bring the result into view so a message above a long form is never missed.
+    if (state.message || state.errors) ref.current?.querySelector<HTMLElement>(".notice, .err")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [state, resetOnSuccess]);
   return (
     <form action={formAction} ref={ref} className={className} noValidate>
@@ -94,7 +96,7 @@ export function ActionForm({
       <ErrCtx.Provider value={state.errors ?? {}}>{children}</ErrCtx.Provider>
       {turnstile && <TurnstileField siteKey={turnstile} resetKey={state} />}
       <div className="row">
-        <button className={submitClass} disabled={pending}>{pending ? pendingLabel ?? "Working..." : submit}</button>
+        <button className={submitClass} disabled={pending} aria-busy={pending || undefined}>{pending && <span className="spin" aria-hidden="true" />}{pending ? pendingLabel ?? "Working..." : submit}</button>
         {extra}
       </div>
     </form>

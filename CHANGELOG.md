@@ -4,6 +4,9 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+### Changed
+- UI polish (no behaviour change): loading skeleton and a friendly error panel inside the app layout (sidebar stays), busy spinner on form buttons, form results scroll into view, copy button in the links list confirms with a check mark, bulk bar sticks to the top and can be cleared, the empty state offers Clear filters.
+
 ### Added
 - Link tags (up to 5 per link) in the dashboard, shown as chips that filter the list, and in the API (`tags`, `GET /links?tag=`). New status filters in the dashboard and API: scheduled, expiring within 7 days, click limit, near limit, universal, held for review. Overview has a "Needs attention" panel for links that expire soon, near their click limit or wait for review. Migration 015.
 - Read-only API keys (can only GET), `GET /links/{id}/qr` (SVG or PNG, colours, size, logo, scan tracking) and `GET /links/export` (all links as CSV with device URLs, schedule, limits and click totals). Migration 014.

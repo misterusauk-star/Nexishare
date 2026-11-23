@@ -98,8 +98,9 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
 
       {items.length === 0 ? (
         <div className="empty">
-          <h3>{sp.q || sp.status ? "No links match that filter" : "No short links yet"}</h3>
-          <p>{sp.q || sp.status ? "Try a different search or clear the status filter." : "Paste a long URL above and pick a short name. Every link gets click stats and a QR code."}</p>
+          <h3>{sp.q || sp.status || sp.tag ? "No links match that filter" : "No short links yet"}</h3>
+          <p>{sp.q || sp.status || sp.tag ? "Try a different search, or clear the filters to see every link." : "Paste a long URL above and pick a short name. Every link gets click stats and a QR code."}</p>
+          {(sp.q || sp.status || sp.tag) && <p><Link className="btn btn-sm" href="/dashboard/links">Clear filters</Link></p>}
         </div>
       ) : (
         <LinksTable rows={items} />
