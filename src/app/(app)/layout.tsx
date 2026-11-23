@@ -56,7 +56,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <form action={logoutAction}><button className="btn btn-sm" style={{ width: "100%" }}>{t("nav.signout")}</button></form>
         </div>
       </aside>
-      <div>
+      <div className="shell-col">
         <div className="topbar"><NavToggle /><span className="brand" style={{ padding: 0 }}>{b.name}</span></div>
         <main id="main" className="main">
           {gated ? (
@@ -67,6 +67,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </div>
           ) : children}
         </main>
+        <footer className="app-foot">
+          <span>{b.footerText || b.name}</span>
+          <nav aria-label="Footer">
+            <Link href="/docs">API docs</Link>
+            <Link href="/terms">Terms</Link>
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/report">Report abuse</Link>
+          </nav>
+        </footer>
       </div>
     </div>
   );
