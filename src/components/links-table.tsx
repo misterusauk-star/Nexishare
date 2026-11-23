@@ -42,18 +42,18 @@ export function LinksTable({ rows }: { rows: LinkItem[] }) {
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.id}>
-                <td><input type="checkbox" aria-label={`Select ${r.slug}`} checked={sel.includes(r.id)} onChange={() => setSel(sel.includes(r.id) ? sel.filter((x) => x !== r.id) : [...sel, r.id])} /></td>
-                <td>
+              <tr key={r.id} className="lrow">
+                <td className="c-sel"><input type="checkbox" aria-label={`Select ${r.slug}`} checked={sel.includes(r.id)} onChange={() => setSel(sel.includes(r.id) ? sel.filter((x) => x !== r.id) : [...sel, r.id])} /></td>
+                <td className="c-main">
                   <Link href={`/dashboard/links/${r.id}`} className="title">{r.title || r.slug}</Link>
                   <div className="mono small muted">{r.short.replace(/^https?:\/\//, "")}{r.locked && <Lock className="icon" style={{ width: 12, height: 12, marginLeft: 6 }} aria-label="Password protected" />}</div>
                   {!!r.tags?.length && <div className="tag-row">{r.tags.map((t) => <Link key={t} className="tag-pill" href={`/dashboard/links?tag=${encodeURIComponent(t)}`}>{t}</Link>)}</div>}
                 </td>
-                <td className="dest" title={r.target}>{r.target}</td>
-                <td><span className={`badge ${BADGE[r.state] ?? ""}`}>{r.state}</span></td>
-                <td className="r num">{r.clicks.toLocaleString("en-US")}</td>
-                <td className="r num">{r.unique.toLocaleString("en-US")}</td>
-                <td className="r">
+                <td className="dest c-dest" title={r.target}>{r.target}</td>
+                <td className="c-state"><span className={`badge ${BADGE[r.state] ?? ""}`}>{r.state}</span></td>
+                <td className="r num c-num" data-label="Clicks">{r.clicks.toLocaleString("en-US")}</td>
+                <td className="r num c-num" data-label="Unique">{r.unique.toLocaleString("en-US")}</td>
+                <td className="r c-act">
                   <button className="btn btn-ghost btn-icon btn-sm" aria-label={`Copy ${r.short}`} title="Copy short URL" onClick={async () => { try { await navigator.clipboard.writeText(r.short); setCopied(r.id); setTimeout(() => setCopied((c) => (c === r.id ? null : c)), 1500); } catch {} }}>{copied === r.id ? <Check className="icon" /> : <Copy className="icon" />}<span className="sr-only" aria-live="polite">{copied === r.id ? "Copied" : ""}</span></button>
                   <button className="btn btn-ghost btn-icon btn-sm" aria-label={`Duplicate ${r.slug}`} title="Duplicate" disabled={pending} onClick={() => start(async () => { await duplicateLinkAction(r.id); })}><CopyPlus className="icon" /></button>
                   <button className="btn btn-ghost btn-icon btn-sm" aria-label={r.state === "disabled" ? "Enable" : "Disable"} title={r.state === "disabled" ? "Enable" : "Disable"} disabled={pending} onClick={() => start(async () => { await toggleLinkAction(r.id); })}><Power className="icon" /></button>

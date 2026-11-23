@@ -495,3 +495,25 @@ a.tag-pill:hover { background: var(--sunken); }
 @keyframes spin { to { transform: rotate(360deg); } }
 .bulk-bar { position: sticky; top: 0; z-index: 5; background: var(--bg); padding-block: 8px; border-bottom: 1px solid var(--line-strong); }
 .btn:disabled { cursor: progress; opacity: .7; }
+
+/* Getting-started checklist */
+.attention li.done { color: var(--muted); }
+.attention li .icon { vertical-align: -3px; margin-right: 6px; }
+.attention li.done .icon { color: var(--ok); }
+
+/* Links list as cards on phones: no sideways scrolling, big tap targets */
+@media (max-width: 700px) {
+  .tbl-wrap:has(.lrow) { border-top: 0; overflow: visible; }
+  .tbl:has(.lrow) thead { display: none; }
+  .tbl:has(.lrow), .tbl:has(.lrow) tbody { display: block; }
+  .lrow { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 12px; padding: 14px 0; border-top: 1px solid var(--line-strong); }
+  .lrow td { display: block; padding: 0; border: 0; max-width: none; }
+  .lrow .c-sel { grid-row: 1 / span 3; align-self: start; padding-top: 4px; }
+  .lrow .c-main { grid-column: 2; }
+  .lrow .c-state { grid-column: 3; grid-row: 1; justify-self: end; }
+  .lrow .c-dest { grid-column: 2 / 4; }
+  .lrow .c-num { display: inline-block; text-align: left; grid-column: 2; font-size: 13px; color: var(--muted); }
+  .lrow .c-num::before { content: attr(data-label) ": "; }
+  .lrow .c-act { grid-column: 1 / 4; display: flex; justify-content: flex-end; gap: 4px; padding-top: 6px; }
+  .lrow .title { max-width: none; white-space: normal; }
+}

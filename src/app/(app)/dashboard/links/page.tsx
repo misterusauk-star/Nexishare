@@ -13,6 +13,8 @@ import { phase2Enabled } from "@/lib/features";
 export const metadata = { title: "Links" };
 const PER = 25;
 
+import { SearchHotkey } from "@/components/search-hotkey";
+
 export default async function LinksPage({ searchParams }: { searchParams: Promise<{ q?: string; status?: string; tag?: string; page?: string }> }) {
   const user = await requireUser();
   const sp = await searchParams;
@@ -77,8 +79,9 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
         </ActionForm>
       </details>
 
+      <SearchHotkey targetId="link-search" />
       <form className="toolbar" style={{ marginTop: 24 }} role="search">
-        <input className="input" name="q" defaultValue={sp.q} placeholder="Search name, label or destination" aria-label="Search links" />
+        <input id="link-search" className="input" name="q" defaultValue={sp.q} placeholder="Search name, label or destination (press / to jump here)" aria-label="Search links" />
         <select className="input" name="status" defaultValue={sp.status ?? ""} aria-label="Filter by status">
           <option value="">All statuses</option><option value="active">Active</option><option value="disabled">Disabled</option>
           <option value="expired">Expired</option><option value="protected">Password protected</option>

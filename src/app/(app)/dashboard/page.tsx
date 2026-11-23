@@ -6,6 +6,7 @@ import { getBrand, shortUrl } from "@/lib/brand";
 import { bioUrl, getDomainState } from "@/lib/domains";
 import { TimeSeries, StatRow } from "@/components/charts";
 import { CopyButton } from "@/components/client";
+import { Check, Circle } from "lucide-react";
 
 export const metadata = { title: "Overview" };
 
@@ -41,7 +42,12 @@ export default async function Overview() {
     { n: review, text: "held for review", href: "/dashboard/links?status=review" },
   ].filter((x) => x.n > 0);
   const page = user.username ? bioUrl(st, user.username) : null;
-  const fresh = !Number(counts?.links) && !Number(counts?.blocks);
+  const steps = [
+    { done: !!user.username, text: "Claim your bio page name", cta: "Create page", href: "/dashboard/page" },
+    { done: Number(counts?.blocks) > 0, text: "Add a link, button or text to your page", cta: "Add content", href: "/dashboard/page" },
+    { done: Number(counts?.links) > 0, text: "Shorten your first URL", cta: "Create a link", href: "/dashboard/links" },
+    { done: clicks.total + views.total > 0, text: "Share it and get your first visit", cta: "See the QR code", href: "/dashboard/qr" },
+  ];
   return (
     <>
       <div className="page-head">
@@ -60,10 +66,19 @@ export default async function Overview() {
         )}
       </div>
 
-      {fresh && (
-        <div className="notice" style={{ marginBottom: 24 }}>
-          <strong>Start here.</strong> Add a link to your page in <Link href="/dashboard/page">Bio page</Link>, or shorten a URL in <Link href="/dashboard/links">Links</Link>. Numbers appear as soon as someone visits.
-        </div>
+      {steps.some((x) => !x.done) && (
+        <section className="panel" style={{ marginBottom: 32 }} aria-labelledby="start">
+          <h2 id="start" style={{ fontSize: 16 }}>Getting started <span className="muted small">{steps.filter((x) => x.done).length} of {steps.length} done</span></h2>
+          <div className="meter" role="progressbar" aria-valuemin={0} aria-valuemax={steps.length} aria-valuenow={steps.filter((x) => x.done).length} aria-label="Getting started progress"><i style={{ width: `${(steps.filter((x) => x.done).length / steps.length) * 100}%` }} /></div>
+          <ul className="attention">
+            {steps.map((x) => (
+              <li key={x.text} className={x.done ? "done" : ""}>
+                <span>{x.done ? <Check className="icon" aria-label="Done" /> : <Circle className="icon" aria-label="Not done yet" />} {x.text}</span>
+                {!x.done && <Link href={x.href} className="small">{x.cta}</Link>}
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       <StatRow items={[
