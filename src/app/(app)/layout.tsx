@@ -7,6 +7,7 @@ import { bioUrl, getDomainState } from "@/lib/domains";
 import { getT } from "@/lib/i18n";
 import { NavLinks, type NavItem } from "@/components/nav";
 import { NavToggle, ThemeToggle } from "@/components/client";
+import { HelpLink } from "@/components/help-link";
 import { logoutAction } from "@/app/actions/auth";
 import { phase2Enabled } from "@/lib/features";
 import { verificationRequired } from "@/lib/services/users";
@@ -53,11 +54,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             {user.username ? <a href={bioUrl(st, user.username)} className="small mono" target="_blank" rel="noopener">/{user.username}</a> : <Link href="/dashboard/page" className="small">Create bio page</Link>}
             <ThemeToggle />
           </div>
+          <HelpLink className="btn btn-sm btn-ghost" />
           <form action={logoutAction}><button className="btn btn-sm" style={{ width: "100%" }}>{t("nav.signout")}</button></form>
         </div>
       </aside>
       <div className="shell-col">
-        <div className="topbar"><NavToggle /><span className="brand" style={{ padding: 0 }}>{b.name}</span></div>
+        <div className="topbar"><NavToggle /><span className="brand" style={{ padding: 0 }}>{b.name}</span><span style={{ marginLeft: "auto" }}><HelpLink className="btn btn-ghost btn-sm" /></span></div>
         <main id="main" className="main">
           {gated ? (
             <div className="empty">

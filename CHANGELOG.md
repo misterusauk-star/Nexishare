@@ -5,6 +5,9 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 ## [Unreleased]
 
 ### Changed
+- Analytics: Clicks/Page views and the time range are segmented controls, hovering (or tabbing to) a day on the chart shows its numbers, a line gives the best day and the daily average, and every breakdown shows each row's share in percent.
+- Bio page editor shows a preview of the public page in a phone frame (saved state, updates on every save; stays beside the editor on wide screens).
+- A Help button on every dashboard and admin page opens the docs at the section for that page.
 - Dashboard and admin now end with a footer (footer text, API docs, Terms, Privacy, Report abuse) that stays at the bottom of the screen; the empty space under the content is gone.
 - Dashboard friendliness: the links list turns into cards on phones, Overview has a "Getting started" checklist with a progress bar (claim page, add content, first link, first visit), and pressing / on the Links page jumps to search.
 - UI polish (no behaviour change): loading skeleton and a friendly error panel inside the app layout (sidebar stays), busy spinner on form buttons, form results scroll into view, copy button in the links list confirms with a check mark, bulk bar sticks to the top and can be cleared, the empty state offers Clear filters.

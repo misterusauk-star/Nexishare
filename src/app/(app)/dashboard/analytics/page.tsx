@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MousePointerClick, Eye } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { getStats, countryName } from "@/lib/analytics";
 import { phase2Enabled } from "@/lib/features";
@@ -14,6 +15,9 @@ export default async function Analytics({ searchParams }: { searchParams: Promis
   const stats = await getStats({ userId: user.id, kind, days });
   const href = (o: { days?: number; view?: string }) => `?days=${o.days ?? days}&view=${o.view ?? kind}`;
   const empty = stats.total === 0;
+  const best = stats.series.reduce((m, s) => (s.total > m.total ? s : m), { day: "", total: 0, unique: 0 });
+  const avg = stats.series.length ? stats.total / stats.series.length : 0;
+  const noun = kind === "clicks" ? "clicks" : "views";
   return (
     <>
       <div className="page-head">
@@ -26,15 +30,15 @@ export default async function Analytics({ searchParams }: { searchParams: Promis
         </div>
       </div>
       <div className="row" style={{ justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap" }}>
-        <div className="row">
-          <Link className={`btn btn-sm ${kind === "clicks" ? "btn-primary" : ""}`} href={href({ view: "clicks" })}>Clicks</Link>
-          <Link className={`btn btn-sm ${kind === "views" ? "btn-primary" : ""}`} href={href({ view: "views" })}>Page views</Link>
-        </div>
-        <div className="row">
+        <nav className="seg" aria-label="What to show">
+          <Link href={href({ view: "clicks" })} aria-current={kind === "clicks" ? "true" : undefined}><MousePointerClick className="icon" />Clicks</Link>
+          <Link href={href({ view: "views" })} aria-current={kind === "views" ? "true" : undefined}><Eye className="icon" />Page views</Link>
+        </nav>
+        <nav className="seg" aria-label="Time range">
           {[7, 30, 90, 365].map((d) => (
-            <Link key={d} className={`btn btn-sm ${d === days ? "btn-primary" : ""}`} href={href({ days: d })}>{d === 365 ? "1 year" : `${d} days`}</Link>
+            <Link key={d} href={href({ days: d })} aria-current={d === days ? "true" : undefined}>{d === 365 ? "1 year" : `${d} days`}</Link>
           ))}
-        </div>
+        </nav>
       </div>
       <StatRow items={[
         { label: kind === "clicks" ? "Clicks" : "Views", value: stats.total },
@@ -50,12 +54,15 @@ export default async function Analytics({ searchParams }: { searchParams: Promis
       ) : (
         <>
           <TimeSeries series={stats.series} label={`${kind === "clicks" ? "Clicks" : "Views"} per day`} />
+          <p className="insight">
+            <strong>Best day:</strong> {best.day ? `${best.day} with ${best.total.toLocaleString("en-US")} ${noun}` : "none yet"}. <strong>Average:</strong> {avg >= 10 ? Math.round(avg) : avg.toFixed(1)} {noun} per day.
+          </p>
           <div className="cols" style={{ marginTop: 40 }}>
-            <BarList title="Countries" rows={stats.countries.map((c) => ({ ...c, label: countryName(c.label) }))} />
-            <BarList title="Referrers" rows={stats.referrers} />
-            <BarList title="Devices" rows={stats.devices} />
-            <BarList title="Browsers" rows={stats.browsers} />
-            {stats.campaigns.some((c) => c.label !== "No campaign") ? <BarList title="Campaigns (utm_campaign)" rows={stats.campaigns} /> : null}
+            <BarList total={stats.total} title="Countries" rows={stats.countries.map((c) => ({ ...c, label: countryName(c.label) }))} />
+            <BarList total={stats.total} title="Referrers" rows={stats.referrers} />
+            <BarList total={stats.total} title="Devices" rows={stats.devices} />
+            <BarList total={stats.total} title="Browsers" rows={stats.browsers} />
+            {stats.campaigns.some((c) => c.label !== "No campaign") ? <BarList total={stats.total} title="Campaigns (utm_campaign)" rows={stats.campaigns} /> : null}
           </div>
         </>
       )}

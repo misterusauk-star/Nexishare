@@ -3,12 +3,14 @@ import { requireUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { getBrand } from "@/lib/brand";
 import { bioUrl, getDomainState } from "@/lib/domains";
-import { ensurePage, getBlocks, BLOCK_TYPES_P1, BLOCK_TYPES_P2 } from "@/lib/services/pages";
+import { blockActive, ensurePage, getBlocks, BLOCK_TYPES_P1, BLOCK_TYPES_P2 } from "@/lib/services/pages";
 import { totalsFor } from "@/lib/analytics";
 import { SOCIALS, THEMES } from "@/lib/themes";
 import { phase2Enabled } from "@/lib/features";
 import { ActionForm, Field, CopyButton } from "@/components/client";
 import { AvatarField, BlockList, NewBlock, ThemePicker, type BlockItem } from "@/components/bio-editor";
+import { PublicPageView } from "@/components/public-page";
+import "../../../bio.css";
 import { claimBioAction, saveProfileAction, saveSocialsAction, saveThemeAction } from "@/app/actions/app";
 
 export const metadata = { title: "Bio page" };
@@ -42,6 +44,11 @@ export default async function BioEditor() {
   }));
   const types = [...BLOCK_TYPES_P1, ...(p2 ? BLOCK_TYPES_P2 : [])] as string[];
   const address = bioUrl(st, user.username);
+  // The preview is the real public page, drawn from what is saved right now (hidden and scheduled blocks left out, like for visitors).
+  const preview = {
+    page, user: { id: user.id, username: user.username }, blocks: blocks.filter((x) => blockActive(x)),
+    groups: Object.fromEntries(groups.map((g) => [g.id, g.name])) as Record<number, string>,
+  };
   return (
     <>
       <div className="page-head">
@@ -55,6 +62,15 @@ export default async function BioEditor() {
       {page.moderated ? <div className="notice bad" role="alert">An administrator has taken this page offline. Contact {b.supportEmail} if you think this is a mistake.</div> : null}
 
       <div className="cols editor" style={{ alignItems: "start" }}>
+        <aside className="preview-col" aria-label="Preview of your page">
+          <details className="preview-box" open>
+            <summary>Preview <span className="muted small">{page.published ? "Public" : "Not public yet"}</span></summary>
+            <div className="phone" inert aria-hidden="true">
+              <PublicPageView data={preview} brand={b} />
+            </div>
+            <p className="small muted">Shows what is saved. It updates every time you save.</p>
+          </details>
+        </aside>
         <div>
           <section>
             <div className="section-title"><h2>Content</h2></div>

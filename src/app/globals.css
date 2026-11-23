@@ -530,3 +530,20 @@ a.tag-pill:hover { background: var(--sunken); }
 /* Never let anything pad the page below the footer */
 .shell-col > :last-child { margin-bottom: 0; }
 .app-foot { margin-top: auto; }
+
+/* Analytics: segmented controls, chart hover, insight line */
+.seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+.seg a { display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; min-height: 36px; font-size: 14px; font-weight: 500; color: var(--muted); text-decoration: none; }
+.seg a + a { border-left: 1px solid var(--line-strong); }
+.seg a:hover { background: var(--sunken); color: var(--ink); }
+.seg a[aria-current="true"] { background: var(--accent); color: #fff; }
+.seg a:focus-visible { outline-offset: -2px; }
+@media (max-width: 860px) { .seg a { min-height: 44px; } }
+.chart .pt .hit { fill: transparent; }
+.chart .pt .guide { stroke: var(--line-strong); stroke-width: 1; opacity: 0; }
+.chart .pt circle { fill: var(--accent); stroke: var(--bg); stroke-width: 2; opacity: 0; }
+.chart .pt:hover .guide, .chart .pt:focus .guide, .chart .pt:hover circle, .chart .pt:focus circle { opacity: 1; }
+.chart .pt:focus { outline: none; }
+.insight { margin: 12px 0 0; font-size: 14px; color: var(--muted); max-width: 70ch; }
+.insight strong { color: var(--ink); font-weight: 600; }
+.bars li .num .muted { font-weight: 400; }

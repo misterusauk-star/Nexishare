@@ -24,6 +24,17 @@ export function TimeSeries({ series, label }: { series: Stats["series"]; label: 
         <path className="fill" d={area} />
         <path className="a" d={line("total")} />
         <path className="u" d={line("unique")} />
+        {series.map((s, i) => {
+          const w = series.length <= 1 ? W - L - R : (W - L - R) / (series.length - 1);
+          return (
+            <g className="pt" key={s.day} tabIndex={0} role="img" aria-label={`${s.day}: ${s.total} total, ${s.unique} unique`}>
+              <title>{`${s.day}: ${s.total} total, ${s.unique} unique`}</title>
+              <rect className="hit" x={x(i) - w / 2} y={T} width={w} height={H - T - B} />
+              <line className="guide" x1={x(i)} x2={x(i)} y1={T} y2={H - B} />
+              <circle cx={x(i)} cy={y(s.total)} r={4} />
+            </g>
+          );
+        })}
         {labelIdx.map((i) => (
           <text key={i} x={x(i)} y={H - 6} textAnchor={i === 0 ? "start" : i === series.length - 1 ? "end" : "middle"}>
             {series[i]?.day.slice(5)}
@@ -40,7 +51,7 @@ export function TimeSeries({ series, label }: { series: Stats["series"]; label: 
   );
 }
 
-export function BarList({ title, rows, empty = "No data in this period." }: { title: string; rows: { label: string; n: number }[]; empty?: string }) {
+export function BarList({ title, rows, total, empty = "No data in this period." }: { title: string; rows: { label: string; n: number }[]; total?: number; empty?: string }) {
   const max = Math.max(1, ...rows.map((r) => r.n));
   return (
     <section>
@@ -52,7 +63,7 @@ export function BarList({ title, rows, empty = "No data in this period." }: { ti
           {rows.map((r) => (
             <li key={r.label}>
               <span className="t">{r.label}</span>
-              <span className="num">{r.n.toLocaleString("en-US")}</span>
+              <span className="num">{r.n.toLocaleString("en-US")}{total ? <span className="muted small"> · {Math.round((r.n / total) * 100)}%</span> : null}</span>
               <span className="b" aria-hidden="true"><i style={{ width: `${(r.n / max) * 100}%` }} /></span>
             </li>
           ))}
