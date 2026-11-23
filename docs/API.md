@@ -36,7 +36,9 @@ Limits are low by default: **20 requests per minute per key**, **1,000 requests 
 | GET | `/links/{id}/stats` | Stats for one link. Query: `days` (1 to 365) |
 | GET | `/stats` | Stats across everything you own. Query: `days`, `kind` (`clicks` or `views`) |
 | GET | `/page` | Your bio page and blocks |
-| PATCH | `/page` | `display_name`, `bio`, `theme`, `published` |
+| PATCH | `/page` | `display_name`, `bio`, `theme`, `published`, `socials` |
+| GET | `/page/templates` | The ready-made templates and the social platforms you can set |
+| POST | `/page/template` | Apply a template: `{"id": "musician", "starter_content": true}` |
 
 ### Public endpoints (no key)
 
@@ -128,6 +130,13 @@ Status `201` if at least one link was created, `422` if none. The daily limit co
 - `GET /links?tag=sale` lists links with that tag.
 - `GET /links?status=` accepts `active`, `disabled`, `expired`, `protected`, `scheduled`, `expiring` (expires within 7 days), `limited` (has a click limit), `limit_near` (80% or more used), `universal`, `review`. Works together with `q` and `tag`.
 - Tags need migration 015; before it runs, creating a link with tags returns a `tags` error and nothing is created.
+
+## Bio page templates and icons
+
+- `GET /page/templates`: 27 templates (`id`, `niche`, `colors`, `shape`, `style`, `font`, `starter`) and `social_platforms` (`key`, `label`).
+- `POST /page/template` with `id` (and optional `starter_content: true`) puts the look on your page and clears custom colours. With `starter_content` it also fills an empty bio and, only when your page has no blocks, adds the starter links **switched off** (their addresses are placeholders). Response: `page` and `starter_blocks_added`. Unknown id: 422. A template `id` also works as `theme` in `PATCH /page`.
+- `PATCH /page` with `socials`: `{"socials": {"instagram": "https://instagram.com/you", "email": "you@example.com"}}`. Platforms you send are changed, others stay, `""` removes one. Invalid address: 422 with `fields["socials.<platform>"]`.
+- `GET /page` returns `icon` on every link block: the platform key (`instagram`, `youtube`, ...) or `null`. The public page draws that logo on the button.
 
 ## Search engines and crawlers
 

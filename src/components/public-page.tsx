@@ -7,12 +7,9 @@ import type { PublicPage } from "@/lib/services/public";
 import type { Brand } from "@/lib/brand";
 import { ActionForm, Field } from "@/components/client";
 import { contactAction } from "@/app/actions/public";
-import { ArrowUpRight, Download, Mail } from "lucide-react";
-
-const LABEL: Record<string, string> = {
-  instagram: "Instagram", x: "X", youtube: "YouTube", tiktok: "TikTok", github: "GitHub", linkedin: "LinkedIn", facebook: "Facebook",
-  twitch: "Twitch", mastodon: "Mastodon", bluesky: "Bluesky", spotify: "Spotify", email: "Email", website: "Website",
-};
+import { ArrowUpRight, Download, Globe, Mail } from "lucide-react";
+import { brandByKey, brandForUrl } from "@/lib/brands.ts";
+import { BrandIcon } from "@/components/brand-icon";
 
 function socialHref(k: string, v: string): string {
   return k === "email" ? `mailto:${v}` : v;
@@ -23,6 +20,7 @@ export function PublicPageView({ data, brand }: { data: PublicPage; brand: Brand
   const t = resolveTheme(page.theme, page.custom);
   const vars = {
     "--bg": t.bg, "--fg": t.fg, "--muted": t.muted, "--btn-bg": t.btnBg, "--btn-fg": t.btnFg, "--btn-border": t.btnBorder,
+    ...(t.bgImage ? { "--bg-image": t.bgImage } : {}),
   } as CSSProperties;
   const socials = (page.socials ?? {}) as Socials;
   const name = page.display_name || user.username;
@@ -59,11 +57,17 @@ export function PublicPageView({ data, brand }: { data: PublicPage; brand: Brand
 
         {SOCIALS.some((k) => socials[k]) ? (
           <ul className="bio-socials" aria-label="Elsewhere">
-            {SOCIALS.filter((k) => socials[k]).map((k) => (
-              <li key={k}>
-                <a href={socialHref(k, socials[k] as string)} rel="noopener noreferrer me" target={k === "email" ? undefined : "_blank"}>{LABEL[k]}</a>
-              </li>
-            ))}
+            {SOCIALS.filter((k) => socials[k]).map((k) => {
+              const brand = brandByKey(k);
+              const name = brand?.label ?? (k === "email" ? "Email" : "Website");
+              return (
+                <li key={k}>
+                  <a href={socialHref(k, socials[k] as string)} rel="noopener noreferrer me" target={k === "email" ? undefined : "_blank"} aria-label={name} title={name}>
+                    {brand ? <BrandIcon brand={brand} size={22} /> : k === "email" ? <Mail size={22} strokeWidth={1.75} aria-hidden="true" /> : <Globe size={22} strokeWidth={1.75} aria-hidden="true" />}
+                  </a>
+                </li>
+              );
+            })}
           </ul>
         ) : null}
 
@@ -84,13 +88,17 @@ function BlockView({ b }: { b: PublicPage["blocks"][number] }) {
   switch (b.type) {
     case "header":
       return <h2 className="bio-header">{b.title}</h2>;
-    case "link":
+    case "link": {
+      // A link to a known platform (Instagram, YouTube, Spotify...) shows that platform's logo.
+      const brand = brandForUrl(b.url);
       return (
-        <a className="bio-btn" href={`/out/${b.id}`} rel="nofollow noopener">
+        <a className={`bio-btn${brand ? " has-icon" : ""}`} href={`/out/${b.id}`} rel="nofollow noopener">
+          {brand && <BrandIcon brand={brand} size={20} />}
           <span>{b.title || b.url}</span>
           <ArrowUpRight size={16} strokeWidth={1.75} aria-hidden="true" />
         </a>
       );
+    }
     case "product":
       return (
         <a className="bio-product" href={`/out/${b.id}`} rel="nofollow noopener">

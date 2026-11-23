@@ -5,7 +5,11 @@ import { getBrand } from "@/lib/brand";
 import { bioUrl, getDomainState } from "@/lib/domains";
 import { blockActive, ensurePage, getBlocks, BLOCK_TYPES_P1, BLOCK_TYPES_P2 } from "@/lib/services/pages";
 import { totalsFor } from "@/lib/analytics";
-import { SOCIALS, THEMES } from "@/lib/themes";
+import { SOCIALS, BASE_THEMES, themeById } from "@/lib/themes";
+import { TEMPLATES } from "@/lib/templates.ts";
+import { brandByKey } from "@/lib/brands.ts";
+import { BrandIcon } from "@/components/brand-icon";
+import { TemplateGallery } from "@/components/template-gallery";
 import { phase2Enabled } from "@/lib/features";
 import { ActionForm, Field, CopyButton } from "@/components/client";
 import { AvatarField, BlockList, NewBlock, ThemePicker, type BlockItem } from "@/components/bio-editor";
@@ -61,6 +65,12 @@ export default async function BioEditor() {
       </div>
       {page.moderated ? <div className="notice bad" role="alert">An administrator has taken this page offline. Contact {b.supportEmail} if you think this is a mistake.</div> : null}
 
+      <details className="panel" style={{ marginBottom: 32 }} open={items.length === 0}>
+        <summary className="btn" style={{ display: "inline-flex" }}>Templates: {TEMPLATES.length} ready-made looks</summary>
+        <p className="small muted" style={{ marginTop: 12 }}>Pick one for your kind of page. "Use this look" changes only the colours and style. "Look + starter links" also adds a few example links, saved switched off so nothing goes public until you edit and turn them on.</p>
+        <TemplateGallery templates={TEMPLATES} current={page.theme} />
+      </details>
+
       <div className="cols editor" style={{ alignItems: "start" }}>
         <aside className="preview-col" aria-label="Preview of your page">
           <details className="preview-box" open>
@@ -96,18 +106,37 @@ export default async function BioEditor() {
           <section style={{ marginTop: 40 }}>
             <div className="section-title"><h2>Appearance</h2></div>
             <ActionForm action={saveThemeAction} submit="Save appearance" pendingLabel="Saving...">
-              <ThemePicker themes={THEMES} current={page.theme} custom={(page.custom ?? {}) as Record<string, string>} />
+              <ThemePicker themes={BASE_THEMES.some((t) => t.id === page.theme) ? BASE_THEMES : [...BASE_THEMES, themeById(page.theme)]} current={page.theme} custom={(page.custom ?? {}) as Record<string, string>} />
             </ActionForm>
           </section>
 
           <section style={{ marginTop: 40 }}>
             <div className="section-title"><h2>Social icons</h2></div>
             <ActionForm action={saveSocialsAction} submit="Save social links" pendingLabel="Saving...">
-              <div className="grid2">
-                {SOCIALS.map((k) => (
-                  <Field key={k} label={k === "x" ? "X" : k === "email" ? "Email" : k[0].toUpperCase() + k.slice(1)} name={`social_${k}`} type={k === "email" ? "email" : "text"} defaultValue={page.socials?.[k] ?? ""} placeholder={k === "email" ? "you@example.com" : "https://"} />
-                ))}
-              </div>
+              <p className="small muted">The icons show under your links. Paste the full address of each profile.</p>
+              {(() => {
+                const row = (k: (typeof SOCIALS)[number]) => {
+                  const brand = brandByKey(k);
+                  const label = brand?.label ?? (k === "email" ? "Email" : "Website");
+                  return (
+                    <div className="social-row" key={k}>
+                      {brand ? <BrandIcon brand={brand} size={20} /> : <span style={{ width: 20 }} />}
+                      <Field label={label} name={`social_${k}`} type={k === "email" ? "email" : "text"} defaultValue={page.socials?.[k] ?? ""} placeholder={k === "email" ? "you@example.com" : "https://"} />
+                    </div>
+                  );
+                };
+                const main = SOCIALS.filter((k, i) => i < 11 || k === "email" || k === "website");
+                const more = SOCIALS.filter((k) => !main.includes(k));
+                return (
+                  <>
+                    <div className="stack">{main.map(row)}</div>
+                    <details className="utm" style={{ marginTop: 12 }} open={more.some((k) => !!page.socials?.[k])}>
+                      <summary>More platforms ({more.length})</summary>
+                      <div className="stack" style={{ padding: "12px 14px" }}>{more.map(row)}</div>
+                    </details>
+                  </>
+                );
+              })()}
             </ActionForm>
           </section>
         </div>

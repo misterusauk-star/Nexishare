@@ -4,6 +4,7 @@ import { checkTargetUrl, isBlocked, safeImageUrl, fieldErrors } from "../validat
 import { SOCIALS, THEMES, type PageCustom, type Socials } from "../themes";
 import type { Result } from "./links";
 import { notifyBioPage } from "../indexnow";
+import { templateById } from "../templates.ts";
 
 export interface PageRow {
   id: number;
@@ -169,6 +170,35 @@ export async function saveBlock(
   );
   void notifyBioPage(page.user_id);
   return { ok: true, data: res.insertId };
+}
+
+/**
+ * Puts a template's look on the page (and clears custom colours). With `starterContent` it also fills an empty bio
+ * and, only when the page has no blocks yet, adds the template's starter links switched OFF: they carry
+ * placeholder addresses, so nothing goes public until the person has edited and enabled them.
+ */
+export async function applyTemplate(
+  userId: number, templateId: string, starterContent: boolean, allowedTypes: readonly string[],
+): Promise<Result<{ added: number }>> {
+  const t = templateById(templateId);
+  if (!t) return { ok: false, errors: { template: "Unknown template." } };
+  const page = await getPageByUser(userId);
+  if (!page) return { ok: false, errors: { form: "Page not found." } };
+  const a = await updateProfile(userId, { theme: t.theme.id });
+  if (!a.ok) return a;
+  await exec("UPDATE pages SET custom = NULL WHERE user_id = ?", [userId]);
+  let added = 0;
+  if (starterContent) {
+    if (!page.bio) await exec("UPDATE pages SET bio = ? WHERE user_id = ?", [t.bio, userId]);
+    const existing = await queryOne<{ n: number }>("SELECT COUNT(*) AS n FROM blocks WHERE page_id = ?", [page.id]);
+    if (!Number(existing?.n)) {
+      for (const b of t.starter) {
+        const r = await saveBlock(userId, null, { type: b.type, title: b.title, url: b.url, enabled: false }, allowedTypes);
+        if (r.ok) added++;
+      }
+    }
+  }
+  return { ok: true, data: { added } };
 }
 
 export async function deleteBlock(userId: number, blockId: number): Promise<void> {

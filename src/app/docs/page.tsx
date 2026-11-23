@@ -251,6 +251,7 @@ export default async function Docs() {
           <a href="#universal">Universal links</a>
           <a href="#limit">Click limit</a>
           <a href="#filters">Tags and filters</a>
+          <a href="#templates">Templates and icons</a>
           <a href="#more-links">Duplicate and bulk</a>
           <a href="#keys-qr-export">Keys, QR and export</a>
           <a href="#search">Search engines</a>
@@ -587,8 +588,14 @@ curl -X PATCH ${base}/links/12 \\
           </Endpoint>
 
           <Endpoint id="page" method="get" path="/page">
-            <p>Your bio page settings and its blocks. <code>PATCH /page</code> accepts the same profile fields as the editor: <code>display_name</code>, <code>bio</code>, <code>theme</code>, <code>published</code>.</p>
+            <p>Your bio page settings and its blocks. <code>PATCH /page</code> accepts the same profile fields as the editor: <code>display_name</code>, <code>bio</code>, <code>theme</code>, <code>published</code>, plus <code>socials</code> (see <a href="#templates">Templates and icons</a>). Each link block in <code>GET /page</code> has an <code>icon</code>: the platform its address belongs to, or <code>null</code>.</p>
           </Endpoint>
+
+          <section id="templates">
+            <h2>Templates and icons</h2>
+            <p><code>GET /page/templates</code> lists the 27 ready-made templates (<code>id</code>, <code>niche</code>, colours, starter links) and the <code>social_platforms</code> you can set. <code>POST /page/template</code> with <code>{"{ \"id\": \"musician\", \"starter_content\": true }"}</code> puts that look on your page and clears custom colours. With <code>starter_content</code> it also fills an empty bio and, only when your page has no blocks yet, adds the starter links <strong>switched off</strong>, because their addresses are placeholders. The response has <code>starter_blocks_added</code>. A template id also works as <code>theme</code> in <code>PATCH /page</code>.</p>
+            <p><strong>Social icons</strong> are separate from link blocks. Send <code>{"{ \"socials\": { \"instagram\": \"https://instagram.com/you\", \"email\": \"you@example.com\" } }"}</code> to <code>PATCH /page</code>: each platform you send is changed, the others stay, and <code>""</code> removes one. They show as round icon buttons under your links. A <strong>link block</strong> whose address is on a known platform (Instagram, YouTube, Spotify, WhatsApp, Etsy and about 40 more) gets that platform's logo on its button automatically.</p>
+          </section>
         </div>
       </div>
     </SiteShell>

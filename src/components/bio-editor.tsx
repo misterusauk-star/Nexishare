@@ -5,6 +5,8 @@ import { ArrowDown, ArrowUp, Eye, EyeOff, GripVertical, Trash2 } from "lucide-re
 import { ActionForm, Field } from "./client";
 import { deleteBlockAction, reorderBlocksAction, saveBlockAction, toggleBlockAction } from "@/app/actions/app";
 import type { Theme } from "@/lib/themes";
+import { brandForUrl } from "@/lib/brands.ts";
+import { BrandIcon } from "./brand-icon";
 
 export function AvatarField({ defaultValue, name }: { defaultValue: string; name: string }) {
   const [url, setUrl] = useState(defaultValue);
@@ -48,7 +50,7 @@ export function ThemePicker({ themes, current, custom }: { themes: Theme[]; curr
         {themes.map((t) => (
           <label key={t.id} className={`theme-opt ${sel === t.id ? "on" : ""}`}>
             <input type="radio" name="theme" value={t.id} checked={sel === t.id} onChange={() => setSel(t.id)} />
-            <span className="theme-swatch" style={{ background: t.bg, color: t.fg, fontFamily: t.font === "mono" ? "var(--font-mono)" : t.font === "serif" ? "var(--font-display)" : "var(--font-text)" }}>
+            <span className="theme-swatch" style={{ background: t.bg, backgroundImage: t.bgImage, color: t.fg, fontFamily: t.font === "mono" ? "var(--font-mono)" : t.font === "serif" ? "var(--font-display)" : "var(--font-text)" }}>
               <span style={{ fontSize: 15, fontWeight: 600 }}>Aa</span>
               <span className="theme-btn" style={{ background: t.btnBg, color: t.btnFg, borderColor: t.btnBorder, borderRadius: t.shape === "pill" ? 99 : t.shape === "round" ? 6 : 0 }} />
             </span>
@@ -170,7 +172,7 @@ export function BlockList({ blocks, groups }: { blocks: BlockItem[]; groups: { i
           <div className="block-row">
             <span className="drag-handle" aria-hidden="true"><GripVertical className="icon" /></span>
             <div className="block-main">
-              <span className="title">{b.type === "vcard" ? "Contact card" : b.title || TYPE_LABEL[b.type]}</span>
+              <span className="title">{b.type === "link" && brandForUrl(b.url) ? <BrandIcon brand={brandForUrl(b.url)!} size={16} /> : null}{b.type === "vcard" ? "Contact card" : b.title || TYPE_LABEL[b.type]}</span>
               <span className="small muted">{TYPE_LABEL[b.type]}{b.url ? ` - ${b.url}` : ""}</span>
             </div>
             <span className="small muted num" title="Clicks">{b.clicks.toLocaleString("en-US")}</span>

@@ -1,3 +1,6 @@
+import { SOCIAL_BRANDS } from "./brands.ts";
+import { TEMPLATES } from "./templates.ts";
+
 export type ButtonShape = "square" | "round" | "pill";
 export type ButtonStyle = "solid" | "outline" | "offset";
 export type PageFont = "sans" | "serif" | "mono";
@@ -16,9 +19,12 @@ export interface Theme {
   style: ButtonStyle;
   font: PageFont;
   pattern?: "grid" | "dots" | "none";
+  /** A CSS gradient written in code (never user input), drawn over the background colour. */
+  bgImage?: string;
 }
 
-export const THEMES: Theme[] = [
+/** The eight classic looks. Templates add more, see `THEMES`. */
+export const BASE_THEMES: Theme[] = [
   { id: "paper", name: "Paper", note: "Quiet ink on cool paper.", bg: "#F2F3F0", fg: "#15191C", muted: "#5B6670", btnBg: "#FFFFFF", btnFg: "#15191C", btnBorder: "#15191C", shape: "square", style: "offset", font: "sans" },
   { id: "ledger", name: "Ledger", note: "Monospace on dark, like a terminal log.", bg: "#0F1411", fg: "#D8E4DA", muted: "#7E9183", btnBg: "transparent", btnFg: "#D8E4DA", btnBorder: "#3A4A40", shape: "square", style: "outline", font: "mono" },
   { id: "riso", name: "Riso", note: "Two-ink print, pink stock and blue.", bg: "#F7D3DE", fg: "#1B2BA8", muted: "#4A57C2", btnBg: "#1B2BA8", btnFg: "#F7D3DE", btnBorder: "#1B2BA8", shape: "round", style: "solid", font: "serif" },
@@ -28,6 +34,9 @@ export const THEMES: Theme[] = [
   { id: "plain", name: "Plain", note: "White page, black type, nothing extra.", bg: "#FFFFFF", fg: "#111111", muted: "#6B6B6B", btnBg: "transparent", btnFg: "#111111", btnBorder: "#111111", shape: "square", style: "outline", font: "serif" },
   { id: "blueprint", name: "Blueprint", note: "Technical drawing, white line on blue.", bg: "#0B3D91", fg: "#F1F6FF", muted: "#A9C1EE", btnBg: "transparent", btnFg: "#F1F6FF", btnBorder: "#F1F6FF", shape: "square", style: "outline", font: "mono", pattern: "grid" },
 ];
+
+/** Every look a page can use: the classics plus one for each template. */
+export const THEMES: Theme[] = [...BASE_THEMES, ...TEMPLATES.map((t) => t.theme)];
 
 export const themeById = (id: string) => THEMES.find((t) => t.id === id) ?? THEMES[0];
 
@@ -58,8 +67,7 @@ export function resolveTheme(id: string, custom: PageCustom | null | undefined):
   };
 }
 
-export const SOCIALS = [
-  "instagram", "x", "youtube", "tiktok", "github", "linkedin", "facebook", "twitch", "mastodon", "bluesky", "spotify", "email", "website",
-] as const;
-export type SocialKey = (typeof SOCIALS)[number];
+/** Keys of the "Social icons" list: every social brand, then email and website. */
+export const SOCIALS = [...SOCIAL_BRANDS.map((b) => b.key), "email", "website"] as const;
+export type SocialKey = string;
 export type Socials = Partial<Record<SocialKey, string>>;

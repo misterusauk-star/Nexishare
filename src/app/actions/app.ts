@@ -20,7 +20,7 @@ import { reqInfo } from "@/lib/request";
 import { slugSchema } from "@/lib/validation";
 import { notifyBioPage } from "@/lib/indexnow";
 import {
-  BLOCK_TYPES_P1, BLOCK_TYPES_P2, deleteBlock, ensurePage, reorderBlocks, saveBlock, toggleBlock, updateCustom, updateProfile, updateSocials,
+  applyTemplate, BLOCK_TYPES_P1, BLOCK_TYPES_P2, deleteBlock, ensurePage, reorderBlocks, saveBlock, toggleBlock, updateCustom, updateProfile, updateSocials,
 } from "@/lib/services/pages";
 import { SOCIALS } from "@/lib/themes";
 import type { FormState } from "@/components/client";
@@ -175,6 +175,20 @@ export async function saveThemeAction(_: FormState, fd: FormData): Promise<FormS
   revalidatePath("/dashboard/page");
   if (u.username) revalidatePath(`/${u.username}`);
   return { ok: true, message: "Appearance saved." };
+}
+
+export async function applyTemplateAction(templateId: string, starterContent: boolean): Promise<FormState> {
+  const u = await requireUser();
+  const r = await applyTemplate(u.id, templateId, starterContent, allowedBlocks());
+  if (!r.ok) return { ok: false, message: Object.values(r.errors)[0] ?? "Could not apply the template." };
+  revalidatePath("/dashboard/page");
+  if (u.username) revalidatePath(`/${u.username}`);
+  return {
+    ok: true,
+    message: r.data.added
+      ? `Template applied. ${r.data.added} starter items were added switched off: edit each address, then switch it on.`
+      : "Template applied.",
+  };
 }
 
 export async function saveSocialsAction(_: FormState, fd: FormData): Promise<FormState> {
