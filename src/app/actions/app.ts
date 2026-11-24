@@ -209,6 +209,7 @@ export async function saveBlockAction(blockId: number | null, _: FormState, fd: 
   const type = s(fd, "type") || "link";
   const data: Record<string, string> = {};
   for (const k of ["description", "price", "button", "email", "phone", "org", "note"]) if (s(fd, k)) data[k] = s(fd, k);
+  if (type === "link" && fd.get("featured")) data.featured = "1";
   const r = await saveBlock(u.id, blockId, {
     type, title: s(fd, "title"), url: s(fd, "url"), data, enabled: true,
     starts_at: s(fd, "starts_at") || null, ends_at: s(fd, "ends_at") || null, group_id: s(fd, "group_id") || null,

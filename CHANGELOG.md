@@ -4,6 +4,11 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+### Added
+- Bio page blocks API: `GET/POST /page/blocks`, `GET/PATCH/DELETE /page/blocks/{id}`, `POST /page/blocks/order`.
+- New "Text" block (a short note with an optional heading) and a "Highlight this link" option: highlighted links are larger and carry a star.
+- Analytics tiles show the change against the previous period (for example "12% more than the previous 30 days"), and the Links table shows when each link was last clicked.
+
 ### Changed
 - Docs rewritten for clarity: sections grouped in the side list and ordered from first steps to details, new Quickstart, link object reference, status code table and a Recipes section with copy-and-run examples (weekend sale, app link, first-100 coupon, tidy expiring links, QR for print, bio page setup, weekly numbers). More examples for tags, filters, templates and the bio page. Every code example has a Copy button.
 - Analytics: Clicks/Page views and the time range are segmented controls, hovering (or tabbing to) a day on the chart shows its numbers, a line gives the best day and the daily average, and every breakdown shows each row's share in percent.

@@ -1,3 +1,4 @@
+import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import type { Stats } from "@/lib/analytics";
 
 /** Server-rendered SVG line chart: total clicks (solid) and unique visitors (dashed). No client JS. */
@@ -73,13 +74,14 @@ export function BarList({ title, rows, total, empty = "No data in this period." 
   );
 }
 
-export function StatRow({ items }: { items: { label: string; value: number | string }[] }) {
+export function StatRow({ items }: { items: { label: string; value: number | string; note?: string; trend?: "up" | "down" | "flat" }[] }) {
   return (
     <div className="stats">
       {items.map((i) => (
         <div className="stat" key={i.label}>
           <div className="v">{typeof i.value === "number" ? i.value.toLocaleString("en-US") : i.value}</div>
           <div className="l">{i.label}</div>
+          {i.note && <div className="delta small">{i.trend === "up" ? <TrendingUp className="icon" aria-hidden="true" /> : i.trend === "down" ? <TrendingDown className="icon" aria-hidden="true" /> : <Minus className="icon" aria-hidden="true" />}{i.note}</div>}
         </div>
       ))}
     </div>

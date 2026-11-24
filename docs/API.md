@@ -65,6 +65,9 @@ Limits are low by default: **20 requests per minute per key**, **1,000 requests 
 | GET | `/page` | Your bio page and blocks |
 | PATCH | `/page` | `display_name`, `bio`, `theme`, `published`, `socials` |
 | GET | `/page/templates` | The ready-made templates and the social platforms you can set |
+| GET, POST | `/page/blocks` | List blocks / add one (`type`, `title`, `url`, `description`, `featured`, `enabled`, ...) |
+| GET, PATCH, DELETE | `/page/blocks/{id}` | Read, change (only the fields you send) or remove a block |
+| POST | `/page/blocks/order` | Set the order: `{"ids": [12, 9, 15]}` |
 | POST | `/page/template` | Apply a template: `{"id": "musician", "starter_content": true}` |
 
 ### Public endpoints (no key)
@@ -162,6 +165,14 @@ Status `201` if at least one link was created, `422` if none. The daily limit co
 
 - `GET /links` and `GET /links/{id}` include `last_click_at` (ISO time, or `null` when never clicked).
 - `GET /stats` and `GET /links/{id}/stats` include `previous` (`total`, `unique` of the same number of days just before this period) and `previous.change_percent` (`total`, `unique`: whole percent, `null` when the earlier period had no clicks).
+
+## Bio page blocks
+
+- Types: `link`, `header`, `text`, and `contact_form`, `product`, `embed`, `vcard` when enabled. `text` needs `description` (max 500 characters in the editor); `title` is optional.
+- Fields: `title`, `url`, `description`, `price`, `button`, `featured` (boolean, links show larger with a star), `enabled`, `starts_at`, `ends_at`, `group_id`. Block JSON also has `id`, `type`, `position`, `icon`.
+- `POST /page/blocks` returns 201 and the block, added at the end. `PATCH /page/blocks/{id}` changes only the fields sent (`""` clears a text field); the type cannot change. `DELETE` returns `{"deleted": true}`. Not your block: 404. Invalid: 422 with `fields`.
+- `POST /page/blocks/order` with `ids`: listed blocks come first in that order, the rest follow in their old order. Returns all blocks.
+- Read-only keys can only use `GET`.
 
 ## Bio page templates and icons
 

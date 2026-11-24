@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { MousePointerClick, Eye } from "lucide-react";
 import { requireUser } from "@/lib/auth";
-import { getStats, countryName } from "@/lib/analytics";
+import { getStats, getPreviousTotals, countryName } from "@/lib/analytics";
+import { describeChange } from "@/lib/change";
 import { phase2Enabled } from "@/lib/features";
 import { BarList, StatRow, TimeSeries } from "@/components/charts";
 
@@ -13,6 +14,7 @@ export default async function Analytics({ searchParams }: { searchParams: Promis
   const days = [7, 30, 90, 365].includes(Number(sp.days)) ? Number(sp.days) : 30;
   const kind = sp.view === "views" ? "views" : "clicks";
   const stats = await getStats({ userId: user.id, kind, days });
+  const prev = await getPreviousTotals({ userId: user.id, kind, days }).catch(() => null);
   const href = (o: { days?: number; view?: string }) => `?days=${o.days ?? days}&view=${o.view ?? kind}`;
   const empty = stats.total === 0;
   const best = stats.series.reduce((m, s) => (s.total > m.total ? s : m), { day: "", total: 0, unique: 0 });
@@ -41,8 +43,8 @@ export default async function Analytics({ searchParams }: { searchParams: Promis
         </nav>
       </div>
       <StatRow items={[
-        { label: kind === "clicks" ? "Clicks" : "Views", value: stats.total },
-        { label: "Unique visitors", value: stats.unique },
+        { label: kind === "clicks" ? "Clicks" : "Views", value: stats.total, ...(prev ? { note: describeChange(stats.total, prev.total, days), trend: stats.total > prev.total ? "up" as const : stats.total < prev.total ? "down" as const : "flat" as const } : {}) },
+        { label: "Unique visitors", value: stats.unique, ...(prev ? { note: describeChange(stats.unique, prev.unique, days), trend: stats.unique > prev.unique ? "up" as const : stats.unique < prev.unique ? "down" as const : "flat" as const } : {}) },
         { label: "Countries", value: stats.countries.filter((c) => c.label !== "Unknown").length },
         { label: "Top referrer", value: stats.referrers[0]?.label ?? "None yet" },
       ]} />

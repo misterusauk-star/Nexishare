@@ -277,6 +277,7 @@ export default async function Docs() {
           <a href="#stats">Account stats</a>
           <span className="nav-group">Bio page</span>
           <a href="#page">Bio page</a>
+          <a href="#blocks">Bio page blocks</a>
           <a href="#templates">Templates and icons</a>
           <span className="nav-group">Account and extras</span>
           <a href="#domains">Domains</a>
@@ -718,6 +719,20 @@ curl "${base}/links/31/stats?days=7" -H "Authorization: Bearer $KEY"`}</Code>
             <Code>{`curl -X PATCH ${base}/page -H "Authorization: Bearer ob_your_key" -H "Content-Type: application/json" \\
   -d '{ "bio": "New single out now.", "theme": "slate" }'`}</Code>
           </Endpoint>
+
+          <section id="blocks">
+            <h2>Bio page blocks</h2>
+            <p>Add, change, remove and reorder the blocks on your bio page. Types: <code>link</code>, <code>header</code>, <code>text</code> (plus <code>contact_form</code>, <code>product</code>, <code>embed</code>, <code>vcard</code> when enabled). Fields: <code>title</code>, <code>url</code>, <code>description</code>, <code>price</code>, <code>button</code>, <code>featured</code> (true shows a larger link with a star), <code>enabled</code>, <code>starts_at</code>, <code>ends_at</code>, <code>group_id</code>. <code>PATCH</code> changes only the fields you send; the type cannot change. Send <code>""</code> to clear a text field. A new block goes to the end. Unknown block: 404. Bad input: 422 with <code>fields</code>.</p>
+            <ul className="small">
+              <li><code>GET /page/blocks</code> and <code>POST /page/blocks</code></li>
+              <li><code>GET</code>, <code>PATCH</code>, <code>DELETE /page/blocks/{"{id}"}</code></li>
+              <li><code>POST /page/blocks/order</code> with <code>{"{ \"ids\": [12, 9, 15] }"}</code>: blocks you leave out go after these</li>
+            </ul>
+            <Code>{`curl -X POST ${base}/page/blocks -H "Authorization: Bearer ob_your_key" -H "Content-Type: application/json" \\
+  -d '{ "type": "link", "title": "New single", "url": "https://example.com/single", "featured": true }'`}</Code>
+            <Code>{`curl -X POST ${base}/page/blocks -H "Authorization: Bearer ob_your_key" -H "Content-Type: application/json" \\
+  -d '{ "type": "text", "title": "Opening hours", "description": "Mon-Fri 9:00-17:00" }'`}</Code>
+          </section>
 
           <section id="templates">
             <h2>Templates and icons</h2>

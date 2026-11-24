@@ -7,7 +7,7 @@ import { bulkLinksAction, deleteLinkAction, duplicateLinkAction, toggleLinkActio
 
 export interface LinkItem {
   id: number; slug: string; title: string | null; tags?: string[]; target: string; short: string; state: string; locked: boolean;
-  clicks: number; unique: number; created: string; expires: string | null;
+  clicks: number; unique: number; lastClick?: string; created: string; expires: string | null;
 }
 
 const BADGE: Record<string, string> = { active: "good", disabled: "", expired: "warn", scheduled: "warn", moderated: "bad" };
@@ -51,7 +51,7 @@ export function LinksTable({ rows }: { rows: LinkItem[] }) {
                 </td>
                 <td className="dest c-dest" title={r.target}>{r.target}</td>
                 <td className="c-state"><span className={`badge ${BADGE[r.state] ?? ""}`}>{r.state}</span></td>
-                <td className="r num c-num" data-label="Clicks">{r.clicks.toLocaleString("en-US")}</td>
+                <td className="r num c-num" data-label="Clicks">{r.clicks.toLocaleString("en-US")}{r.lastClick && <span className="last-click">{r.lastClick === "No clicks yet" ? r.lastClick : `Last click ${r.lastClick}`}</span>}</td>
                 <td className="r num c-num" data-label="Unique">{r.unique.toLocaleString("en-US")}</td>
                 <td className="r c-act">
                   <button className="btn btn-ghost btn-icon btn-sm" aria-label={`Copy ${r.short}`} title="Copy short URL" onClick={async () => { try { await navigator.clipboard.writeText(r.short); setCopied(r.id); setTimeout(() => setCopied((c) => (c === r.id ? null : c)), 1500); } catch {} }}>{copied === r.id ? <Check className="icon" /> : <Copy className="icon" />}<span className="sr-only" aria-live="polite">{copied === r.id ? "Copied" : ""}</span></button>

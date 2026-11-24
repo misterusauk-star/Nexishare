@@ -29,6 +29,11 @@
 .bio-text { margin: 8px 0 0; max-width: 44ch; color: var(--fg); white-space: pre-line; overflow-wrap: anywhere; }
 
 .bio-list { display: flex; flex-direction: column; gap: 12px; }
+.bio-text { text-align: center; color: var(--fg); overflow-wrap: anywhere; }
+.bio-text strong { display: block; margin-bottom: 4px; }
+.bio-text p { margin: 0; white-space: pre-line; color: var(--muted); font-size: 15px; line-height: 1.5; }
+.bio-btn.featured { min-height: 64px; font-size: 1.08em; font-weight: 700; border-width: 2.5px; }
+.bio-btn.featured svg:last-child { opacity: 1; }
 .bio-header { font-size: 13px; font-weight: 600; margin: 16px 0 0; color: var(--muted); letter-spacing: 0.01em; }
 .bio-group { font-size: 14px; font-weight: 700; margin: 20px 0 0; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
 .bio-empty { text-align: center; color: var(--muted); }

@@ -7,7 +7,7 @@ import type { PublicPage } from "@/lib/services/public";
 import type { Brand } from "@/lib/brand";
 import { ActionForm, Field } from "@/components/client";
 import { contactAction } from "@/app/actions/public";
-import { ArrowUpRight, Download, Globe, Mail } from "lucide-react";
+import { ArrowUpRight, Download, Globe, Mail, Star } from "lucide-react";
 import { brandByKey, brandForUrl } from "@/lib/brands.ts";
 import { BrandIcon } from "@/components/brand-icon";
 
@@ -88,14 +88,21 @@ function BlockView({ b }: { b: PublicPage["blocks"][number] }) {
   switch (b.type) {
     case "header":
       return <h2 className="bio-header">{b.title}</h2>;
+    case "text":
+      return (
+        <div className="bio-text">
+          {b.title && <strong>{b.title}</strong>}
+          <p>{d.description}</p>
+        </div>
+      );
     case "link": {
       // A link to a known platform (Instagram, YouTube, Spotify...) shows that platform's logo.
       const brand = brandForUrl(b.url);
       return (
-        <a className={`bio-btn${brand ? " has-icon" : ""}`} href={`/out/${b.id}`} rel="nofollow noopener">
+        <a className={`bio-btn${brand ? " has-icon" : ""}${d.featured === "1" ? " featured" : ""}`} href={`/out/${b.id}`} rel="nofollow noopener">
           {brand && <BrandIcon brand={brand} size={20} />}
           <span>{b.title || b.url}</span>
-          <ArrowUpRight size={16} strokeWidth={1.75} aria-hidden="true" />
+          {d.featured === "1" ? <Star size={16} strokeWidth={1.75} aria-hidden="true" /> : <ArrowUpRight size={16} strokeWidth={1.75} aria-hidden="true" />}
         </a>
       );
     }

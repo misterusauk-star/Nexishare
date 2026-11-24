@@ -33,7 +33,7 @@ export interface BlockRow {
   ends_at: Date | null;
 }
 
-export const BLOCK_TYPES_P1 = ["link", "header"] as const;
+export const BLOCK_TYPES_P1 = ["link", "header", "text"] as const;
 export const BLOCK_TYPES_P2 = ["contact_form", "product", "embed", "vcard"] as const;
 
 export async function ensurePage(userId: number, displayName?: string): Promise<PageRow> {
@@ -149,6 +149,7 @@ export async function saveBlock(
     }
   }
   if ((v.type === "link" || v.type === "header" || v.type === "product") && !v.title) return { ok: false, errors: { title: "Add a title." } };
+  if (v.type === "text" && !v.data?.description?.trim()) return { ok: false, errors: { description: "Write some text." } };
   if (v.type === "embed" && url && !embedInfo(url)) return { ok: false, errors: { url: "Use a YouTube, Spotify, Vimeo or Google Maps link." } };
   const data = v.data && Object.keys(v.data).length ? JSON.stringify(v.data) : null;
   const starts = dateOrNull(v.starts_at);
@@ -199,6 +200,10 @@ export async function applyTemplate(
     }
   }
   return { ok: true, data: { added } };
+}
+
+export async function getBlockForUser(userId: number, blockId: number): Promise<BlockRow | null> {
+  return queryOne<BlockRow>("SELECT b.* FROM blocks b JOIN pages p ON p.id = b.page_id WHERE b.id = ? AND p.user_id = ?", [blockId, userId]);
 }
 
 export async function deleteBlock(userId: number, blockId: number): Promise<void> {

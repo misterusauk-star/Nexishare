@@ -4,7 +4,8 @@ import { query } from "@/lib/db";
 import { getBrand } from "@/lib/brand";
 import { getDomainState, linkUrl, linkHost } from "@/lib/domains";
 import { listLinks, linkState } from "@/lib/services/links";
-import { totalsFor } from "@/lib/analytics";
+import { totalsFor, lastClicks } from "@/lib/analytics";
+import { timeAgo } from "@/lib/time-ago";
 import { ActionForm, DomainSelect, Field } from "@/components/client";
 import { LinksTable } from "@/components/links-table";
 import { createLinkAction } from "@/app/actions/app";
@@ -27,9 +28,11 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
   }
   const { rows, total } = await listLinks({ userId: user.id, q: sp.q?.slice(0, 100), status: sp.status, tag: sp.tag, limit: PER, offset: (page - 1) * PER, teamIds });
   const totals = await totalsFor("link", rows.map((r) => r.id));
+  const last = await lastClicks("link", rows.map((r) => r.id)).catch(() => ({} as Record<number, Date>));
   const items = rows.map((r) => ({
     id: r.id, slug: r.slug, title: r.title, target: r.target_url, short: linkUrl(st, r.domain_id, r.slug), state: linkState(r),
     tags: r.tags ? r.tags.split(",").filter(Boolean) : [], locked: !!r.password_hash, clicks: totals[r.id]?.total ?? 0, unique: totals[r.id]?.unique ?? 0,
+    lastClick: last[r.id] ? timeAgo(last[r.id]) : "No clicks yet",
     created: new Date(r.created_at).toISOString(), expires: r.expires_at ? new Date(r.expires_at).toISOString() : null,
   }));
   const pages = Math.max(1, Math.ceil(total / PER));
