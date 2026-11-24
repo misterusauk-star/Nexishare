@@ -11,6 +11,8 @@ import { isBlocked } from "@/lib/validation";
 import { getLinkBySlug, getPublicPage } from "@/lib/services/public";
 import { linkState, takeClick } from "@/lib/services/links";
 import { PublicPageView } from "@/components/public-page";
+import { JsonLd } from "@/components/json-ld";
+import { profileLd } from "@/lib/seo-profile.ts";
 import { ActionForm, Field } from "@/components/client";
 import { unlockLinkAction } from "@/app/actions/public";
 import "../bio.css";
@@ -56,7 +58,12 @@ export default async function SlugPage({ params, searchParams }: Props) {
       type: "page", id: data.page.id, userId: data.user.id, info, ownHost: b.host,
       utm: { source: first(sp.utm_source), medium: first(sp.utm_medium), campaign: first(sp.utm_campaign) },
     });
-    return <PublicPageView data={data} brand={b} />;
+    return (
+      <>
+        <JsonLd data={profileLd({ url: bioUrl(st, data.user.username), name: data.page.display_name || data.user.username, bio: data.page.bio, image: data.page.avatar_url, socials: data.page.socials })} />
+        <PublicPageView data={data} brand={b} />
+      </>
+    );
   }
 
   if (!link) notFound();

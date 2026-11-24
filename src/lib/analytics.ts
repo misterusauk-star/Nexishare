@@ -103,11 +103,16 @@ export interface Scope {
   entityId?: number;
   kind?: "clicks" | "views"; // clicks = link+block, views = page
   days: number;
+  /** Shift the window back by this many days (offsetDays = days gives the period before this one). */
+  offsetDays?: number;
 }
 
 function where(s: Scope): { sql: string; params: unknown[] } {
+  const days = Math.max(1, Math.min(365, s.days | 0));
+  const off = Math.max(0, Math.min(365, (s.offsetDays ?? 0) | 0));
   const parts = ["created_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ? DAY)"];
-  const params: unknown[] = [Math.max(1, Math.min(365, s.days | 0))];
+  const params: unknown[] = [days + off];
+  if (off) { parts.push("created_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL ? DAY)"); params.push(off); }
   if (s.userId) { parts.push("user_id = ?"); params.push(s.userId); }
   if (s.entityType) { parts.push("entity_type = ?"); params.push(s.entityType); }
   else if (s.kind === "views") parts.push("entity_type = 'page'");
@@ -160,6 +165,28 @@ export async function getStats(s: Scope): Promise<Stats> {
     breakdown("utm_campaign", w, "No campaign"),
   ]);
   return { total: Number(t?.total ?? 0), unique: Number(t?.uniq ?? 0), series, countries, devices, browsers, referrers, campaigns };
+}
+
+/** Total and unique clicks for a scope, without the breakdowns (cheap: used to compare with the period before). */
+export async function getTotals(s: Scope): Promise<{ total: number; unique: number }> {
+  const w = where(s);
+  const t = await queryOne<{ total: number; uniq: number }>(`SELECT COUNT(*) AS total, COALESCE(SUM(is_unique),0) AS uniq FROM clicks WHERE ${w.sql}`, w.params);
+  return { total: Number(t?.total ?? 0), unique: Number(t?.uniq ?? 0) };
+}
+
+/** The same totals for the period just before this one (same length), e.g. days 31-60 ago for a 30 day view. */
+export const getPreviousTotals = (s: Scope) => getTotals({ ...s, offsetDays: Math.max(1, Math.min(365, s.days | 0)) });
+
+/** Time of the latest click per link or block, for list views, in one query. Entities with no click are missing from the result. */
+export async function lastClicks(type: "link" | "block", ids: number[]): Promise<Record<number, Date>> {
+  if (!ids.length) return {};
+  const ph = ids.map(() => "?").join(",");
+  const rows = await query<{ entity_id: number; last: Date | string }>(
+    `SELECT entity_id, MAX(created_at) AS last FROM clicks WHERE entity_type = ? AND entity_id IN (${ph}) GROUP BY entity_id`,
+    [type, ...ids],
+  );
+  // created_at is stored in UTC: read it back as UTC whatever the server time zone is.
+  return Object.fromEntries(rows.map((r) => [r.entity_id, r.last instanceof Date ? r.last : new Date(`${String(r.last).replace(" ", "T")}Z`)]));
 }
 
 /** Per-entity click totals for list views, in one query. */

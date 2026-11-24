@@ -1,4 +1,5 @@
 import { query, queryOne } from "./db";
+import { marketingPaths } from "./seo-pages.ts";
 import { getBrand } from "./brand";
 import { getSetting, setSettings } from "./settings";
 import { getDomainState, bioUrl } from "./domains";
@@ -65,7 +66,7 @@ export async function notifyBioPage(userId: number): Promise<void> {
 export async function allPublicUrls(): Promise<string[]> {
   const b = await getBrand();
   const st = await getDomainState();
-  const urls = ["", "/docs", "/terms", "/privacy"].map((p) => `${b.appUrl}${p}`);
+  const urls = marketingPaths().map(({ path: p }) => `${b.appUrl}${p}`);
   try {
     const rows = await query<{ username: string }>(
       `SELECT u.username FROM pages p JOIN users u ON u.id = p.user_id

@@ -87,7 +87,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
           <option value="expired">Expired</option><option value="protected">Password protected</option>
           <option value="scheduled">Scheduled (not live yet)</option><option value="expiring">Expiring within 7 days</option>
           <option value="limited">Has a click limit</option><option value="limit_near">Near its click limit</option>
-          <option value="universal">Universal links</option><option value="review">Held for review</option>
+          <option value="stale">No clicks in 30 days</option><option value="universal">Universal links</option><option value="review">Held for review</option>
         </select>
         {sp.tag && <input type="hidden" name="tag" value={sp.tag} />}
         <button className="btn">Filter</button>

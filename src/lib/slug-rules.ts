@@ -12,7 +12,7 @@ export const STATIC_RESERVED = ["_next", "static", "assets", "uploads", "favicon
  */
 export const ROUTE_SEGMENTS = [
   "actions", "admin", "api", "dashboard", "docs", "forgot-password", "icon.svg", "install", "login", "out",
-  "privacy", "register", "report", "reset-password", "terms", "verify", "health",
+  "privacy", "register", "report", "reset-password", "terms", "verify", "health", "link-in-bio", "tools", "learn",
   // legacy / future-proofing
   "settings", "logout", "signup", "u", "p", "go", "qr", "legal", "contact", "domain", "domains",
 ];

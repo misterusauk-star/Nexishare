@@ -378,6 +378,7 @@ curl -X POST ${base}/links \\
                   <tr><td><code>universal</code></td><td><code>true</code> when the link has only device URLs and no destination of its own.</td></tr>
                   <tr><td><code>password_protected</code></td><td>Whether visitors must enter a password. The password itself is never returned.</td></tr>
                   <tr><td><code>tags</code></td><td>Up to 5 labels you use to group and filter links.</td></tr>
+                  <tr><td><code>last_click_at</code></td><td>Time of the latest click, or <code>null</code> if it was never clicked. Only in <code>GET /links</code> and <code>GET /links/{"{id}"}</code>.</td></tr>
                 </tbody>
               </table>
             </div>
@@ -612,7 +613,7 @@ requests.post("${base}/links", headers={"Authorization": "Bearer ob_your_key"},
 
           <section id="filters">
             <h2>Tags and filters</h2>
-            <p><code>GET /links</code> accepts <code>tag</code> (one tag) and <code>status</code>: <code>active</code>, <code>disabled</code>, <code>expired</code>, <code>protected</code>, <code>scheduled</code> (not live yet), <code>expiring</code> (expires within 7 days), <code>limited</code> (has a click limit), <code>limit_near</code> (80% or more of the limit used), <code>universal</code> and <code>review</code>. Combine them with <code>q</code>, for example <code>?tag=sale&amp;status=expiring</code>.</p>
+            <p><code>GET /links</code> accepts <code>tag</code> (one tag) and <code>status</code>: <code>active</code>, <code>disabled</code>, <code>expired</code>, <code>protected</code>, <code>scheduled</code> (not live yet), <code>expiring</code> (expires within 7 days), <code>limited</code> (has a click limit), <code>limit_near</code> (80% or more of the limit used), <code>universal</code>, <code>review</code> and <code>stale</code> (older than a week with no click in the last 30 days: candidates to clean up). Combine them with <code>q</code>, for example <code>?tag=sale&amp;status=expiring</code>.</p>
             <Code>{`# create with tags
 curl -X POST ${base}/links -H "Authorization: Bearer ob_your_key" -H "Content-Type: application/json" \\
   -d '{ "target_url": "https://example.com/a", "tags": ["sale", "summer"] }'
@@ -682,7 +683,7 @@ curl "${base}/links/31/stats?days=7" -H "Authorization: Bearer $KEY"`}</Code>
           </section>
 
           <Endpoint id="link-stats" method="get" path="/links/{id}/stats">
-            <p>Totals, a daily series and breakdowns for one link. Query: <code>days</code> (1 to 365, default 30).</p>
+            <p>Totals, a daily series and breakdowns for one link. Query: <code>days</code> (1 to 365, default 30). <code>previous</code> holds the totals of the same number of days just before this period, and <code>change_percent</code> the change in whole percent (<code>null</code> when the earlier period had none), so you can say "12% more than last month".</p>
             <Code>{`curl "${base}/links/12/stats?days=7" -H "Authorization: Bearer ob_your_key"`}</Code>
             <Code>{`{
   "data": {
@@ -699,7 +700,7 @@ curl "${base}/links/31/stats?days=7" -H "Authorization: Bearer $KEY"`}</Code>
           </Endpoint>
 
           <Endpoint id="stats" method="get" path="/stats">
-            <p>The same shape, across everything you own. Query: <code>days</code>, and <code>kind</code> set to <code>clicks</code> (default) or <code>views</code> for bio page visits.</p>
+            <p>The same shape, across everything you own. Query: <code>days</code>, and <code>kind</code> set to <code>clicks</code> (default) or <code>views</code> for bio page visits. It also has <code>previous</code> and <code>change_percent</code>, as for a single link.</p>
             <Code>{`curl "${base}/stats?days=30&kind=views" -H "Authorization: Bearer ob_your_key"`}</Code>
           </Endpoint>
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiError, authApi, jsonBody, linkJson } from "@/lib/api";
+import { lastClicks } from "@/lib/analytics";
 import { getBrand } from "@/lib/brand";
 import { getDomainState } from "@/lib/domains";
 import { deleteLink, getLinkForUser, updateLink } from "@/lib/services/links";
@@ -20,7 +21,8 @@ export async function GET(req: Request, ctx: Ctx) {
   const id = await parse(ctx);
   const l = id ? await getLinkForUser(a.user.id, id) : null;
   if (!l) return apiError(404, "Link not found.");
-  return NextResponse.json({ data: linkJson(l, await getDomainState()) });
+  const last = (await lastClicks("link", [l.id]))[l.id] ?? null;
+  return NextResponse.json({ data: linkJson(l, await getDomainState(), last) });
 }
 
 export async function PATCH(req: Request, ctx: Ctx) {

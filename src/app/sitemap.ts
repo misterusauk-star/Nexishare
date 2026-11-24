@@ -5,6 +5,7 @@ import { getBrand } from "@/lib/brand";
 import { query } from "@/lib/db";
 import { currentHost } from "@/lib/host-guard";
 import { bioUrl, getDomainState } from "@/lib/domains";
+import { marketingPaths } from "@/lib/seo-pages.ts";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const onApp = host === st.appHost.toLowerCase();
   const onBio = host === st.bioHost.toLowerCase();
   if (!onApp && !onBio) return [];
-  const out: MetadataRoute.Sitemap = onApp ? [["", 1], ["/docs", 0.8], ["/terms", 0.3], ["/privacy", 0.3]].map(([p, priority]) => ({ url: `${b.appUrl}${p}`, lastModified: deployedAt(), changeFrequency: "monthly" as const, priority: priority as number })) : [];
+  const out: MetadataRoute.Sitemap = onApp ? marketingPaths().map(({ path: p, priority }) => ({ url: `${b.appUrl}${p}`, lastModified: deployedAt(), changeFrequency: "monthly" as const, priority })) : [];
   if (!onBio) return out;
   try {
     // Published bio pages only. Short links are never listed.

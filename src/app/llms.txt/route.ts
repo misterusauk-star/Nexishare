@@ -2,6 +2,8 @@ import { getBrand } from "@/lib/brand";
 import { query } from "@/lib/db";
 import { currentHost } from "@/lib/host-guard";
 import { bioUrl, getDomainState } from "@/lib/domains";
+import { GUIDES, TOOLS } from "@/lib/seo-pages.ts";
+import { NICHES } from "@/lib/seo-niches.ts";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +31,9 @@ export async function GET() {
 ## Product
 - [Home](${b.appUrl}/): what ${b.name} does and how to sign up
 - [API reference](${b.appUrl}/docs): create and manage short links with an API key: device destinations, universal links, scheduling, click limits, tags and filters, custom domains and bulk create, with curl, JavaScript, Python, PHP, Go and Ruby examples
+- [Link in bio templates](${b.appUrl}/link-in-bio): ${Object.keys(NICHES).length} templates, one page per kind of work (${Object.values(NICHES).slice(0, 6).map((n) => n.who).join(", ")} and more)
+${TOOLS.map((t) => `- [${t.name}](${b.appUrl}/tools/${t.slug}): ${t.short}`).join("\n")}
+${GUIDES.map((g) => `- [${g.title}](${b.appUrl}/learn/${g.slug})`).join("\n")}
 - [Terms of service](${b.appUrl}/terms)
 - [Privacy policy](${b.appUrl}/privacy)
 

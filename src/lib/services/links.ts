@@ -342,6 +342,8 @@ export async function listLinks(o: ListOpts): Promise<{ rows: LinkRow[]; total: 
   if (o.status === "limit_near") where.push("max_clicks IS NOT NULL AND click_count < max_clicks AND click_count >= max_clicks * 0.8");
   if (o.status === "universal") where.push("universal = 1");
   if (o.status === "review") where.push("review_status = 'pending'");
+  // stale: older than a week and not clicked once in the last 30 days (candidates to clean up)
+  if (o.status === "stale") where.push("created_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 7 DAY) AND NOT EXISTS (SELECT 1 FROM clicks c WHERE c.entity_type = 'link' AND c.entity_id = links.id AND c.created_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY))");
   const tag = cleanTagFilter(o.tag);
   if (tag) { where.push("FIND_IN_SET(?, tags) > 0"); params.push(tag); }
   const w = where.join(" AND ");

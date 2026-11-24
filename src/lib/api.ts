@@ -56,7 +56,7 @@ export async function authApi(req: Request): Promise<{ user: ApiUser } | { res: 
   return { user: { id: row.user_id, username: row.username, role: row.role, keyId: row.id } };
 }
 
-export function linkJson(l: LinkRow, st: DomainState) {
+export function linkJson(l: LinkRow, st: DomainState, lastClick?: Date | null) {
   return {
     id: l.id,
     slug: l.slug,
@@ -86,6 +86,8 @@ export function linkJson(l: LinkRow, st: DomainState) {
     starts_at: l.starts_at ? new Date(l.starts_at).toISOString() : null,
     expires_at: l.expires_at ? new Date(l.expires_at).toISOString() : null,
     created_at: new Date(l.created_at).toISOString(),
+    // last_click_at: only in GET /links and GET /links/{id}. null = never clicked.
+    ...(lastClick !== undefined ? { last_click_at: lastClick ? lastClick.toISOString() : null } : {}),
   };
 }
 

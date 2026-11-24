@@ -155,8 +155,13 @@ Status `201` if at least one link was created, `422` if none. The daily limit co
 
 - `tags` on create/update: up to 5 labels, each up to 24 characters (letters, numbers, `-`, `_`). Send a string (`"sale, summer"`) or an array. Responses return an array. On update `[]` or `""` clears them.
 - `GET /links?tag=sale` lists links with that tag.
-- `GET /links?status=` accepts `active`, `disabled`, `expired`, `protected`, `scheduled`, `expiring` (expires within 7 days), `limited` (has a click limit), `limit_near` (80% or more used), `universal`, `review`. Works together with `q` and `tag`.
+- `GET /links?status=` accepts `active`, `disabled`, `expired`, `protected`, `scheduled`, `expiring` (expires within 7 days), `limited` (has a click limit), `limit_near` (80% or more used), `universal`, `review`, `stale` (older than a week with no click in the last 30 days). Works together with `q` and `tag`.
 - Tags need migration 015; before it runs, creating a link with tags returns a `tags` error and nothing is created.
+
+## Last click and period comparison
+
+- `GET /links` and `GET /links/{id}` include `last_click_at` (ISO time, or `null` when never clicked).
+- `GET /stats` and `GET /links/{id}/stats` include `previous` (`total`, `unique` of the same number of days just before this period) and `previous.change_percent` (`total`, `unique`: whole percent, `null` when the earlier period had no clicks).
 
 ## Bio page templates and icons
 

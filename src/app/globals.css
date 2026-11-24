@@ -558,3 +558,56 @@ a.tag-pill:hover { background: var(--sunken); }
 .docs h3 { scroll-margin-top: 16px; }
 .docs ol { max-width: 68ch; }
 @media (max-width: 860px) { .docs nav .nav-group { flex-basis: 100%; margin-top: 8px; padding-left: 0; } }
+
+/* Marketing pages: link in bio, tools, guides */
+.site-links { display: flex; gap: 4px 20px; margin-left: 24px; margin-right: auto; font-size: 14px; }
+.site-links a { color: var(--muted); text-decoration: none; padding: 8px 0; }
+.site-links a:hover { color: var(--ink); }
+@media (max-width: 760px) { .site-links { display: none; } }
+.site-foot nav + nav { margin-left: 0; }
+.site-foot nav { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.crumbs { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+.crumbs ol { list-style: none; display: flex; flex-wrap: wrap; gap: 4px 8px; margin: 0; padding: 0; }
+.crumbs li + li::before { content: "/"; margin-right: 8px; color: var(--line-strong); }
+.crumbs a { color: var(--muted); }
+.seo h1 { font-size: 32px; letter-spacing: -0.03em; line-height: 1.1; margin: 0 0 16px; }
+@media (min-width: 860px) { .seo h1 { font-size: 40px; } }
+.seo .lead { font-size: 18px; max-width: 62ch; color: var(--muted); }
+.seo section { padding: 32px 0 0; }
+.seo h2 { font-size: 22px; margin: 0 0 12px; }
+.seo p, .seo li { max-width: 68ch; }
+.seo-hero { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 48px; align-items: start; padding-bottom: 16px; }
+@media (max-width: 860px) { .seo-hero { grid-template-columns: 1fr; gap: 24px; } }
+.seo-preview { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 24px 16px; border: 1px solid var(--line-strong); border-radius: 24px; min-height: 280px; }
+.tp-avatar { width: 44px; height: 44px; border-radius: 50%; border: 2px solid; }
+.tp-name { font-weight: 700; margin-bottom: 6px; }
+.tp-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 36px; padding: 6px 12px; border: 1.5px solid; font-size: 13px; font-weight: 600; text-align: center; }
+.tp-btn .brand-icon { flex: none; }
+.steps { padding-left: 22px; }
+.steps li { margin-bottom: 8px; }
+.plain { list-style: none; padding: 0; }
+.plain li { padding: 12px 0; border-top: 1px solid var(--line); }
+.chips { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.chips li { max-width: none; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line-strong); border-radius: 3px; padding: 4px 10px; font-size: 14px; background: var(--surface); }
+.chips a { text-decoration: none; }
+.faq { border-top: 1px solid var(--line); padding: 4px 0; }
+.faq summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
+.faq p { margin: 0 0 12px; }
+.niche-grid { list-style: none; padding: 0; margin: 24px 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 24px; }
+.niche-grid li { max-width: none; }
+.niche-grid a { display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: inherit; }
+.niche-grid a:hover strong { text-decoration: underline; }
+.niche-grid .seo-preview { min-height: 220px; border-radius: 16px; }
+.answer { font-size: 18px; border-left: 3px solid var(--accent); padding: 4px 0 4px 16px; max-width: 62ch; }
+.toc { margin: 16px 0; font-size: 14px; }
+.toc ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.guide-list li p { margin: 4px 0 0; color: var(--muted); }
+.tool { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; margin: 24px 0 8px; align-items: start; }
+@media (max-width: 860px) { .tool { grid-template-columns: 1fr; gap: 24px; } }
+.tool-out { border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 16px; display: flex; flex-direction: column; gap: 12px; background: var(--surface); }
+.tool-out h2 { font-size: 16px; margin: 0; }
+.out-url { display: block; padding: 12px; background: var(--sunken); border: 1px solid var(--line); border-radius: var(--radius); font: 13px/1.5 var(--font-mono); overflow-wrap: anywhere; }
+.qr-canvas { width: 240px; height: 240px; max-width: 100%; border: 1px solid var(--line); }
+.home-more { max-width: 720px; margin: 64px auto 0; }
+.home-more h2 { font-size: 22px; margin: 32px 0 8px; }
+.home-more .chips li { max-width: none; }

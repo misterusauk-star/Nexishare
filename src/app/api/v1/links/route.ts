@@ -3,6 +3,7 @@ import { apiError, authApi, jsonBody, linkJson, num } from "@/lib/api";
 import { getBrand } from "@/lib/brand";
 import { getDomainState } from "@/lib/domains";
 import { createLink, listLinks } from "@/lib/services/links";
+import { lastClicks } from "@/lib/analytics";
 import { guardApi } from "@/lib/host-guard";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,8 @@ export async function GET(req: Request) {
   const limit = Math.min(100, num(u.searchParams.get("limit"), 25));
   const page = num(u.searchParams.get("page"), 1);
   const { rows, total } = await listLinks({ userId: a.user.id, q: u.searchParams.get("q") ?? undefined, status: u.searchParams.get("status") ?? undefined, tag: u.searchParams.get("tag") ?? undefined, limit, offset: (page - 1) * limit });
-  return NextResponse.json({ data: rows.map((l) => linkJson(l, st)), meta: { total, page, limit } });
+  const last = await lastClicks("link", rows.map((l) => l.id));
+  return NextResponse.json({ data: rows.map((l) => linkJson(l, st, last[l.id] ?? null)), meta: { total, page, limit } });
 }
 
 export async function POST(req: Request) {
