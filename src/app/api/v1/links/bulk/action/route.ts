@@ -6,7 +6,7 @@ import { guardApi } from "@/lib/host-guard";
 
 export const dynamic = "force-dynamic";
 
-/** Enable, disable or delete up to 200 links in one request: {"action": "disable", "ids": [1, 2, 3]}. One result per id. */
+/** Enable, disable or delete up to 200 links in one request (tags: POST /links/bulk/tag): {"action": "disable", "ids": [1, 2, 3]}. One result per id. */
 export async function POST(req: Request) {
   { const blocked = await guardApi(); if (blocked) return blocked; }
   const a = await authApi(req);

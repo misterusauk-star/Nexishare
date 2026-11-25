@@ -15,7 +15,7 @@ import { resolveSchedule } from "../duration";
 import { clicksExhausted, MAX_CLICK_LIMIT } from "../click-limit";
 import { firstDeviceUrl } from "../smart-link";
 import { countLinks, limitsFor } from "../user-limits";
-import { cleanTagFilter, parseTags, tagsToColumn } from "../tags";
+import { addTag, cleanTagFilter, parseTags, removeTag, tagsFromColumn, tagsToColumn } from "../tags";
 
 export type Result<T> = { ok: true; data: T } | { ok: false; errors: Record<string, string> };
 
@@ -395,9 +395,31 @@ export async function duplicateLink(userId: number, id: number, ownHost: string,
 }
 
 export type BulkOp = "enable" | "disable" | "delete";
+export type BulkTagOp = "add_tag" | "remove_tag";
 export const BULK_MAX = 200;
 
 /** Enable, disable or delete many links at once. One result per id, so a link that is not yours never blocks the rest. */
+/** Adds or removes one tag on up to BULK_MAX of your links. A link that is not yours, or already has 5 tags, reports ok: false. */
+export async function bulkTagLinks(userId: number, ownHost: string, op: BulkTagOp, tagInput: unknown, ids: number[]): Promise<Result<{ id: number; ok: boolean }[]>> {
+  const t = parseTags(tagInput);
+  if (!t.ok) return { ok: false, errors: { tag: t.error } };
+  if (t.tags.length !== 1) return { ok: false, errors: { tag: "Send exactly one tag." } };
+  const tag = t.tags[0];
+  const out: { id: number; ok: boolean }[] = [];
+  for (const id of ids.slice(0, BULK_MAX)) {
+    if (!Number.isInteger(id) || id <= 0) { out.push({ id, ok: false }); continue; }
+    const row = await queryOne<{ tags?: string | null }>("SELECT * FROM links WHERE id = ? AND user_id = ?", [id, userId]);
+    if (!row) { out.push({ id, ok: false }); continue; }
+    const cur = tagsFromColumn(row.tags);
+    let next = cur;
+    if (op === "add_tag") { const a = addTag(cur, tag); if (!a.ok) { out.push({ id, ok: false }); continue; } next = a.tags; }
+    else next = removeTag(cur, tag);
+    if (next.join(",") === cur.join(",")) { out.push({ id, ok: true }); continue; }
+    out.push({ id, ok: (await updateLink(userId, id, ownHost, { tags: next }, false)).ok });
+  }
+  return { ok: true, data: out };
+}
+
 export async function bulkLinkAction(userId: number, ownHost: string, op: BulkOp, ids: number[], isAdmin = false): Promise<{ id: number; ok: boolean }[]> {
   const out: { id: number; ok: boolean }[] = [];
   for (const id of ids.slice(0, BULK_MAX)) {

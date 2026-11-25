@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Check, Copy, CopyPlus, Lock, Trash2, Power } from "lucide-react";
-import { bulkLinksAction, deleteLinkAction, duplicateLinkAction, toggleLinkAction } from "@/app/actions/app";
+import { bulkLinksAction, bulkTagAction, deleteLinkAction, duplicateLinkAction, toggleLinkAction } from "@/app/actions/app";
 
 export interface LinkItem {
   id: number; slug: string; title: string | null; tags?: string[]; target: string; short: string; state: string; locked: boolean;
@@ -16,10 +16,16 @@ export function LinksTable({ rows }: { rows: LinkItem[] }) {
   const [sel, setSel] = useState<number[]>([]);
   const [pending, start] = useTransition();
   const [copied, setCopied] = useState<number | null>(null);
+  const [tag, setTag] = useState("");
+  const [msg, setMsg] = useState("");
   const all = rows.length > 0 && sel.length === rows.length;
   const run = (op: "enable" | "disable" | "delete") => {
     if (op === "delete" && !window.confirm(`Delete ${sel.length} link${sel.length > 1 ? "s" : ""} and their click history?`)) return;
     start(async () => { await bulkLinksAction(op, sel); setSel([]); });
+  };
+  const tagOp = (op: "add_tag" | "remove_tag") => {
+    if (!tag.trim()) { setMsg("Type a tag first."); return; }
+    start(async () => { setMsg(await bulkTagAction(op, tag, sel)); setTag(""); });
   };
   return (
     <>
@@ -30,6 +36,13 @@ export function LinksTable({ rows }: { rows: LinkItem[] }) {
           <button className="btn btn-sm" disabled={pending} onClick={() => run("enable")}>Enable</button>
           <button className="btn btn-sm" disabled={pending} onClick={() => run("disable")}>Disable</button>
           <button className="btn btn-sm btn-danger" disabled={pending} onClick={() => run("delete")}>Delete</button>
+          <span className="bulk-tag">
+            <label className="sr-only" htmlFor="bulk-tag">Tag for the selected links</label>
+            <input id="bulk-tag" className="input" value={tag} maxLength={24} placeholder="tag" onChange={(e) => setTag(e.target.value)} />
+            <button className="btn btn-sm" disabled={pending} onClick={() => tagOp("add_tag")}>Add tag</button>
+            <button className="btn btn-sm" disabled={pending} onClick={() => tagOp("remove_tag")}>Remove tag</button>
+          </span>
+          {msg && <span className="small" role="status">{msg}</span>}
         </div>
       )}
       <div className="tbl-wrap">

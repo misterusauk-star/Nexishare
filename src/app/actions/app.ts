@@ -13,7 +13,7 @@ import { phase2Enabled } from "@/lib/features";
 import { emailSchema, passwordSchema } from "@/lib/validation";
 import { countActiveKeys, limitsFor } from "@/lib/user-limits";
 import { emailDomainError } from "@/lib/security";
-import { bulkLinkAction, createLink, deleteLink, duplicateLink, updateLink } from "@/lib/services/links";
+import { bulkLinkAction, bulkTagLinks, createLink, deleteLink, duplicateLink, updateLink } from "@/lib/services/links";
 import { sendVerification, verificationRequired } from "@/lib/services/users";
 import { validateNewSlug, slugRateOk, SLUG_RATE_MESSAGE } from "@/lib/slug-service";
 import { reqInfo } from "@/lib/request";
@@ -138,6 +138,17 @@ export async function bulkLinksAction(op: "enable" | "disable" | "delete", ids: 
   const b = await getBrand();
   await bulkLinkAction(u.id, b.host, op, ids);
   revalidatePath("/dashboard/links");
+}
+
+/** Adds or removes one tag on the selected links. Returns an error text, or "" when done. */
+export async function bulkTagAction(op: "add_tag" | "remove_tag", tag: string, ids: number[]): Promise<string> {
+  const u = await requireUser();
+  const b = await getBrand();
+  const r = await bulkTagLinks(u.id, b.host, op, tag, ids);
+  revalidatePath("/dashboard/links");
+  if (!r.ok) return r.errors.tag ?? "Could not change the tag.";
+  const failed = r.data.filter((x) => !x.ok).length;
+  return failed ? `${failed} link${failed > 1 ? "s" : ""} not changed (a link can have at most 5 tags).` : "";
 }
 
 /** Copies a link (new random short name) and opens the copy. */

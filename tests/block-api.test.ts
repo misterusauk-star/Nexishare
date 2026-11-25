@@ -21,3 +21,21 @@ test("blockJson shape", () => {
   assert.equal(j.icon, "instagram");
   assert.equal(j.description, null);
 });
+
+import { busiestHour, hourLabel } from "../src/lib/hours.ts";
+import { addTag, removeTag } from "../src/lib/tags.ts";
+
+test("busiestHour and hourLabel", () => {
+  assert.equal(busiestHour(Array(24).fill(0)), null);
+  const h = Array(24).fill(0); h[9] = 4; h[20] = 4; h[3] = 1;
+  assert.deepEqual(busiestHour(h), { hour: 9, n: 4 });
+  assert.equal(hourLabel(23), "23:00-00:00 UTC");
+  assert.equal(hourLabel(9), "09:00-10:00 UTC");
+});
+test("addTag / removeTag", () => {
+  const a = addTag(["a"], "b");
+  assert.ok(a.ok && a.tags.join() === "a,b");
+  assert.ok(addTag(["a"], "a").ok);
+  assert.equal(addTag(["a", "b", "c", "d", "e"], "f").ok, false);
+  assert.deepEqual(removeTag(["a", "b"], "a"), ["b"]);
+});

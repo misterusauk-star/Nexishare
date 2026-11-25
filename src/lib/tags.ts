@@ -27,3 +27,11 @@ export const cleanTagFilter = (v: string | null | undefined): string | null => {
   const t = String(v ?? "").trim().toLowerCase();
   return TAG_RE.test(t) ? t : null;
 };
+
+/** Adds a tag to a list (no duplicates). Fails when the list would pass MAX_TAGS. */
+export function addTag(tags: string[], tag: string): { ok: true; tags: string[] } | { ok: false; error: string } {
+  if (tags.includes(tag)) return { ok: true, tags };
+  if (tags.length >= MAX_TAGS) return { ok: false, error: `Use at most ${MAX_TAGS} tags.` };
+  return { ok: true, tags: [...tags, tag] };
+}
+export const removeTag = (tags: string[], tag: string): string[] => tags.filter((t) => t !== tag);

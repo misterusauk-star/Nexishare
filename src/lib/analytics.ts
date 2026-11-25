@@ -177,6 +177,39 @@ export async function getTotals(s: Scope): Promise<{ total: number; unique: numb
 /** The same totals for the period just before this one (same length), e.g. days 31-60 ago for a 30 day view. */
 export const getPreviousTotals = (s: Scope) => getTotals({ ...s, offsetDays: Math.max(1, Math.min(365, s.days | 0)) });
 
+export interface TopItem { type: "link" | "block"; id: number; label: string; n: number }
+
+/** The most clicked links and bio buttons of an account in a period (clicks only). */
+export async function getTopItems(s: Scope, limit = 5): Promise<TopItem[]> {
+  const w = where({ ...s, kind: "clicks" });
+  const rows = await query<{ entity_type: "link" | "block"; entity_id: number; n: number }>(
+    `SELECT entity_type, entity_id, COUNT(*) AS n FROM clicks WHERE ${w.sql} GROUP BY entity_type, entity_id ORDER BY n DESC LIMIT ?`,
+    [...w.params, Math.max(1, Math.min(20, limit | 0))],
+  );
+  const out: TopItem[] = [];
+  for (const type of ["link", "block"] as const) {
+    const ids = rows.filter((r) => r.entity_type === type).map((r) => r.entity_id);
+    if (!ids.length) continue;
+    const ph = ids.map(() => "?").join(",");
+    const names = await query<{ id: number; label: string | null }>(
+      type === "link" ? `SELECT id, COALESCE(NULLIF(title, ''), slug) AS label FROM links WHERE id IN (${ph})` : `SELECT id, title AS label FROM blocks WHERE id IN (${ph})`,
+      ids,
+    );
+    const m = new Map(names.map((x) => [x.id, x.label]));
+    for (const r of rows.filter((x) => x.entity_type === type)) out.push({ type, id: r.entity_id, label: m.get(r.entity_id) || (type === "link" ? "Deleted link" : "Button"), n: Number(r.n) });
+  }
+  return out.sort((a, b) => b.n - a.n);
+}
+
+/** Clicks per hour of the day (UTC), 24 numbers. */
+export async function getHourly(s: Scope): Promise<number[]> {
+  const w = where(s);
+  const rows = await query<{ h: number; n: number }>(`SELECT HOUR(created_at) AS h, COUNT(*) AS n FROM clicks WHERE ${w.sql} GROUP BY h`, w.params);
+  const out = Array<number>(24).fill(0);
+  for (const r of rows) if (r.h >= 0 && r.h < 24) out[r.h] = Number(r.n);
+  return out;
+}
+
 /** Time of the latest click per link or block, for list views, in one query. Entities with no click are missing from the result. */
 export async function lastClicks(type: "link" | "block", ids: number[]): Promise<Record<number, Date>> {
   if (!ids.length) return {};

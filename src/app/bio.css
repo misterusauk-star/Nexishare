@@ -29,9 +29,12 @@
 .bio-text { margin: 8px 0 0; max-width: 44ch; color: var(--fg); white-space: pre-line; overflow-wrap: anywhere; }
 
 .bio-list { display: flex; flex-direction: column; gap: 12px; }
-.bio-text { text-align: center; color: var(--fg); overflow-wrap: anywhere; }
-.bio-text strong { display: block; margin-bottom: 4px; }
-.bio-text p { margin: 0; white-space: pre-line; color: var(--muted); font-size: 15px; line-height: 1.5; }
+.bio-share { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; min-height: 36px; padding: 6px 14px; border: 1.5px solid var(--btn-border); border-radius: 999px; background: transparent; color: var(--fg); font: inherit; font-size: 14px; cursor: pointer; }
+.bio-share:hover { background: var(--btn-bg); color: var(--btn-fg); }
+.bio-share:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.bio-note { text-align: center; color: var(--fg); overflow-wrap: anywhere; }
+.bio-note strong { display: block; margin-bottom: 4px; }
+.bio-note p { margin: 0; white-space: pre-line; color: var(--muted); font-size: 15px; line-height: 1.5; }
 .bio-btn.featured { min-height: 64px; font-size: 1.08em; font-weight: 700; border-width: 2.5px; }
 .bio-btn.featured svg:last-child { opacity: 1; }
 .bio-header { font-size: 13px; font-weight: 600; margin: 16px 0 0; color: var(--muted); letter-spacing: 0.01em; }

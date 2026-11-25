@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { MousePointerClick, Eye } from "lucide-react";
 import { requireUser } from "@/lib/auth";
-import { getStats, getPreviousTotals, countryName } from "@/lib/analytics";
+import { getStats, getPreviousTotals, getTopItems, getHourly, countryName } from "@/lib/analytics";
+import { busiestHour, hourLabel } from "@/lib/hours";
 import { describeChange } from "@/lib/change";
 import { phase2Enabled } from "@/lib/features";
 import { BarList, StatRow, TimeSeries } from "@/components/charts";
@@ -15,6 +16,8 @@ export default async function Analytics({ searchParams }: { searchParams: Promis
   const kind = sp.view === "views" ? "views" : "clicks";
   const stats = await getStats({ userId: user.id, kind, days });
   const prev = await getPreviousTotals({ userId: user.id, kind, days }).catch(() => null);
+  const [top, hours] = await Promise.all([kind === "clicks" ? getTopItems({ userId: user.id, kind, days }, 5).catch(() => []) : Promise.resolve([]), getHourly({ userId: user.id, kind, days }).catch(() => Array<number>(24).fill(0))]);
+  const peak = busiestHour(hours);
   const href = (o: { days?: number; view?: string }) => `?days=${o.days ?? days}&view=${o.view ?? kind}`;
   const empty = stats.total === 0;
   const best = stats.series.reduce((m, s) => (s.total > m.total ? s : m), { day: "", total: 0, unique: 0 });
@@ -57,9 +60,10 @@ export default async function Analytics({ searchParams }: { searchParams: Promis
         <>
           <TimeSeries series={stats.series} label={`${kind === "clicks" ? "Clicks" : "Views"} per day`} />
           <p className="insight">
-            <strong>Best day:</strong> {best.day ? `${best.day} with ${best.total.toLocaleString("en-US")} ${noun}` : "none yet"}. <strong>Average:</strong> {avg >= 10 ? Math.round(avg) : avg.toFixed(1)} {noun} per day.
+            <strong>Best day:</strong> {best.day ? `${best.day} with ${best.total.toLocaleString("en-US")} ${noun}` : "none yet"}. <strong>Average:</strong> {avg >= 10 ? Math.round(avg) : avg.toFixed(1)} {noun} per day.{peak ? <> <strong>Busiest hour:</strong> {hourLabel(peak.hour)}.</> : null}
           </p>
           <div className="cols" style={{ marginTop: 40 }}>
+            {top.length > 0 && <BarList total={stats.total} title="Top links and buttons" rows={top.map((t) => ({ label: t.label, n: t.n }))} />}
             <BarList total={stats.total} title="Countries" rows={stats.countries.map((c) => ({ ...c, label: countryName(c.label) }))} />
             <BarList total={stats.total} title="Referrers" rows={stats.referrers} />
             <BarList total={stats.total} title="Devices" rows={stats.devices} />

@@ -538,6 +538,7 @@ curl -X PATCH ${base}/links/12 \\
           <section id="more-links">
             <h2>Duplicate, bulk actions and device routes</h2>
             <p><code>POST /links/{"{id}"}/duplicate</code> copies a link with a new random short name and returns <code>201</code> with the copy. Everything is copied except the password (only its hash is stored). The copy counts toward your daily link limit.</p>
+            <p><code>POST /links/bulk/tag</code> adds or removes one tag on up to 200 links: <code>{"{ \"action\": \"add_tag\", \"tag\": \"summer\", \"ids\": [12, 13] }"}</code> (<code>action</code> is <code>add_tag</code> or <code>remove_tag</code>). The response has <code>done</code>, <code>failed</code> and one result per id. A link that already has 5 tags, or is not yours, reports <code>ok: false</code> and never blocks the rest.</p>
             <p><code>POST /links/bulk/action</code> enables, disables or deletes up to 200 links: <code>{"{ \"action\": \"disable\", \"ids\": [12, 13, 14] }"}</code>. The response has <code>done</code>, <code>failed</code> and one result per id, so a link that is not yours never blocks the rest.</p>
             <p><code>GET /links/{"{id}"}/routes</code> shows where a visitor on each device ends up: iPhone and iPad, Android, Windows, Mac, Linux and any other device. A <code>null</code> url means a universal link shows its chooser page there.</p>
             <Code>{`curl -X POST ${base}/links/12/duplicate -H "Authorization: Bearer ob_your_key"
@@ -701,7 +702,7 @@ curl "${base}/links/31/stats?days=7" -H "Authorization: Bearer $KEY"`}</Code>
           </Endpoint>
 
           <Endpoint id="stats" method="get" path="/stats">
-            <p>The same shape, across everything you own. Query: <code>days</code>, and <code>kind</code> set to <code>clicks</code> (default) or <code>views</code> for bio page visits. It also has <code>previous</code> and <code>change_percent</code>, as for a single link.</p>
+            <p>The same shape, across everything you own. With <code>kind=clicks</code> it also has <code>top</code> (your five most clicked links and bio buttons: <code>type</code>, <code>id</code>, <code>label</code>, <code>n</code>) and, for both kinds, <code>hours_utc</code> (24 counts, index = hour of day in UTC) and <code>busiest_hour_utc</code> (0 to 23, or <code>null</code>). Query: <code>days</code>, and <code>kind</code> set to <code>clicks</code> (default) or <code>views</code> for bio page visits. It also has <code>previous</code> and <code>change_percent</code>, as for a single link.</p>
             <Code>{`curl "${base}/stats?days=30&kind=views" -H "Authorization: Bearer ob_your_key"`}</Code>
           </Endpoint>
 

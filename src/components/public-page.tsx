@@ -7,6 +7,7 @@ import type { PublicPage } from "@/lib/services/public";
 import type { Brand } from "@/lib/brand";
 import { ActionForm, Field } from "@/components/client";
 import { contactAction } from "@/app/actions/public";
+import { BioShare } from "./bio-share";
 import { ArrowUpRight, Download, Globe, Mail, Star } from "lucide-react";
 import { brandByKey, brandForUrl } from "@/lib/brands.ts";
 import { BrandIcon } from "@/components/brand-icon";
@@ -49,6 +50,7 @@ export function PublicPageView({ data, brand }: { data: PublicPage; brand: Brand
           <h1>{name}</h1>
           <p className="bio-handle">{brand.bioHost}<b>/</b>{user.username}</p>
           {page.bio ? <p className="bio-text">{page.bio}</p> : null}
+          <BioShare title={name} />
         </header>
 
         <div className="bio-list">
@@ -90,7 +92,7 @@ function BlockView({ b }: { b: PublicPage["blocks"][number] }) {
       return <h2 className="bio-header">{b.title}</h2>;
     case "text":
       return (
-        <div className="bio-text">
+        <div className="bio-note">
           {b.title && <strong>{b.title}</strong>}
           <p>{d.description}</p>
         </div>

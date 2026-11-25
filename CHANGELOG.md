@@ -4,6 +4,14 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+### Added
+- Bio pages have a Share button (the phone's share sheet, or copies the address).
+- Analytics: top links and buttons, and the busiest hour (UTC). In the API: `top`, `hours_utc`, `busiest_hour_utc` on `GET /stats`.
+- Add or remove a tag on all selected links at once (Links table, and `POST /links/bulk/tag`).
+
+### Fixed
+- The new Text block no longer shares a style name with the bio line under the name.
+
 ### Changed
 - Everywhere that mentions domains (home FAQ, link in bio FAQ, docs, API reference, llms.txt, link form) now says plainly: custom domains are not supported, use the domains we provide.
 

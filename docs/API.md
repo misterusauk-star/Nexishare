@@ -148,6 +148,7 @@ Status `201` if at least one link was created, `422` if none. The daily limit co
 
 - `POST /links/{id}/duplicate`: copies a link with a new random short name (201). Everything is copied except the password. Counts toward the daily link limit.
 - `POST /links/bulk/action`: `{"action": "enable" | "disable" | "delete", "ids": [1, 2, 3]}`, up to 200 ids. Returns `done`, `failed` and one `{id, ok}` per id.
+- `POST /links/bulk/tag`: `{"action": "add_tag" | "remove_tag", "tag": "summer", "ids": [1, 2, 3]}`, up to 200 ids, one tag per call. Returns `done`, `failed` and one `{id, ok}` per id. A link with 5 tags already, or not yours, gives `ok: false`.
 - `GET /links/{id}/routes`: where each device ends up (`ios`, `android`, `windows`, `macos`, `linux`, `other`) with `source` = `device`, `default` or `chooser`. `url` is `null` for a universal link's chooser page.
 
 ## Read-only keys, QR codes and CSV export
@@ -166,6 +167,7 @@ Status `201` if at least one link was created, `422` if none. The daily limit co
 ## Last click and period comparison
 
 - `GET /links` and `GET /links/{id}` include `last_click_at` (ISO time, or `null` when never clicked).
+- `GET /stats` also returns `top` (clicks only: your 5 most clicked links and bio buttons as `{type, id, label, n}`), `hours_utc` (24 counts, index = hour of day in UTC) and `busiest_hour_utc` (0-23 or `null`).
 - `GET /stats` and `GET /links/{id}/stats` include `previous` (`total`, `unique` of the same number of days just before this period) and `previous.change_percent` (`total`, `unique`: whole percent, `null` when the earlier period had no clicks).
 
 ## Bio page blocks
