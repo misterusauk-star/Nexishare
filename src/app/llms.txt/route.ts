@@ -30,6 +30,7 @@ export async function GET() {
 
 ## Product
 - [Home](${b.appUrl}/): what ${b.name} does and how to sign up
+- [API map (JSON)](${b.appUrl}/api/v1): every endpoint with its method, path and summary
 - [API reference](${b.appUrl}/docs): create and manage short links with an API key: device destinations, universal links, scheduling, click limits, tags and filters, the domains we provide (custom domains are not supported) and bulk create, with curl, JavaScript, Python, PHP, Go and Ruby examples
 - [Link in bio templates](${b.appUrl}/link-in-bio): ${Object.keys(NICHES).length} templates, one page per kind of work (${Object.values(NICHES).slice(0, 6).map((n) => n.who).join(", ")} and more)
 ${TOOLS.map((t) => `- [${t.name}](${b.appUrl}/tools/${t.slug}): ${t.short}`).join("\n")}

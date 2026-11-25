@@ -3,6 +3,7 @@ import { getBrand } from "@/lib/brand";
 import { SiteShell } from "@/components/site-shell";
 import { getDomainState } from "@/lib/domains";
 import { CopyButton } from "@/components/client";
+import { API_ENDPOINTS, API_GROUPS } from "@/lib/api-index.ts";
 
 export const metadata: Metadata = { title: "API reference" };
 
@@ -253,6 +254,8 @@ export default async function Docs() {
         <nav aria-label="API sections">
           <span className="nav-group">Start</span>
           <a href="#quickstart">Quickstart</a>
+          <a href="#endpoints">All endpoints</a>
+          <a href="#conventions">How it works</a>
           <a href="#auth">Authentication</a>
           <a href="#errors">Errors and limits</a>
           <a href="#link-object">The link object</a>
@@ -307,6 +310,47 @@ curl -X POST ${base}/links \\
             </ol>
             <Code>{`{ "data": { "id": 31, "slug": "spring", "short_url": "${b.url}/spring", "target_url": "https://example.com/spring-sale", "status": "active", ... } }`}</Code>
             <p>Next: <a href="#link-object">the link object</a>, <a href="#recipes">recipes for common jobs</a> and <a href="#errors">errors and limits</a>.</p>
+          </section>
+
+          <section id="endpoints">
+            <h2>All endpoints</h2>
+            <p>Every endpoint on one page. Press a path to jump to its details. The same list as JSON: <code>GET {base}</code> (no key needed).</p>
+            {API_GROUPS.map((g) => (
+              <div key={g}>
+                <h3>{g}</h3>
+                <div className="table-wrap">
+                  <table className="table ep-table">
+                    <tbody>
+                      {API_ENDPOINTS.filter((e) => e.group === g).map((e) => (
+                        <tr key={`${e.method} ${e.path}`}>
+                          <td className="ep-m"><span className={`method ${e.method.toLowerCase()}`}>{e.method}</span></td>
+                          <td className="ep-p"><a href={`#${e.doc}`}><code>{e.path}</code></a></td>
+                          <td>{e.summary}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
+          </section>
+
+          <section id="conventions">
+            <h2>How it works</h2>
+            <p>The same few rules apply everywhere, so once you know one endpoint you know them all.</p>
+            <div className="table-wrap">
+              <table className="table">
+                <tbody>
+                  <tr><th scope="row">Base URL</th><td><code>{base}</code></td></tr>
+                  <tr><th scope="row">Format</th><td>JSON in, JSON out. Send <code>Content-Type: application/json</code> with a body. Success: <code>{"{ \"data\": ... }"}</code>. Failure: <code>{"{ \"error\": { \"message\": ... } }"}</code>.</td></tr>
+                  <tr><th scope="row">Sign in</th><td><code>Authorization: Bearer ob_your_key</code>. A read-only key can only use <code>GET</code>; anything else answers 403.</td></tr>
+                  <tr><th scope="row">Lists</th><td><code>limit</code> and <code>page</code>; the answer has <code>meta</code> with <code>total</code>, <code>page</code> and <code>limit</code>.</td></tr>
+                  <tr><th scope="row">Times</th><td>ISO 8601 in UTC, for example <code>2026-12-01T09:30:00.000Z</code>.</td></tr>
+                  <tr><th scope="row">Changing things</th><td><code>PATCH</code> changes only the fields you send. Send <code>null</code> (or <code>""</code> for text) to clear a field.</td></tr>
+                  <tr><th scope="row">Mistakes</th><td><code>422</code> with <code>fields</code> naming what to fix, <code>404</code> for something that is not yours, <code>429</code> when you go over a limit. See <a href="#errors">errors and limits</a>.</td></tr>
+                </tbody>
+              </table>
+            </div>
           </section>
 
           <section id="auth">

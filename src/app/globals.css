@@ -618,3 +618,9 @@ a.tag-pill:hover { background: var(--sunken); }
 .home-more .chips li { max-width: none; }
 .snap-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--ink); }
 .snap-list li { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.docs .ep-table td { padding: 8px 12px 8px 0; vertical-align: baseline; }
+.docs .ep-table .ep-m { width: 76px; white-space: nowrap; }
+.docs .ep-table .ep-p { white-space: nowrap; }
+.docs .ep-table .ep-p code { background: none; border: 0; padding: 0; }
+.docs .ep-table .method { display: block; text-align: center; margin-right: 0; }
+@media (max-width: 640px) { .docs .ep-table .ep-p { white-space: normal; overflow-wrap: anywhere; } }

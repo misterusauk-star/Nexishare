@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { getDomainState } from "@/lib/domains";
 import { ApiKeyForm } from "@/components/api-key-form";
-import { ConfirmButton } from "@/components/client";
+import { ConfirmButton, CopyButton } from "@/components/client";
 import { revokeApiKeyAction } from "@/app/actions/app";
 import { countLinks, limitsFor } from "@/lib/user-limits";
 
@@ -18,6 +18,9 @@ export default async function ApiPage() {
   const keys = await query<Key>("SELECT * FROM api_keys WHERE user_id = ? ORDER BY id DESC", [user.id]);
   const lim = await limitsFor(user.id);
   const used = await countLinks(user.id).catch(() => 0);
+  const base = `${st.apiUrl}/api/v1`;
+  const tryIt = `curl ${base}/links?limit=1 \\
+  -H "Authorization: Bearer ob_your_key"`;
   const nf = (n: number) => n.toLocaleString("en-US");
   return (
     <>
@@ -60,6 +63,17 @@ export default async function ApiPage() {
         <section className="panel">
           <h2 className="section-title">New key</h2>
           <ApiKeyForm />
+          <h3 className="section-title" style={{ marginTop: 32 }}>Try your key</h3>
+          <p className="small muted">Paste your key in place of <code>ob_your_key</code>. A list of your links means it works.</p>
+          <div className="codebox">
+            <pre className="code">{tryIt}</pre>
+            <CopyButton value={tryIt} label="Copy" className="btn btn-sm btn-ghost copy-code" />
+          </div>
+          <ul className="small" style={{ margin: "16px 0 0", paddingLeft: 18 }}>
+            <li><Link href="/docs#endpoints">All endpoints on one page</Link></li>
+            <li><Link href="/docs#recipes">Recipes: copy, paste, run</Link></li>
+            <li><Link href="/docs#errors">Errors and limits</Link></li>
+          </ul>
         </section>
       </div>
     </>

@@ -2,6 +2,16 @@
 
 JSON over HTTPS. Base URL: `{APP_URL}/api/v1`. The same reference, with your real URL filled in, is served by your install at `/docs`.
 
+## How it works
+
+- **Map of the API:** `GET /api/v1` (no key) lists every endpoint with its method, path and a one-line summary. The `/docs` page shows the same list as a table.
+- **Format:** JSON in and out. Success is `{"data": ...}`, failure is `{"error": {"message": ..., "fields": {...}}}`.
+- **Sign in:** `Authorization: Bearer ob_...`. A read-only key can only use `GET` (others return 403).
+- **Lists:** `limit` and `page`; the answer has `meta.total`, `meta.page`, `meta.limit`.
+- **Times:** ISO 8601 in UTC.
+- **Changes:** `PATCH` changes only the fields you send; send `null` (or `""` for text) to clear one.
+- **Mistakes:** 422 with `fields`, 404 for something that is not yours, 429 over a limit.
+
 ## Quickstart
 
 1. Create a key under **API keys** (shown once, starts with `ob_`).

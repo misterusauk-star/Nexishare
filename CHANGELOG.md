@@ -5,6 +5,8 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 ## [Unreleased]
 
 ### Added
+- API: `GET /api/v1` returns a map of every endpoint (method, path, summary), no key needed. A test keeps this list, the route files and the docs in step.
+- API docs: an "All endpoints" table at the top and a "How it works" section with the shared rules (format, sign-in, lists, times, changes, mistakes). The API keys page has a "Try your key" snippet and shortcuts to the docs.
 - Email signup block with a Subscribers page (list, delete, CSV export) and `GET /page/subscribers`, `DELETE /page/subscribers/{id}`.
 - Poll block: one vote per visitor, results shown after voting, `GET /page/blocks/{id}/votes`.
 - Saved copies of the bio page: save, restore (blocks that still exist keep their click counts) and delete, in the editor and through `/page/snapshots`.
