@@ -8,6 +8,7 @@ const TOPICS: [string, string][] = [
   ["/dashboard/links/import", "#more-links"],
   ["/dashboard/links", "#fields"],
   ["/dashboard/universal", "#universal"],
+  ["/dashboard/subscribers", "#subscribers"],
   ["/dashboard/qr", "#keys-qr-export"],
   ["/dashboard/api", "#auth"],
   ["/dashboard/analytics", "#filters"],

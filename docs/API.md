@@ -65,6 +65,11 @@ Limits are low by default: **20 requests per minute per key**, **1,000 requests 
 | GET | `/page` | Your bio page and blocks |
 | PATCH | `/page` | `display_name`, `bio`, `theme`, `published`, `socials` |
 | GET | `/page/templates` | The ready-made templates and the social platforms you can set |
+| GET | `/page/subscribers` | Emails from signup blocks (`?format=csv` for a file) |
+| DELETE | `/page/subscribers/{id}` | Remove one address |
+| GET | `/page/blocks/{id}/votes` | Results of a poll block |
+| GET, POST | `/page/snapshots` | List / save a copy of your bio page |
+| POST, DELETE | `/page/snapshots/{id}/restore`, `/page/snapshots/{id}` | Restore a copy / delete it |
 | GET, POST | `/page/blocks` | List blocks / add one (`type`, `title`, `url`, `description`, `featured`, `enabled`, ...) |
 | GET, PATCH, DELETE | `/page/blocks/{id}` | Read, change (only the fields you send) or remove a block |
 | POST | `/page/blocks/order` | Set the order: `{"ids": [12, 9, 15]}` |
@@ -169,6 +174,14 @@ Status `201` if at least one link was created, `422` if none. The daily limit co
 - `GET /links` and `GET /links/{id}` include `last_click_at` (ISO time, or `null` when never clicked).
 - `GET /stats` also returns `top` (clicks only: your 5 most clicked links and bio buttons as `{type, id, label, n}`), `hours_utc` (24 counts, index = hour of day in UTC) and `busiest_hour_utc` (0-23 or `null`).
 - `GET /stats` and `GET /links/{id}/stats` include `previous` (`total`, `unique` of the same number of days just before this period) and `previous.change_percent` (`total`, `unique`: whole percent, `null` when the earlier period had no clicks).
+
+## Signups, polls and saved copies (migration 016)
+
+- Block types `subscribe` (email signup; optional `title`, `description`, `button`) and `poll` (`title` = question, `options` = 2-6 as a list or one per line, each up to 60 characters). Both follow the Phase 2 switch. Block JSON has `options` (list or `null`).
+- `GET /page/subscribers`: `{id, email, block_id, created_at}`, `limit` (max 100) and `page`, `meta.total`. `?format=csv` returns every address as CSV. `DELETE /page/subscribers/{id}`: removes one (404 if not yours).
+- `GET /page/blocks/{id}/votes`: `{total, options: [{label, votes, percent}]}`. 422 when the block is not a poll. One vote per visitor (a hash of address and browser).
+- `GET /page/snapshots`, `POST /page/snapshots` (`label` optional, 201), `DELETE /page/snapshots/{id}`, `POST /page/snapshots/{id}/restore` -> `{restored, skipped, removed}`. A copy holds profile, look, social icons and all blocks; the newest 10 are kept. Restore updates existing blocks in place (click counts stay), re-adds deleted ones, removes newer ones, and skips blocks that fail today's checks.
+- Without migration 016 these endpoints return 503 with a hint.
 
 ## Bio page blocks
 

@@ -11,6 +11,9 @@ import { brandByKey } from "@/lib/brands.ts";
 import { BrandIcon } from "@/components/brand-icon";
 import { TemplateGallery } from "@/components/template-gallery";
 import { phase2Enabled } from "@/lib/features";
+import { listSnapshots, voteTotals } from "@/lib/services/engage";
+import { MAX_SNAPSHOTS } from "@/lib/engage.ts";
+import { SnapshotsPanel } from "@/components/snapshots-panel";
 import { ActionForm, Field, CopyButton } from "@/components/client";
 import { AvatarField, BlockList, NewBlock, ThemePicker, type BlockItem } from "@/components/bio-editor";
 import { PublicPageView } from "@/components/public-page";
@@ -42,10 +45,13 @@ export default async function BioEditor() {
   const totals = await totalsFor("block", blocks.map((x) => x.id));
   const p2 = phase2Enabled();
   const groups = p2 ? await query<{ id: number; name: string }>("SELECT id, name FROM link_groups WHERE user_id = ? ORDER BY name", [user.id]).catch(() => []) : [];
+  const votes = await voteTotals(blocks.filter((x) => x.type === "poll").map((x) => x.id));
   const items: BlockItem[] = blocks.map((x) => ({
     id: x.id, type: x.type, title: x.title ?? "", url: x.url ?? "", enabled: !!x.enabled, data: x.data ?? {}, group_id: x.group_id,
     starts_at: local(x.starts_at), ends_at: local(x.ends_at), clicks: totals[x.id]?.total ?? 0,
+    note: x.type === "poll" ? `${votes[x.id] ?? 0} vote${(votes[x.id] ?? 0) === 1 ? "" : "s"}` : undefined,
   }));
+  const snaps = await listSnapshots(user.id).catch(() => []);
   const types = [...BLOCK_TYPES_P1, ...(p2 ? BLOCK_TYPES_P2 : [])] as string[];
   const address = bioUrl(st, user.username);
   // The preview is the real public page, drawn from what is saved right now (hidden and scheduled blocks left out, like for visitors).
@@ -84,7 +90,7 @@ export default async function BioEditor() {
         <div>
           <section>
             <div className="section-title"><h2>Content</h2></div>
-            <BlockList key={items.map((i) => `${i.id}:${i.title}:${i.url}`).join("|")} blocks={items} groups={groups} />
+            <BlockList key={items.map((i) => `${i.id}:${i.title}:${i.url}:${JSON.stringify(i.data)}`).join("|")} blocks={items} groups={groups} />
             <details className="edit panel" open={items.length === 0}>
               <summary className="btn btn-primary" style={{ display: "inline-flex" }}>Add to page</summary>
               <NewBlock types={types} groups={groups} />
@@ -138,6 +144,11 @@ export default async function BioEditor() {
                 );
               })()}
             </ActionForm>
+          </section>
+
+          <section style={{ marginTop: 40 }} id="copies">
+            <div className="section-title"><h2>Saved copies</h2></div>
+            <SnapshotsPanel max={MAX_SNAPSHOTS} items={snaps.map((s) => ({ id: s.id, label: s.label, blocks: s.blocks, created: new Date(s.created_at).toISOString().slice(0, 16).replace("T", " ") }))} />
           </section>
         </div>
       </div>

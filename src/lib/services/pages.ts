@@ -5,6 +5,7 @@ import { SOCIALS, THEMES, type PageCustom, type Socials } from "../themes";
 import type { Result } from "./links";
 import { notifyBioPage } from "../indexnow";
 import { templateById } from "../templates.ts";
+import { parsePollOptions } from "../engage.ts";
 
 export interface PageRow {
   id: number;
@@ -34,7 +35,7 @@ export interface BlockRow {
 }
 
 export const BLOCK_TYPES_P1 = ["link", "header", "text"] as const;
-export const BLOCK_TYPES_P2 = ["contact_form", "product", "embed", "vcard"] as const;
+export const BLOCK_TYPES_P2 = ["contact_form", "product", "embed", "vcard", "subscribe", "poll"] as const;
 
 export async function ensurePage(userId: number, displayName?: string): Promise<PageRow> {
   await exec("INSERT IGNORE INTO pages (user_id, display_name) VALUES (?, ?)", [userId, displayName ?? null]);
@@ -148,8 +149,13 @@ export async function saveBlock(
       url = c.url;
     }
   }
-  if ((v.type === "link" || v.type === "header" || v.type === "product") && !v.title) return { ok: false, errors: { title: "Add a title." } };
+  if ((v.type === "link" || v.type === "header" || v.type === "product" || v.type === "poll") && !v.title) return { ok: false, errors: { title: "Add a title." } };
   if (v.type === "text" && !v.data?.description?.trim()) return { ok: false, errors: { description: "Write some text." } };
+  if (v.type === "poll") {
+    const o = parsePollOptions(v.data?.options);
+    if (!o.ok) return { ok: false, errors: { options: o.error } };
+    v.data = { ...v.data, options: o.options.join("\n") };
+  }
   if (v.type === "embed" && url && !embedInfo(url)) return { ok: false, errors: { url: "Use a YouTube, Spotify, Vimeo or Google Maps link." } };
   const data = v.data && Object.keys(v.data).length ? JSON.stringify(v.data) : null;
   const starts = dateOrNull(v.starts_at);
@@ -207,6 +213,8 @@ export async function getBlockForUser(userId: number, blockId: number): Promise<
 }
 
 export async function deleteBlock(userId: number, blockId: number): Promise<void> {
+  // Votes belong to the block. The table is new (migration 016), so a missing table must not stop the delete.
+  await exec("DELETE v FROM poll_votes v JOIN blocks b ON b.id = v.block_id JOIN pages p ON p.id = b.page_id WHERE v.block_id = ? AND p.user_id = ?", [blockId, userId]).catch(() => undefined);
   await exec("DELETE b FROM blocks b JOIN pages p ON p.id = b.page_id WHERE b.id = ? AND p.user_id = ?", [blockId, userId]);
 }
 

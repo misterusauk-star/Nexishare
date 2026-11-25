@@ -6,8 +6,10 @@ import { embedInfo } from "@/lib/services/pages";
 import type { PublicPage } from "@/lib/services/public";
 import type { Brand } from "@/lib/brand";
 import { ActionForm, Field } from "@/components/client";
-import { contactAction } from "@/app/actions/public";
+import { contactAction, subscribeAction } from "@/app/actions/public";
 import { BioShare } from "./bio-share";
+import { BioPoll } from "./bio-poll";
+import { pollOptionsFromData } from "@/lib/engage.ts";
 import { ArrowUpRight, Download, Globe, Mail, Star } from "lucide-react";
 import { brandByKey, brandForUrl } from "@/lib/brands.ts";
 import { BrandIcon } from "@/components/brand-icon";
@@ -151,6 +153,22 @@ function BlockView({ b }: { b: PublicPage["blocks"][number] }) {
           </ActionForm>
         </details>
       );
+    case "subscribe":
+      return (
+        <details className="bio-contact">
+          <summary className="bio-btn"><span>{b.title || "Join my list"}</span><Mail size={16} strokeWidth={1.75} aria-hidden="true" /></summary>
+          <ActionForm action={subscribeAction.bind(null, b.id)} submit={d.button || "Subscribe"} pendingLabel="Subscribing..." submitClass="bio-submit" resetOnSuccess>
+            {d.description ? <p className="bio-form-note">{d.description}</p> : null}
+            <Field label="Your email" name="email" type="email" autoComplete="email" required />
+            <div className="bio-hp" aria-hidden="true"><label>Website<input name="website" tabIndex={-1} autoComplete="off" /></label></div>
+            <p className="bio-form-note">Your address goes to the owner of this page, who may email you. You can ask them to remove it at any time.</p>
+          </ActionForm>
+        </details>
+      );
+    case "poll": {
+      const options = pollOptionsFromData(b.data);
+      return options.length >= 2 ? <BioPoll id={b.id} title={b.title ?? ""} options={options} /> : null;
+    }
     default:
       return null;
   }

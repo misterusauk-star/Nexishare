@@ -278,6 +278,7 @@ export default async function Docs() {
           <span className="nav-group">Bio page</span>
           <a href="#page">Bio page</a>
           <a href="#blocks">Bio page blocks</a>
+          <a href="#subscribers">Signups, polls, copies</a>
           <a href="#templates">Templates and icons</a>
           <span className="nav-group">Account and extras</span>
           <a href="#domains">Domains</a>
@@ -723,7 +724,7 @@ curl "${base}/links/31/stats?days=7" -H "Authorization: Bearer $KEY"`}</Code>
 
           <section id="blocks">
             <h2>Bio page blocks</h2>
-            <p>Add, change, remove and reorder the blocks on your bio page. Types: <code>link</code>, <code>header</code>, <code>text</code> (plus <code>contact_form</code>, <code>product</code>, <code>embed</code>, <code>vcard</code> when enabled). Fields: <code>title</code>, <code>url</code>, <code>description</code>, <code>price</code>, <code>button</code>, <code>featured</code> (true shows a larger link with a star), <code>enabled</code>, <code>starts_at</code>, <code>ends_at</code>, <code>group_id</code>. <code>PATCH</code> changes only the fields you send; the type cannot change. Send <code>""</code> to clear a text field. A new block goes to the end. Unknown block: 404. Bad input: 422 with <code>fields</code>.</p>
+            <p>Add, change, remove and reorder the blocks on your bio page. Types: <code>link</code>, <code>header</code>, <code>text</code> (plus <code>contact_form</code>, <code>product</code>, <code>embed</code>, <code>vcard</code>, <code>subscribe</code> and <code>poll</code> when enabled). A poll needs <code>title</code> (the question) and <code>options</code> (2 to 6, as a list or one per line). Fields: <code>title</code>, <code>url</code>, <code>description</code>, <code>options</code>, <code>price</code>, <code>button</code>, <code>featured</code> (true shows a larger link with a star), <code>enabled</code>, <code>starts_at</code>, <code>ends_at</code>, <code>group_id</code>. <code>PATCH</code> changes only the fields you send; the type cannot change. Send <code>""</code> to clear a text field. A new block goes to the end. Unknown block: 404. Bad input: 422 with <code>fields</code>.</p>
             <ul className="small">
               <li><code>GET /page/blocks</code> and <code>POST /page/blocks</code></li>
               <li><code>GET</code>, <code>PATCH</code>, <code>DELETE /page/blocks/{"{id}"}</code></li>
@@ -733,6 +734,19 @@ curl "${base}/links/31/stats?days=7" -H "Authorization: Bearer $KEY"`}</Code>
   -d '{ "type": "link", "title": "New single", "url": "https://example.com/single", "featured": true }'`}</Code>
             <Code>{`curl -X POST ${base}/page/blocks -H "Authorization: Bearer ob_your_key" -H "Content-Type: application/json" \\
   -d '{ "type": "text", "title": "Opening hours", "description": "Mon-Fri 9:00-17:00" }'`}</Code>
+          </section>
+
+          <section id="subscribers">
+            <h2>Signups, polls and saved copies</h2>
+            <p><strong>Email signup</strong> (<code>type: "subscribe"</code>): visitors type their email on your bio page and it lands on your list. Repeat signups are ignored without telling the visitor, a hidden field catches bots, and each visitor and each block has an hourly limit. <code>GET /page/subscribers</code> lists them (<code>limit</code> up to 100, <code>page</code>); add <code>format=csv</code> for every address as a CSV file. <code>DELETE /page/subscribers/{"{id}"}</code> removes one. The same list is in the dashboard under Subscribers.</p>
+            <p><strong>Poll</strong> (<code>type: "poll"</code>): one vote per visitor (stored as a hash, never the address), results shown after voting. <code>GET /page/blocks/{"{id}"}/votes</code> returns <code>total</code> and each option with <code>votes</code> and <code>percent</code>.</p>
+            <p><strong>Saved copies</strong>: <code>GET /page/snapshots</code> lists them, <code>POST /page/snapshots</code> with an optional <code>label</code> saves the page now (profile, look, social icons, every block; the newest 10 are kept), <code>POST /page/snapshots/{"{id}"}/restore</code> puts it back and <code>DELETE /page/snapshots/{"{id}"}</code> removes one. A restore updates blocks that still exist in place, so their click counts stay; blocks that no longer pass today's checks are skipped and counted in <code>skipped</code>.</p>
+            <Code>{`curl -X POST ${base}/page/blocks -H "Authorization: Bearer ob_your_key" -H "Content-Type: application/json" \\
+  -d '{ "type": "poll", "title": "Which should I post next?", "options": ["Tutorial", "Behind the scenes", "Q&A"] }'`}</Code>
+            <Code>{`curl -X POST ${base}/page/snapshots -H "Authorization: Bearer ob_your_key" -H "Content-Type: application/json" -d '{ "label": "Before the launch" }'
+curl -X POST ${base}/page/snapshots/3/restore -H "Authorization: Bearer ob_your_key"
+# { "data": { "restored": 8, "skipped": 0, "removed": 1 } }`}</Code>
+            <p className="small muted">These need migration 016 (Admin &gt; Domains &gt; Run database updates). Until it runs, the endpoints answer 503 with that hint. Signups and polls follow the Phase 2 switch.</p>
           </section>
 
           <section id="templates">

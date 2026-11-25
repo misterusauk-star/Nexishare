@@ -13,6 +13,7 @@ import { phase2Enabled } from "@/lib/features";
 import { emailSchema, passwordSchema } from "@/lib/validation";
 import { countActiveKeys, limitsFor } from "@/lib/user-limits";
 import { emailDomainError } from "@/lib/security";
+import { createSnapshot, deleteSnapshot, restoreSnapshot } from "@/lib/services/engage";
 import { bulkLinkAction, bulkTagLinks, createLink, deleteLink, duplicateLink, updateLink } from "@/lib/services/links";
 import { sendVerification, verificationRequired } from "@/lib/services/users";
 import { validateNewSlug, slugRateOk, SLUG_RATE_MESSAGE } from "@/lib/slug-service";
@@ -163,6 +164,35 @@ export async function duplicateLinkAction(id: number): Promise<void> {
 
 /* ---------- Bio page ---------- */
 
+/** Saved copies of the bio page. These return a message for the panel to show. */
+export async function saveSnapshotAction(label: string): Promise<string> {
+  const u = await requireUser();
+  if (!(await rateLimit(`snapshot:${u.id}`, 30, 3600))) return "Too many copies this hour. Try again later.";
+  try {
+    const r = await createSnapshot(u.id, label);
+    revalidatePath("/dashboard/page");
+    return r.ok ? "Copy saved." : (r.errors.form ?? "Could not save the copy.");
+  } catch { return "Saved copies need a database update. The administrator can press Run database updates in Admin > Domains."; }
+}
+
+export async function restoreSnapshotAction(id: number): Promise<string> {
+  const u = await requireUser();
+  const r = await restoreSnapshot(u.id, id).catch(() => null);
+  revalidatePath("/dashboard/page");
+  if (u.username) revalidatePath(`/${u.username}`);
+  if (!r) return "Could not restore this copy.";
+  if (!r.ok) return r.errors.form ?? "Could not restore this copy.";
+  const d = r.data;
+  return `Page restored: ${d.restored} block${d.restored === 1 ? "" : "s"} back${d.removed ? `, ${d.removed} newer removed` : ""}${d.skipped ? `, ${d.skipped} skipped because they no longer pass today's checks` : ""}.`;
+}
+
+export async function deleteSnapshotAction(id: number): Promise<string> {
+  const u = await requireUser();
+  await deleteSnapshot(u.id, id).catch(() => false);
+  revalidatePath("/dashboard/page");
+  return "Copy deleted.";
+}
+
 export async function saveProfileAction(_: FormState, fd: FormData): Promise<FormState> {
   const u = await requireUser();
   const r = await updateProfile(u.id, {
@@ -219,7 +249,7 @@ export async function saveBlockAction(blockId: number | null, _: FormState, fd: 
   const u = await requireUser();
   const type = s(fd, "type") || "link";
   const data: Record<string, string> = {};
-  for (const k of ["description", "price", "button", "email", "phone", "org", "note"]) if (s(fd, k)) data[k] = s(fd, k);
+  for (const k of ["description", "price", "button", "email", "phone", "org", "note", "options"]) if (s(fd, k)) data[k] = s(fd, k);
   if (type === "link" && fd.get("featured")) data.featured = "1";
   const r = await saveBlock(u.id, blockId, {
     type, title: s(fd, "title"), url: s(fd, "url"), data, enabled: true,

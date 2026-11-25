@@ -122,3 +122,14 @@
 .choose { list-style: none; margin: 0 0 16px; padding: 0; border-top: 1px solid var(--ink); }
 .choose li { border-bottom: 1px solid var(--line); padding: 8px 0; }
 .choose .btn { width: 100%; justify-content: flex-start; min-height: 44px; }
+.bio-form-note { margin: 0; font-size: 13px; color: var(--muted); }
+.bio-poll { display: grid; gap: 10px; }
+.bio-poll-q { margin: 0; text-align: center; font-weight: 700; overflow-wrap: anywhere; }
+.bio-poll-opts { display: grid; gap: 8px; }
+.bio-poll-opts .bio-btn { width: 100%; cursor: pointer; font: inherit; }
+.bio-poll-link { justify-self: center; background: none; border: 0; padding: 6px; color: var(--muted); font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; }
+.bio-poll-results { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.bio-poll-row { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+.bio-poll-bar { height: 10px; border: 1.5px solid var(--btn-border); border-radius: 999px; overflow: hidden; margin-top: 4px; }
+.bio-poll-bar i { display: block; height: 100%; background: var(--btn-bg); }
+.bio-poll-note { margin: 0; text-align: center; font-size: 13px; color: var(--muted); }

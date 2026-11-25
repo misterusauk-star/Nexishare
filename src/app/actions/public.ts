@@ -17,6 +17,8 @@ import { pickDestination } from "@/lib/smart-link.ts";
 import { sendEmail } from "@/lib/email/mailer";
 import { submitReport } from "@/lib/services/reports";
 import { phase2Enabled } from "@/lib/features";
+import { castVote, pollResults } from "@/lib/services/engage";
+import { pollOptionsFromData } from "@/lib/engage.ts";
 import type { FormState } from "@/components/client";
 
 /** Password-protected short link: verify, count the click, then redirect. */
@@ -71,6 +73,56 @@ export async function contactAction(blockId: number, _: FormState, fd: FormData)
     footnote: "Reply directly to the sender at the address above. You can also read it in your dashboard under Messages.",
   }).catch(() => undefined);
   return { ok: true, message: "Message sent." };
+}
+
+const subscribeSchema = z.object({ email: emailSchema, website: z.string().max(0).optional() });
+
+/** Email signup block: stores the address for the page owner. A repeat signup looks the same as a new one, so nobody can check who is on a list. */
+export async function subscribeAction(blockId: number, _: FormState, fd: FormData): Promise<FormState> {
+  if (!phase2Enabled()) return { errors: { form: "Signup forms are turned off on this server." } };
+  const info = await reqInfo();
+  if (!(await rateLimit(`subscribe:${info.ip}`, 5, 3600))) return { errors: { form: "Too many attempts. Try again later." } };
+  const p = subscribeSchema.safeParse(Object.fromEntries(fd));
+  if (!p.success) return { errors: fieldErrors(p.error) };
+  if (p.data.website) return { ok: true, message: "You are on the list." }; // bots get a fake success
+  const block = await queryOne<{ id: number; user_id: number }>(
+    `SELECT b.id, p.user_id FROM blocks b JOIN pages p ON p.id = b.page_id JOIN users u ON u.id = p.user_id
+      WHERE b.id = ? AND b.type = 'subscribe' AND b.enabled = 1 AND p.published = 1 AND p.moderated = 0 AND u.status = 'active'`,
+    [blockId],
+  );
+  if (!block) return { errors: { form: "This form is not available." } };
+  if (!(await rateLimit(`subscribe:block:${blockId}`, 100, 3600))) return { errors: { form: "This list is receiving too many signups right now." } };
+  await exec("INSERT IGNORE INTO bio_subscribers (block_id, user_id, email) VALUES (?, ?, ?)", [blockId, block.user_id, p.data.email.toLowerCase()]).catch(() => undefined);
+  return { ok: true, message: "You are on the list." };
+}
+
+export type PollState = { ok: true; total: number; options: { label: string; votes: number; percent: number }[]; voted?: boolean } | { ok: false; error: string };
+
+async function openPoll(blockId: number) {
+  return queryOne<{ id: number; data: Record<string, string> | null }>(
+    `SELECT b.id, b.data FROM blocks b JOIN pages p ON p.id = b.page_id JOIN users u ON u.id = p.user_id
+      WHERE b.id = ? AND b.type = 'poll' AND b.enabled = 1 AND p.published = 1 AND p.moderated = 0 AND u.status = 'active'`,
+    [blockId],
+  );
+}
+
+/** Poll block: counts one vote per visitor and returns the results. */
+export async function voteAction(blockId: number, optionIdx: number): Promise<PollState> {
+  if (!phase2Enabled()) return { ok: false, error: "Polls are turned off on this server." };
+  const info = await reqInfo();
+  if (!(await rateLimit(`vote:${info.ip}`, 30, 3600))) return { ok: false, error: "Too many votes. Try again later." };
+  const poll = await openPoll(blockId);
+  if (!poll) return { ok: false, error: "This poll is not available." };
+  const options = pollOptionsFromData(poll.data);
+  if (!Number.isInteger(optionIdx) || optionIdx < 0 || optionIdx >= options.length) return { ok: false, error: "Choose one of the options." };
+  const fresh = await castVote(blockId, optionIdx, `${info.ip}|${info.ua}`);
+  return { ...(await pollResults(blockId, poll.data)), ok: true, voted: !fresh };
+}
+
+export async function pollResultsAction(blockId: number): Promise<PollState> {
+  const poll = await openPoll(blockId);
+  if (!poll) return { ok: false, error: "This poll is not available." };
+  return { ...(await pollResults(blockId, poll.data)), ok: true };
 }
 
 export async function reportAction(_: FormState, fd: FormData): Promise<FormState> {

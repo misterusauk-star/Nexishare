@@ -616,3 +616,5 @@ a.tag-pill:hover { background: var(--sunken); }
 .home-more { max-width: 720px; margin: 64px auto 0; }
 .home-more h2 { font-size: 22px; margin: 32px 0 8px; }
 .home-more .chips li { max-width: none; }
+.snap-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--ink); }
+.snap-list li { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 0; border-bottom: 1px solid var(--line); }

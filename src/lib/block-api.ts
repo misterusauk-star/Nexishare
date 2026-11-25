@@ -22,6 +22,12 @@ export function blockDataFromBody(body: Record<string, unknown>, base: Record<st
     const t = v.trim();
     if (t) data[k] = t; else delete data[k];
   }
+  if ("options" in body) {
+    const o = body.options;
+    const lines = Array.isArray(o) ? o : typeof o === "string" ? o.split(/\r?\n/) : o === null ? [] : null;
+    if (!lines || !lines.every((x) => typeof x === "string")) errors.options = "Send a list of options.";
+    else { const t = (lines as string[]).map((x) => x.trim()).filter(Boolean); if (t.length) data.options = t.join("\n"); else delete data.options; }
+  }
   if ("featured" in body) {
     const f = body.featured;
     if (f === true) data.featured = "1";
@@ -48,6 +54,7 @@ export function blockJson(b: BlockLike) {
     description: d.description ?? null,
     price: d.price ?? null,
     button: d.button ?? null,
+    options: d.options ? d.options.split("\n") : null,
     featured: d.featured === "1",
     enabled: !!b.enabled,
     group_id: b.group_id,

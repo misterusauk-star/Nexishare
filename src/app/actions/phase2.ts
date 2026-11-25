@@ -128,6 +128,12 @@ export async function deleteMessageAction(id: number): Promise<void> {
   revalidatePath("/dashboard/contacts");
 }
 
+export async function deleteSubscriberAction(id: number): Promise<void> {
+  const u = await guard();
+  await exec("DELETE FROM bio_subscribers WHERE id = ? AND user_id = ?", [id, u.id]);
+  revalidatePath("/dashboard/subscribers");
+}
+
 /* ---------- CSV import ---------- */
 
 export async function importLinksAction(_: FormState, fd: FormData): Promise<FormState> {

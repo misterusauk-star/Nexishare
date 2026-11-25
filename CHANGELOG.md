@@ -5,6 +5,10 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 ## [Unreleased]
 
 ### Added
+- Email signup block with a Subscribers page (list, delete, CSV export) and `GET /page/subscribers`, `DELETE /page/subscribers/{id}`.
+- Poll block: one vote per visitor, results shown after voting, `GET /page/blocks/{id}/votes`.
+- Saved copies of the bio page: save, restore (blocks that still exist keep their click counts) and delete, in the editor and through `/page/snapshots`.
+- Migration 016 adds `bio_subscribers`, `poll_votes` and `page_snapshots` (run Admin > Domains > Run database updates).
 - Bio pages have a Share button (the phone's share sheet, or copies the address).
 - Analytics: top links and buttons, and the busiest hour (UTC). In the API: `top`, `hours_utc`, `busiest_hour_utc` on `GET /stats`.
 - Add or remove a tag on all selected links at once (Links table, and `POST /links/bulk/tag`).

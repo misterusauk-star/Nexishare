@@ -82,17 +82,24 @@ export function ThemePicker({ themes, current, custom }: { themes: Theme[]; curr
 
 export interface BlockItem {
   id: number; type: string; title: string; url: string; enabled: boolean;
-  data: Record<string, string>; group_id: number | null; starts_at: string; ends_at: string; clicks: number;
+  data: Record<string, string>; group_id: number | null; starts_at: string; ends_at: string; clicks: number; note?: string;
 }
-const TYPE_LABEL: Record<string, string> = { link: "Link", header: "Heading", text: "Text", contact_form: "Contact form", product: "Product", embed: "Embed", vcard: "Contact card" };
+const TYPE_LABEL: Record<string, string> = { link: "Link", header: "Heading", text: "Text", contact_form: "Contact form", subscribe: "Email signup", poll: "Poll", product: "Product", embed: "Embed", vcard: "Contact card" };
 
 export function BlockFields({ type, b, groups }: { type: string; b?: BlockItem; groups: { id: number; name: string }[] }) {
   const d = b?.data ?? {};
   return (
     <>
       <input type="hidden" name="type" value={type} />
-      {type !== "vcard" && <Field label={type === "header" ? "Heading" : type === "text" ? "Heading (optional)" : "Title"} name="title" defaultValue={b?.title} maxLength={120} required={type !== "embed" && type !== "text"} />}
+      {type !== "vcard" && <Field label={type === "header" ? "Heading" : type === "text" ? "Heading (optional)" : type === "poll" ? "Question" : "Title"} name="title" defaultValue={b?.title} maxLength={120} required={type !== "embed" && type !== "text"} />}
       {type === "text" && <Field label="Text" name="description" textarea rows={4} defaultValue={d.description} maxLength={500} required hint="A short note, such as opening hours or your next release date." />}
+      {type === "poll" && <Field label="Options" name="options" textarea rows={4} defaultValue={d.options} maxLength={400} required hint="One option per line, 2 to 6. Each visitor can vote once; results show after voting." />}
+      {type === "subscribe" && (
+        <>
+          <Field label="Short note (optional)" name="description" textarea rows={2} defaultValue={d.description} maxLength={200} hint="For example: One email a month. No spam." />
+          <Field label="Button text" name="button" defaultValue={d.button} maxLength={30} placeholder="Subscribe" />
+        </>
+      )}
       {type === "link" && (
         <label className="check"><input type="checkbox" name="featured" defaultChecked={d.featured === "1"} /> Highlight this link: larger, with a star</label>
       )}
@@ -177,7 +184,7 @@ export function BlockList({ blocks, groups }: { blocks: BlockItem[]; groups: { i
             <span className="drag-handle" aria-hidden="true"><GripVertical className="icon" /></span>
             <div className="block-main">
               <span className="title">{b.type === "link" && brandForUrl(b.url) ? <BrandIcon brand={brandForUrl(b.url)!} size={16} /> : null}{b.type === "vcard" ? "Contact card" : b.title || TYPE_LABEL[b.type]}</span>
-              <span className="small muted">{TYPE_LABEL[b.type]}{b.data?.featured === "1" ? " - Highlighted" : ""}{b.url ? ` - ${b.url}` : b.type === "text" && b.data?.description ? ` - ${b.data.description.slice(0, 60)}` : ""}</span>
+              <span className="small muted">{TYPE_LABEL[b.type]}{b.data?.featured === "1" ? " - Highlighted" : ""}{b.url ? ` - ${b.url}` : b.type === "text" && b.data?.description ? ` - ${b.data.description.slice(0, 60)}` : ""}{b.note ? ` - ${b.note}` : ""}</span>
             </div>
             <span className="small muted num" title="Clicks">{b.clicks.toLocaleString("en-US")}</span>
             <span className="move">
