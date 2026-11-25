@@ -13,7 +13,7 @@ const FAQ = [
   { q: "What is a link in bio page?", a: "One web page that holds all your important links. You put its address in the single link field of a social profile, and visitors pick from your links there." },
   { q: "Can I make short links and QR codes too?", a: "Yes. Every link can have a short address you choose, an expiry, a password and a QR code, and clicks are counted for each." },
   { q: "Does it track visitors?", a: "It counts clicks and unique visitors by country, device, browser and referrer. Visitor IP addresses are hashed with a daily salt and never stored." },
-  { q: "Can I use my own domain?", a: "Yes. Short links, bio pages and the API can each run on their own domain." },
+  { q: "Can I use my own domain?", a: "No. Custom domains are not supported: you use the domains we provide. You can put each short link on any of them." },
   { q: "Is there an API?", a: "Yes. Create an API key in the dashboard to create links, set up your page and read stats from your own code." },
 ];
 

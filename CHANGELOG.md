@@ -4,6 +4,9 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+### Changed
+- Everywhere that mentions domains (home FAQ, link in bio FAQ, docs, API reference, llms.txt, link form) now says plainly: custom domains are not supported, use the domains we provide.
+
 ### Added
 - Bio page blocks API: `GET/POST /page/blocks`, `GET/PATCH/DELETE /page/blocks/{id}`, `POST /page/blocks/order`.
 - New "Text" block (a short note with an optional heading) and a "Highlight this link" option: highlighted links are larger and carry a star.

@@ -129,6 +129,8 @@ Set `password` to an empty string to remove protection, `expires_at` to `null` t
 
 `GET /domains` lists the domains a link can live on: `[{ "id": 1, "domain": "example.com", "is_default": true }]`.
 Send `domain_id` (or `domain`, the host name) on `POST /links` or `PATCH /links/{id}` to place a link. Leave it out for the default domain.
+Custom domains are not supported: you can only use the domains we provide (`GET /domains`).
+
 Responses include `domain`, `domain_id` and a `short_url` built from that domain. A link answers only on its own domain.
 
 ## Abuse limits

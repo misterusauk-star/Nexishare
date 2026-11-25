@@ -755,7 +755,7 @@ curl "${base}/links/31/stats?days=7" -H "Authorization: Bearer $KEY"`}</Code>
           </section>
 
           <Endpoint id="domains" method="get" path="/domains">
-            <p>The domains you can put a link on. A link answers only on its own domain, so <code>short_url</code> always shows the right one. Every link in a response also carries <code>domain</code> and <code>domain_id</code>.</p>
+            <p><strong>Custom domains are not supported.</strong> You can only use the domains we provide; this endpoint lists them. A link answers only on its own domain, so <code>short_url</code> always shows the right one. Every link in a response also carries <code>domain</code> and <code>domain_id</code>.</p>
             <Code>{`curl ${base}/domains -H "Authorization: Bearer ob_your_key"`}</Code>
             <Code>{`{ "data": [
   { "id": 1, "domain": "${b.host}", "is_default": true },

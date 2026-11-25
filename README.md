@@ -123,7 +123,7 @@ Server notes: the app runs one Node process and a 60-second timer that sends que
 
 ### Domains
 
-Only the Super Admin manages domains, in **Admin > Domains**. Users cannot add domains, but they can place each short link on any active link domain (a Domain dropdown in the dashboard, `domain_id` / `domain` in the API; see `GET /api/v1/domains`). The default domain is preselected.
+Only the Super Admin manages domains, in **Admin > Domains**. Users cannot add domains and **custom domains are not supported**: everyone uses the domains the Super Admin provides. Users can they can place each short link on any active link domain (a Domain dropdown in the dashboard, `domain_id` / `domain` in the API; see `GET /api/v1/domains`). The default domain is preselected.
 
 To add a domain:
 

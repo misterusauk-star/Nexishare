@@ -146,7 +146,7 @@ export function DomainSelect({ domains, value }: { domains: { id: number; host: 
       <select id="f-domain_id" className="input" name="domain_id" defaultValue={value ? String(value) : ""} aria-invalid={error ? true : undefined}>
         {domains.map((d) => <option key={d.id} value={d.isDefault ? "" : String(d.id)}>{d.host}{d.isDefault ? " (default)" : ""}</option>)}
       </select>
-      {error ? <div className="err">{error}</div> : <div className="hint">The default domain is used unless you pick another.</div>}
+      {error ? <div className="err">{error}</div> : <div className="hint">Choose one of the domains we provide. Custom domains are not supported. The default is used unless you pick another.</div>}
     </div>
   );
 }

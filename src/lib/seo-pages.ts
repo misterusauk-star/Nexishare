@@ -23,7 +23,7 @@ export const GUIDES: Guide[] = [
     answer: "A link in bio is one web page that holds all your important links. You put its address in the single link field of a social profile, and visitors choose from your links on that page.",
     updated: "2026-11-24",
     sections: [
-      { h: "Why profiles need one", p: ["Many social profiles allow only one clickable link. If you have a shop, a newsletter, a video channel and a booking page, you cannot give them all one slot each.", "A link in bio page fixes this. You give the profile a single address, such as a page on your own domain, and that page lists everything you want people to open."] },
+      { h: "Why profiles need one", p: ["Many social profiles allow only one clickable link. If you have a shop, a newsletter, a video channel and a booking page, you cannot give them all one slot each.", "A link in bio page fixes this. You give the profile a single address, such as a page on one of our domains, and that page lists everything you want people to open."] },
       { h: "What to put on it", p: ["Fewer links get more clicks. Start with the one thing you most want people to do right now, and keep the rest in a clear order."], list: ["Your newest or most important link first, such as a video, a release or a sale.", "A way to contact you or to book you.", "Your other profiles as small icons instead of full buttons.", "Anything seasonal, scheduled to show and hide by date so it never goes out of date."] },
       { h: "What to leave out", p: ["Long lists of links that all look equally important make people leave. Remove links nobody clicks, and avoid sending people to a page that asks them to sign in before they see anything."] },
       { h: "How to know it works", p: ["Look at clicks for each link, not only visits to the page. A page that gets many visits but few clicks needs a clearer first link. Check where visitors come from, the country and the device, and compare two links by giving each its own short link."] },
@@ -32,7 +32,7 @@ export const GUIDES: Guide[] = [
     faq: [
       { q: "Is a link in bio the same as a landing page?", a: "It is a simple landing page for a person or a business: a list of links with a short introduction, built to be opened on a phone." },
       { q: "How many links should I add?", a: "Five or six is enough for most pages. Put the most important first and use icons for your social profiles." },
-      { q: "Can I use my own domain?", a: "Yes, when your host allows it. A page on your own domain is easier to remember and is not tied to one platform." },
+      { q: "Can I use my own domain?", a: "No. Custom domains are not supported here: your page and short links live on the domains we provide." },
     ],
   },
   {
