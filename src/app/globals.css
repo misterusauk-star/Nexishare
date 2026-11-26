@@ -177,12 +177,19 @@ input[type="color"].input { padding: 2px; width: 52px; }
 .side-foot { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--line); font-size: 13px; }
 .main { padding: 32px 40px 32px; max-width: 1180px; width: 100%; flex: 1 0 auto; }
 .topbar { display: none; }
+.scrim, .side-close { display: none; }
+.side-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .page-head { display: flex; align-items: flex-end; gap: 16px; justify-content: space-between; padding-bottom: 20px; margin-bottom: 24px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
 .page-head p { margin: 4px 0 0; color: var(--muted); max-width: 60ch; }
 @media (max-width: 860px) {
   .shell { grid-template-columns: 1fr; }
   .side { position: fixed; inset: 0 auto 0 0; width: 264px; z-index: 40; transform: translateX(-100%); transition: transform 200ms var(--ease); }
-  .side.open { transform: none; box-shadow: 0 0 0 100vmax rgba(0,0,0,0.4); }
+  .side.open { transform: none; box-shadow: 0 0 24px rgba(0,0,0,0.25); }
+  .scrim { display: block; position: fixed; inset: 0; z-index: 39; background: rgba(0,0,0,0.4); opacity: 0; pointer-events: none; transition: opacity 200ms var(--ease); }
+  .side.open ~ .scrim { opacity: 1; pointer-events: auto; }
+  body.nav-lock { overflow: hidden; }
+  .side { max-width: 86vw; overscroll-behavior: contain; }
+  .side-close { display: inline-flex; }
   .main { padding: 16px 16px 24px; }
   .topbar { display: flex; align-items: center; gap: 8px; height: 52px; padding: 0 12px; border-bottom: 1px solid var(--line); background: var(--surface); position: sticky; top: 0; z-index: 30; }
 }
@@ -624,3 +631,38 @@ a.tag-pill:hover { background: var(--sunken); }
 .docs .ep-table .ep-p code { background: none; border: 0; padding: 0; }
 .docs .ep-table .method { display: block; text-align: center; margin-right: 0; }
 @media (max-width: 640px) { .docs .ep-table .ep-p { white-space: normal; overflow-wrap: anywhere; } }
+
+/* ---- Phones: docs, page editor, drawer ---- */
+@media (max-width: 860px) {
+  /* Docs: one scrolling strip of section links that stays at the top, instead of a tall wall of chips */
+  .docs nav { position: sticky; top: 0; z-index: 5; flex-direction: row; flex-wrap: nowrap; align-items: center; overflow-x: auto; overscroll-behavior-x: contain; gap: 8px; margin: 0 -16px; padding: 8px 16px; background: var(--bg); border-bottom: 1px solid var(--line); scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
+  .docs nav a { flex: none; white-space: nowrap; }
+  .docs nav .nav-group { flex: none; flex-basis: auto; margin: 0 0 0 8px; padding: 0; white-space: nowrap; align-self: center; }
+  .docs nav .nav-group:first-child { margin-left: 0; }
+  .docs { scroll-padding-top: 72px; }
+  .docs h2, .docs h3 { scroll-margin-top: 72px; overflow-wrap: anywhere; }
+  .docs p, .docs li, .docs td, .docs th, .docs code { overflow-wrap: anywhere; }
+  .docs pre.code { max-width: 100%; }
+  .codebox pre.code { padding-right: 56px; }
+}
+@media (max-width: 640px) {
+  .docs { padding-inline: 16px; }
+  .docs .table td, .docs .table th { padding-right: 10px; }
+
+  /* Page editor: block rows wrap so the title keeps its width and every button stays 44px */
+  .block-row { flex-wrap: wrap; row-gap: 4px; padding: 10px 0; }
+  .block-main { flex: 1 1 100%; order: 1; }
+  .block-row .drag-handle { display: none; }
+  .block-row > .num { order: 2; margin-right: auto; }
+  .block-row > .move, .block-row > .btn { order: 3; }
+  .block-main .title, .block-main .small { white-space: normal; overflow-wrap: anywhere; }
+  .block-list details.edit { padding: 0 0 12px; }
+  .block-list details.edit > summary { min-height: 44px; display: inline-flex; align-items: center; }
+  .social-row { flex-wrap: wrap; align-items: center; }
+  .social-row .brand-icon { margin-bottom: 0; }
+  .editor .row { flex-wrap: wrap; }
+  .editor [role="tablist"] .btn { flex: 1 1 auto; }
+  .tpl-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .phone { height: 480px; }
+  .page-head .row { width: 100%; }
+}

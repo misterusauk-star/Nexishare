@@ -6,7 +6,7 @@ import { getBrand } from "@/lib/brand";
 import { bioUrl, getDomainState } from "@/lib/domains";
 import { getT } from "@/lib/i18n";
 import { NavLinks, type NavItem } from "@/components/nav";
-import { NavToggle, ThemeToggle } from "@/components/client";
+import { NavClose, NavScrim, NavToggle, ThemeToggle } from "@/components/client";
 import { HelpLink } from "@/components/help-link";
 import { logoutAction } from "@/app/actions/auth";
 import { phase2Enabled } from "@/lib/features";
@@ -37,7 +37,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="shell">
       <a className="skip" href="#main">Skip to content</a>
       <aside className="side" id="side">
-        <Link href="/dashboard" className="brand">{b.logoUrl ? <img src={b.logoUrl} alt={b.name} /> : b.name}</Link>
+        <div className="side-head">
+          <Link href="/dashboard" className="brand">{b.logoUrl ? <img src={b.logoUrl} alt={b.name} /> : b.name}</Link>
+          <NavClose />
+        </div>
         <nav className="nav" aria-label="Main">
           <NavLinks items={nav} />
           <div className="group">More</div>
@@ -58,6 +61,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <form action={logoutAction}><button className="btn btn-sm" style={{ width: "100%" }}>{t("nav.signout")}</button></form>
         </div>
       </aside>
+      <NavScrim />
       <div className="shell-col">
         <div className="topbar"><NavToggle /><span className="brand" style={{ padding: 0 }}>{b.name}</span><span style={{ marginLeft: "auto" }}><HelpLink className="btn btn-ghost btn-sm" /></span></div>
         <main id="main" className="main">

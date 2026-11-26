@@ -48,19 +48,47 @@ export function ThemeToggle() {
   );
 }
 
-/** Mobile drawer toggle: toggles the .open class on the sidebar. */
+/** Mobile drawer state: the .open class on the sidebar is the single source; "nav:set" events change it. */
+function setDrawer(open: boolean) {
+  window.dispatchEvent(new CustomEvent("nav:set", { detail: open }));
+}
+
+/** Mobile drawer toggle (in the top bar). */
 export function NavToggle() {
   const [open, setOpen] = useState(false);
   const path = usePathname();
   useEffect(() => setOpen(false), [path]);
   useEffect(() => {
+    const on = (e: Event) => setOpen(Boolean((e as CustomEvent).detail));
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    window.addEventListener("nav:set", on);
+    window.addEventListener("keydown", key);
+    return () => { window.removeEventListener("nav:set", on); window.removeEventListener("keydown", key); };
+  }, []);
+  useEffect(() => {
     document.getElementById("side")?.classList.toggle("open", open);
+    document.body.classList.toggle("nav-lock", open);
+    return () => document.body.classList.remove("nav-lock");
   }, [open]);
   return (
-    <button type="button" className="btn btn-ghost btn-icon" aria-label={open ? "Close menu" : "Open menu"} aria-expanded={open} onClick={() => setOpen(!open)}>
+    <button type="button" className="btn btn-ghost btn-icon" aria-label={open ? "Close menu" : "Open menu"} aria-expanded={open} aria-controls="side" onClick={() => setDrawer(!open)}>
       {open ? <X className="icon" /> : <Menu className="icon" />}
     </button>
   );
+}
+
+/** Close button inside the drawer (phones and tablets only). */
+export function NavClose() {
+  return (
+    <button type="button" className="btn btn-ghost btn-icon side-close" aria-label="Close menu" onClick={() => setDrawer(false)}>
+      <X className="icon" />
+    </button>
+  );
+}
+
+/** Dimmed area behind the open drawer. Tapping it closes the menu. */
+export function NavScrim() {
+  return <div className="scrim" aria-hidden="true" onClick={() => setDrawer(false)} />;
 }
 
 export interface FormState { errors?: Record<string, string>; message?: string; ok?: boolean }

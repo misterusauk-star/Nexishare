@@ -5,6 +5,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 ## [Unreleased]
 
 ### Changed
+- Phones and tablets: the menu drawer has a Close button, closes on a tap outside, on Escape and after choosing a page, and the page behind no longer scrolls. Docs get a scrolling section strip at the top. In the bio editor, block rows wrap so titles stay readable and every button stays tappable.
 - Account > Email: entering your current email is rejected (no more pointless re-verification), and an email that already belongs to another account says to delete that account first.
 - One email is one account. Signing in with Google with an email that already has an account joins that account (Google verifies the email), so Google and password share one account. Google can also be connected or disconnected from Account > Google sign-in. Disconnect needs a password set; changing the account email disconnects Google.
 - The bio page editor is split into tabs (Content, Profile and look, Social icons, Saved copies) instead of one long page. The preview sits beside the editor on wide screens and is a collapsed panel at the top on phones and tablets (before, it ended up at the bottom). Templates moved into Profile and look.
