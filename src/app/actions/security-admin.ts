@@ -62,6 +62,29 @@ export async function saveEmailPolicyAction(_: FormState, fd: FormData): Promise
   return { ok: true, message: enabled ? "Sign-up is limited to the listed email domains." : "Any email domain can sign up." };
 }
 
+/** The ipinfo.io token that lets country routes work on a host without a CDN. Stored encrypted, never shown again. */
+export async function saveGeoipAction(_: FormState, fd: FormData): Promise<FormState> {
+  const me = await requireAdmin();
+  if (fd.get("clear") === "on") {
+    await setSettings({ geoip_token: "" });
+    await audit(me.id, "geoip.clear");
+    revalidatePath("/admin/security");
+    return { ok: true, message: "Token removed. Country routes now need a CDN header." };
+  }
+  const token = s(fd, "token");
+  if (!token) return { errors: { token: "Paste the token from your ipinfo.io account." } };
+  if (!/^[A-Za-z0-9]{8,64}$/.test(token)) return { errors: { token: "That does not look like an ipinfo.io token (letters and numbers only)." } };
+  try {
+    const res = await fetch(`https://ipinfo.io/8.8.8.8/country?token=${encodeURIComponent(token)}`, { signal: AbortSignal.timeout(5000) });
+    if (res.status === 401 || res.status === 403) return { errors: { token: "ipinfo.io did not accept this token." } };
+    if (res.ok && !/^[A-Z]{2}$/.test((await res.text()).trim())) return { errors: { token: "ipinfo.io answered with something unexpected. Check the token." } };
+  } catch { /* ipinfo.io unreachable from here: save anyway, it is tried again on real visits */ }
+  await setSettings({ geoip_token: encrypt(token) });
+  await audit(me.id, "geoip.save");
+  revalidatePath("/admin/security");
+  return { ok: true, message: "Saved. Country routes now find the visitor's country on their own." };
+}
+
 export async function saveTurnstileAction(_: FormState, fd: FormData): Promise<FormState> {
   const me = await requireAdmin();
   if (fd.get("clear") === "on") {

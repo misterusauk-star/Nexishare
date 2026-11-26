@@ -1,15 +1,17 @@
 import { turnstileKeys, emailPolicy } from "@/lib/security";
+import { geoipToken } from "@/lib/geoip";
 import { siteLimits } from "@/lib/user-limits";
 import { DEFAULT_LIMITS, LIMIT_KEYS, LIMIT_LABELS } from "@/lib/limits";
 import { DEFAULT_ALLOWED_DOMAINS } from "@/lib/email-domains";
 import { ActionForm, Field } from "@/components/client";
-import { saveEmailPolicyAction, saveSiteLimitsAction, saveTurnstileAction } from "@/app/actions/security-admin";
+import { saveEmailPolicyAction, saveGeoipAction, saveSiteLimitsAction, saveTurnstileAction } from "@/app/actions/security-admin";
 
 export const metadata = { title: "Security" };
 export const dynamic = "force-dynamic";
 
 export default async function SecurityPage() {
   const [site, policy, ts] = await Promise.all([siteLimits(), emailPolicy(), turnstileKeys()]);
+  const geoOn = !!(await geoipToken());
   const tsOn = !!(ts.siteKey && ts.secret);
   return (
     <>
@@ -50,6 +52,15 @@ export default async function SecurityPage() {
               <Field label="Site key" name="site_key" defaultValue={ts.siteKey} placeholder="0x4AAAAAAA..." maxLength={80} />
               <Field label="Secret key" name="secret_key" type="password" autoComplete="off" placeholder={ts.secret ? "Saved. Type a new one to replace it." : "0x4AAAAAAA..."} maxLength={120} hint="Stored encrypted and never shown again. You can also set TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY in the environment." />
               <label className="check"><input type="checkbox" name="clear" /> Turn Turnstile off and remove the keys</label>
+            </ActionForm>
+          </section>
+
+          <section className="panel">
+            <h2 className="section-title">Visitor country (country routes)</h2>
+            <p className="small muted">Country routes send visitors from a country to their own page. A host without a CDN does not know the country, so paste a free token from ipinfo.io here. The visitor's address is then sent to ipinfo.io only on links that have country routes, and the answer is remembered for a day. Status: <strong>{geoOn ? "On" : "Off"}</strong>. With a CDN such as Cloudflare you do not need this.</p>
+            <ActionForm action={saveGeoipAction} submit="Save token" pendingLabel="Checking...">
+              <Field label="ipinfo.io token" name="token" type="password" autoComplete="off" placeholder={geoOn ? "Saved. Type a new one to replace it." : "Paste your token"} maxLength={64} hint="Stored encrypted and never shown again. The GEOIP_TOKEN environment variable also works." />
+              <label className="check"><input type="checkbox" name="clear" /> Remove the token</label>
             </ActionForm>
           </section>
 

@@ -191,7 +191,7 @@ Status `201` if at least one link was created, `422` if none. The daily limit co
 ## Country routes, destination health, weekly report (migration 017)
 
 - `GET /links/{id}/geo` lists `[{country, url}]`; `PUT /links/{id}/geo` with `{"routes": [...]}` replaces them (2-letter codes, up to 10, each address checked like a destination; `[]` removes all). Link JSON has `geo`. A country route wins over a device URL.
-- The country comes from a CDN header (Cloudflare, Vercel) or, without a CDN, from `GEOIP_TOKEN` (an ipinfo.io token set on the server). Unknown country = normal destination.
+- The country comes from a CDN header (Cloudflare, Vercel) or, without a CDN, from an ipinfo.io token the administrator saves in Admin > Security (or `GEOIP_TOKEN` in the environment). Unknown country = normal destination.
 - Health: every active link is checked about once a day; two failed checks in a row mark it `broken` and email the owner once. 401/403/405/429 count as working. Link JSON has `health: {status, code, checked_at}`; `GET /links?status=broken` filters; `POST /links/{id}/check` checks now (20/hour) and returns `{status, code}`.
 - `GET/PATCH /account/notifications`: `weekly_report` (Monday summary, off by default) and `health_alerts` (on by default).
 - Without migration 017 these endpoints return 503 with a hint.

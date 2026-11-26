@@ -5,7 +5,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 ## [Unreleased]
 
 ### Added
-- Country routes: send visitors from a country to their own page (link page, `GET/PUT /links/{id}/geo`). The country comes from a CDN header or from `GEOIP_TOKEN` (ipinfo.io) on servers without a CDN.
+- Country routes: send visitors from a country to their own page (link page, `GET/PUT /links/{id}/geo`). The country comes from a CDN header or, on servers without a CDN, from an ipinfo.io token saved in Admin > Security (stored encrypted; `GEOIP_TOKEN` also works).
 - Destination health: links are checked daily, two failures in a row mark a link as not working and email the owner once. Badge in the Links list, filter, Overview "Needs attention", `POST /links/{id}/check`, `health` in the link object.
 - Weekly email report every Monday (opt-in) and broken-link alerts, in Account and `GET/PATCH /account/notifications`.
 - Migration 017 adds `link_geo_routes` and health and report columns.
