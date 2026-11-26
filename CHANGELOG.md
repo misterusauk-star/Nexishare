@@ -11,6 +11,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 - The bio page editor is split into tabs (Content, Profile and look, Social icons, Saved copies) instead of one long page. The preview sits beside the editor on wide screens and is a collapsed panel at the top on phones and tablets (before, it ended up at the bottom). Templates moved into Profile and look.
 
 ### Added
+- Site themes for the super admin (Admin > Settings > Branding): Ledger (default), Ocean, Sand and Graphite. A theme sets the colours, corner radius and heading font of the whole site in light and dark; an accent colour set by hand still wins, and the heading font can be forced. Bio pages keep their own themes. It is an admin setting, so it has no API endpoint. No migration.
 - Limits for the new features, set by the administrator site-wide (Admin > Security) or per account (Admin > Users): country routes per link (10), links with country routes (20) and manual destination checks per hour (20). `GET /account/limits` shows your limits and usage; the API keys page lists them too. Migration 018 adds the per-account columns.
 - Country routes can be set when a link is created (a field in the create form and `geo_routes` in `POST /links`).
 - Country routes: send visitors from a country to their own page (link page, `GET/PUT /links/{id}/geo`). The country comes from a CDN header or, on servers without a CDN, from an ipinfo.io token saved in Admin > Security (stored encrypted; `GEOIP_TOKEN` also works).

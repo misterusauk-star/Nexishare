@@ -1,5 +1,6 @@
 import { getSettings } from "./settings";
 import { getDomainState } from "./domains";
+import { siteThemeById } from "./site-themes";
 
 export interface Brand {
   name: string;
@@ -15,6 +16,10 @@ export interface Brand {
   logoUrl: string;
   faviconUrl: string;
   fontPair: "grotesk" | "serif";
+  /** Id of the site theme picked by the super admin (see site-themes.ts). */
+  siteTheme: string;
+  /** True when an accent colour was set by hand, so it wins over the theme accent. */
+  primaryCustom: boolean;
   footerText: string;
   showCredit: boolean;
 }
@@ -28,7 +33,9 @@ export async function getBrand(): Promise<Brand> {
   const d = await getDomainState();
   const url = d.defaultUrl;
   const host = d.defaultHost;
-  const primary = s.brand_primary || process.env.APP_PRIMARY_COLOR || "#0E7C66";
+  const theme = siteThemeById(s.site_theme);
+  const custom = s.brand_primary || process.env.APP_PRIMARY_COLOR || "";
+  const primary = HEX.test(custom) ? custom : theme.accent;
   const name = s.brand_name || process.env.APP_NAME || "Open Bio";
   return {
     name,
@@ -38,10 +45,12 @@ export async function getBrand(): Promise<Brand> {
     bioHost: d.bioHost,
     host,
     supportEmail: s.brand_support_email || process.env.APP_SUPPORT_EMAIL || "",
-    primary: HEX.test(primary) ? primary : "#0E7C66",
+    primary,
+    primaryCustom: HEX.test(custom),
+    siteTheme: theme.id,
     logoUrl: s.brand_logo_url || "",
     faviconUrl: s.brand_favicon_url || "",
-    fontPair: s.brand_font === "serif" ? "serif" : "grotesk",
+    fontPair: s.brand_font === "serif" ? "serif" : s.brand_font === "grotesk" ? "grotesk" : theme.font,
     footerText: s.brand_footer_text || "",
     showCredit: s.brand_powered_by === "1",
   };

@@ -3,6 +3,7 @@ import { CREDIT } from "@/lib/credit";
 import { getSettings } from "@/lib/settings";
 import { getBrand } from "@/lib/brand";
 import { LANGUAGES } from "@/lib/i18n";
+import { SITE_THEMES, siteThemeById } from "@/lib/site-themes";
 import { ActionForm, Field } from "@/components/client";
 import {
   saveBrandingAction, saveGeneralAction, saveIntegrationsAction, saveLegalAction,
@@ -21,13 +22,30 @@ export default async function Settings() {
       <section className="panel" id="branding">
         <h2 className="section-title">Branding</h2>
         <ActionForm action={saveBrandingAction} submit="Save branding" pendingLabel="Saving...">
+          <fieldset className="site-themes">
+            <legend>Site theme</legend>
+            <p className="small muted">Changes the colours, corners and heading font of the whole site: dashboard, admin, sign-in and public pages. People can still switch between light and dark. Bio pages keep their own themes.</p>
+            <div className="site-theme-grid">
+              {SITE_THEMES.map((t) => (
+                <label key={t.id} className="site-theme">
+                  <input type="radio" name="site_theme" value={t.id} defaultChecked={siteThemeById(s.site_theme).id === t.id} />
+                  <span className="site-theme-sw" style={{ background: t.swatch.bg }} aria-hidden="true">
+                    <span style={{ background: t.swatch.surface, borderColor: t.swatch.ink }} />
+                    <i style={{ background: t.accent }} />
+                  </span>
+                  <span className="site-theme-name">{t.name}</span>
+                  <span className="small muted">{t.note}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
           <div className="cols">
             <Field label="Site name" name="brand_name" defaultValue={s.brand_name ?? ""} placeholder={b.name} />
             <Field label="Tagline" name="brand_tagline" defaultValue={s.brand_tagline ?? ""} placeholder={b.tagline} />
           </div>
           <div className="cols">
             <Field label="Support email" name="brand_support_email" defaultValue={s.brand_support_email ?? ""} placeholder={b.supportEmail} />
-            <Field label="Accent color" name="brand_primary" defaultValue={s.brand_primary ?? ""} placeholder={b.primary} hint="Hex, like #0b6e4f. Check contrast on white." />
+            <Field label="Accent color" name="brand_primary" defaultValue={s.brand_primary ?? ""} placeholder={b.primary} hint="Optional. Leave empty to use the theme accent. Hex, like #0b6e4f; check contrast on white." />
           </div>
           <div className="cols">
             <Field label="Logo URL" name="brand_logo_url" defaultValue={s.brand_logo_url ?? ""} hint="Leave empty to show the site name as text." />
@@ -35,7 +53,8 @@ export default async function Settings() {
           </div>
           <div className="field">
             <label htmlFor="f-brand_font">Heading font</label>
-            <select id="f-brand_font" name="brand_font" className="input" defaultValue={s.brand_font ?? "grotesk"}>
+            <select id="f-brand_font" name="brand_font" className="input" defaultValue={s.brand_font ?? ""}>
+              <option value="">Theme default</option>
               <option value="grotesk">Bricolage Grotesque (sans)</option>
               <option value="serif">Fraunces (serif)</option>
             </select>

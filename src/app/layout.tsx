@@ -34,8 +34,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       lang="en"
       data-theme={theme === "dark" || theme === "light" ? theme : undefined}
       data-fonts={b.fontPair}
+      data-site={b.siteTheme}
       className={`${display.variable} ${text.variable} ${mono.variable} ${serif.variable}`}
-      style={{ "--accent": b.primary } as React.CSSProperties}
+      style={b.primaryCustom ? ({ "--accent": b.primary } as React.CSSProperties) : undefined}
     >
       <body>
         <a href="#main" className="skip">Skip to content</a>

@@ -11,6 +11,7 @@ import { hexColor, emailSchema } from "@/lib/validation";
 import { LANGUAGES } from "@/lib/i18n";
 import { EMAIL_TYPES, sendTestEmail } from "@/lib/email/mailer";
 import type { FormState } from "@/components/client";
+import { SITE_THEMES } from "@/lib/site-themes";
 
 const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const on = (fd: FormData, k: string) => (fd.get(k) ? "1" : "0");
@@ -142,11 +143,12 @@ export async function saveBrandingAction(_: FormState, fd: FormData): Promise<Fo
     brand_logo_url: z.string().trim().max(500),
     brand_favicon_url: z.string().trim().max(500),
     brand_footer_text: z.string().trim().max(300),
-    brand_font: z.enum(["grotesk", "serif"]),
+    brand_font: z.enum(["", "grotesk", "serif"]),
+    site_theme: z.enum(SITE_THEMES.map((t) => t.id) as [string, ...string[]]),
   }).safeParse({
     brand_name: s(fd, "brand_name"), brand_tagline: s(fd, "brand_tagline"), brand_support_email: s(fd, "brand_support_email").toLowerCase(),
     brand_primary: s(fd, "brand_primary"), brand_logo_url: s(fd, "brand_logo_url"), brand_favicon_url: s(fd, "brand_favicon_url"),
-    brand_footer_text: s(fd, "brand_footer_text"), brand_font: s(fd, "brand_font") || "grotesk",
+    brand_footer_text: s(fd, "brand_footer_text"), brand_font: s(fd, "brand_font"), site_theme: s(fd, "site_theme") || "ledger",
   });
   if (!p.success) {
     const errors: Record<string, string> = {};
