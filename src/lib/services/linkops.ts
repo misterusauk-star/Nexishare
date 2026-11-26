@@ -9,7 +9,8 @@ import { ownHostList } from "../domains";
 import { assessDestination } from "./safety";
 import { busiestHour } from "../hours.ts";
 import { classify, isPrivateIp, nextHealth, type CheckResult, type Health } from "../link-health.ts";
-import { parseGeoRoutes, type GeoRoute } from "../geo-routes.ts";
+import { GEO_MAX, parseGeoRoutes, type GeoRoute } from "../geo-routes.ts";
+import { limitsFor } from "../user-limits";
 import { buildReport, isQuietWeek } from "../report.ts";
 import type { Result } from "./links";
 
@@ -19,20 +20,47 @@ export async function getGeoRoutes(linkId: number): Promise<GeoRoute[]> {
   return query<GeoRoute>("SELECT country, url FROM link_geo_routes WHERE link_id = ? ORDER BY country", [linkId]);
 }
 
-/** Replaces all country routes of a link. Every address goes through the same checks as a destination. */
-export async function setGeoRoutes(linkId: number, ownHost: string, input: unknown): Promise<Result<GeoRoute[]>> {
-  const p = parseGeoRoutes(input);
+/**
+ * Checks a list of country routes without saving anything: the format, the account's limits and every address.
+ * `excludeLinkId` is the link being edited, so it is not counted twice against "links with country routes".
+ */
+export async function validateGeoRoutes(userId: number, ownHost: string, input: unknown, excludeLinkId?: number): Promise<Result<GeoRoute[]>> {
+  const cap = await limitsFor(userId);
+  const perLink = cap.unlimited ? GEO_MAX : Math.min(GEO_MAX, cap.values.geo_per_link);
+  const p = parseGeoRoutes(input, perLink);
   if (!p.ok) return { ok: false, errors: { routes: p.error } };
+  if (p.routes.length && !cap.unlimited) {
+    const r = await queryOne<{ n: number }>("SELECT COUNT(*) AS n FROM links WHERE user_id = ? AND has_geo = 1 AND id <> ?", [userId, excludeLinkId ?? 0]).catch(() => null);
+    if (Number(r?.n ?? 0) >= cap.values.geo_links) return { ok: false, errors: { routes: `You can have country routes on ${cap.values.geo_links.toLocaleString("en-US")} links. Remove them from another link first, or ask the administrator to raise the limit.` } };
+  }
   const clean: GeoRoute[] = [];
   for (const r of p.routes) {
     const a = await assessDestination(r.url, ownHost);
     if (!a.ok) return { ok: false, errors: { routes: `${r.country}: ${a.error}` } };
     clean.push({ country: r.country, url: a.url });
   }
-  await exec("DELETE FROM link_geo_routes WHERE link_id = ?", [linkId]);
-  for (const r of clean) await exec("INSERT INTO link_geo_routes (link_id, country, url) VALUES (?, ?, ?)", [linkId, r.country, r.url]);
-  await exec("UPDATE links SET has_geo = ? WHERE id = ?", [clean.length ? 1 : 0, linkId]);
   return { ok: true, data: clean };
+}
+
+/** Saves routes that passed validateGeoRoutes (replaces the old ones). */
+export async function storeGeoRoutes(linkId: number, routes: GeoRoute[]): Promise<void> {
+  await exec("DELETE FROM link_geo_routes WHERE link_id = ?", [linkId]);
+  for (const r of routes) await exec("INSERT INTO link_geo_routes (link_id, country, url) VALUES (?, ?, ?)", [linkId, r.country, r.url]);
+  await exec("UPDATE links SET has_geo = ? WHERE id = ?", [routes.length ? 1 : 0, linkId]);
+}
+
+export async function setGeoRoutes(userId: number, linkId: number, ownHost: string, input: unknown): Promise<Result<GeoRoute[]>> {
+  const v = await validateGeoRoutes(userId, ownHost, input, linkId);
+  if (!v.ok) return v;
+  await storeGeoRoutes(linkId, v.data);
+  return v;
+}
+
+/** What an account uses and may use for country routes and manual checks. */
+export async function geoUsage(userId: number): Promise<{ links_with_routes: number; routes_per_link_limit: number; links_with_routes_limit: number | null }> {
+  const cap = await limitsFor(userId);
+  const r = await queryOne<{ n: number }>("SELECT COUNT(*) AS n FROM links WHERE user_id = ? AND has_geo = 1", [userId]).catch(() => null);
+  return { links_with_routes: Number(r?.n ?? 0), routes_per_link_limit: cap.unlimited ? GEO_MAX : Math.min(GEO_MAX, cap.values.geo_per_link), links_with_routes_limit: cap.unlimited ? null : cap.values.geo_links };
 }
 
 /* ---------- Destination health ---------- */

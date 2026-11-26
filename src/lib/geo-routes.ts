@@ -1,13 +1,14 @@
 // Country routes of a link: pure rules, no database.
 
-export const GEO_MAX = 10;
+/** Hard ceiling. The number an account may actually use is its "country routes per link" limit (10 by default). */
+export const GEO_MAX = 50;
 export interface GeoRoute { country: string; url: string }
 
 /**
  * Reads a list of country routes from an array of {country, url} or from text with one route per line ("PK https://example.com/pk").
  * Country codes are two letters (ISO 3166-1 alpha-2) and are stored in capitals. A repeated country is an error.
  */
-export function parseGeoRoutes(input: unknown): { ok: true; routes: GeoRoute[] } | { ok: false; error: string } {
+export function parseGeoRoutes(input: unknown, max = GEO_MAX): { ok: true; routes: GeoRoute[] } | { ok: false; error: string } {
   let items: { country: unknown; url: unknown }[];
   if (Array.isArray(input)) {
     items = input.map((x) => (x && typeof x === "object" ? (x as { country: unknown; url: unknown }) : { country: null, url: null }));
@@ -26,7 +27,7 @@ export function parseGeoRoutes(input: unknown): { ok: true; routes: GeoRoute[] }
     if (routes.some((r) => r.country === country)) return { ok: false, error: `${country} is listed twice.` };
     routes.push({ country, url });
   }
-  if (routes.length > GEO_MAX) return { ok: false, error: `Use at most ${GEO_MAX} countries per link.` };
+  if (routes.length > max) return { ok: false, error: `Your limit is ${max} countr${max === 1 ? "y" : "ies"} per link.` };
   return { ok: true, routes };
 }
 

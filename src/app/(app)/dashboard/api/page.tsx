@@ -31,7 +31,7 @@ export default async function ApiPage() {
         </div>
       </div>
       <p className="small muted" style={{ marginBottom: 24 }}>
-        {lim.unlimited ? "Your account has no usage limits." : <>Your limits: <span className="num">{nf(lim.values.api_per_minute)}</span> requests per minute per key, <span className="num">{nf(lim.values.api_per_day)}</span> per day, <span className="num">{nf(lim.values.max_api_keys)}</span> active keys, and <span className="num">{nf(used)}</span> of <span className="num">{nf(lim.values.max_links)}</span> links used. Ask the administrator if you need more.</>}
+        {lim.unlimited ? "Your account has no usage limits." : <>Your limits: <span className="num">{nf(lim.values.api_per_minute)}</span> requests per minute per key, <span className="num">{nf(lim.values.api_per_day)}</span> per day, <span className="num">{nf(lim.values.max_api_keys)}</span> active keys, and <span className="num">{nf(used)}</span> of <span className="num">{nf(lim.values.max_links)}</span> links used. Country routes: up to <span className="num">{nf(lim.values.geo_per_link)}</span> countries per link on up to <span className="num">{nf(lim.values.geo_links)}</span> links. Manual destination checks: <span className="num">{nf(lim.values.health_checks_per_hour)}</span> per hour. Ask the administrator if you need more. The same numbers, with your usage, are at <code>GET /account/limits</code>.</>}
       </p>
       <div className="cols" style={{ gridTemplateColumns: "minmax(0, 6fr) minmax(0, 4fr)", alignItems: "start" }}>
         <section>

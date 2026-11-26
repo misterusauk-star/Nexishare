@@ -1,13 +1,16 @@
 // Pure usage-limit rules (no DB). Defaults are deliberately low; an administrator raises them globally or per user.
-export type LimitKey = "api_per_minute" | "api_per_day" | "max_links" | "max_api_keys";
+export type LimitKey = "api_per_minute" | "api_per_day" | "max_links" | "max_api_keys" | "geo_per_link" | "geo_links" | "health_checks_per_hour";
 
-export const LIMIT_KEYS: LimitKey[] = ["api_per_minute", "api_per_day", "max_links", "max_api_keys"];
+export const LIMIT_KEYS: LimitKey[] = ["api_per_minute", "api_per_day", "max_links", "max_api_keys", "geo_per_link", "geo_links", "health_checks_per_hour"];
 
 export const DEFAULT_LIMITS: Record<LimitKey, number> = {
   api_per_minute: 20,
   api_per_day: 1000,
   max_links: 100,
   max_api_keys: 3,
+  geo_per_link: 10,
+  geo_links: 20,
+  health_checks_per_hour: 20,
 };
 
 export const LIMIT_BOUNDS: Record<LimitKey, [number, number]> = {
@@ -15,6 +18,9 @@ export const LIMIT_BOUNDS: Record<LimitKey, [number, number]> = {
   api_per_day: [1, 10_000_000],
   max_links: [1, 10_000_000],
   max_api_keys: [1, 100],
+  geo_per_link: [1, 50],
+  geo_links: [1, 100_000],
+  health_checks_per_hour: [1, 1000],
 };
 
 export const LIMIT_LABELS: Record<LimitKey, string> = {
@@ -22,6 +28,9 @@ export const LIMIT_LABELS: Record<LimitKey, string> = {
   api_per_day: "API requests per day, per account",
   max_links: "Total links per account",
   max_api_keys: "Active API keys per account",
+  geo_per_link: "Country routes per link",
+  geo_links: "Links with country routes, per account",
+  health_checks_per_hour: "Manual destination checks per hour",
 };
 
 /** Admin input: empty means "use the default" (null). Anything else must be a whole number inside the bounds. */

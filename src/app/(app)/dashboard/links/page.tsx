@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
+import { geoUsage } from "@/lib/services/linkops";
 import { query } from "@/lib/db";
 import { getBrand } from "@/lib/brand";
 import { getDomainState, linkUrl, linkHost } from "@/lib/domains";
@@ -18,6 +19,7 @@ import { SearchHotkey } from "@/components/search-hotkey";
 
 export default async function LinksPage({ searchParams }: { searchParams: Promise<{ q?: string; status?: string; tag?: string; page?: string }> }) {
   const user = await requireUser();
+  const geoUse = await geoUsage(user.id).catch(() => null);
   const sp = await searchParams;
   const b = await getBrand();
   const st = await getDomainState();
@@ -59,6 +61,11 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
             <Field label="Expires (UTC)" name="expires_at" type="datetime-local" hint="Leave empty for no expiry." />
           </div>
           <Field label="Click limit" name="max_clicks" type="number" min={1} max={1000000000} inputMode="numeric" placeholder="Unlimited" hint="Optional. After this many visits the link behaves as expired." />
+            <details className="utm">
+              <summary className="small link-like">Country routes (optional)</summary>
+              <p className="small muted">Send visitors from a country to their own page. Everyone else goes to the destination above.{geoUse ? ` Up to ${geoUse.routes_per_link_limit} countries per link${geoUse.links_with_routes_limit != null ? `, on up to ${geoUse.links_with_routes_limit.toLocaleString("en-US")} links (${geoUse.links_with_routes.toLocaleString("en-US")} used)` : ""}.` : ""}</p>
+              <Field label="Routes" name="geo_routes" textarea rows={3} placeholder={"PK https://example.com/pk\nUS https://example.com/us"} hint="One per line: a two-letter country code, a space, a web address." />
+            </details>
             <details className="utm">
               <summary className="small link-like">Different destinations by device (optional)</summary>
               <p className="small muted">Send visitors on iPhone, Android, Windows, Mac or Linux to their own page, for example an app store listing or a download page, and choose where an expired link goes instead of the expired notice.</p>

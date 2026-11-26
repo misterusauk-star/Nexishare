@@ -39,6 +39,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
   { group: "Bio page", method: "DELETE", path: "/page/snapshots/{id}", summary: "Delete a saved copy", doc: "subscribers" },
   { group: "Bio page", method: "GET", path: "/page/templates", summary: "Ready-made templates and social platforms", doc: "templates" },
   { group: "Bio page", method: "POST", path: "/page/template", summary: "Apply a template to your page", doc: "templates" },
+  { group: "Account", method: "GET", path: "/account/limits", summary: "Your limits and how much you use", doc: "account-limits" },
   { group: "Account", method: "GET", path: "/account/notifications", summary: "Weekly report and broken-link alert settings", doc: "notifications" },
   { group: "Account", method: "PATCH", path: "/account/notifications", summary: "Turn the weekly report or alerts on or off", doc: "notifications" },
   { group: "Account", method: "GET", path: "/domains", summary: "The domains you can put links on", doc: "domains" },

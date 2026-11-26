@@ -77,6 +77,7 @@ Limits are low by default: **20 requests per minute per key**, **1,000 requests 
 | GET | `/page/templates` | The ready-made templates and the social platforms you can set |
 | GET, PUT | `/links/{id}/geo` | Country routes of a link |
 | POST | `/links/{id}/check` | Check the destination now |
+| GET | `/account/limits` | Your limits and usage |
 | GET, PATCH | `/account/notifications` | Weekly report and broken-link alerts |
 | GET | `/page/subscribers` | Emails from signup blocks (`?format=csv` for a file) |
 | DELETE | `/page/subscribers/{id}` | Remove one address |
@@ -192,6 +193,8 @@ Status `201` if at least one link was created, `422` if none. The daily limit co
 
 - `GET /links/{id}/geo` lists `[{country, url}]`; `PUT /links/{id}/geo` with `{"routes": [...]}` replaces them (2-letter codes, up to 10, each address checked like a destination; `[]` removes all). Link JSON has `geo`. A country route wins over a device URL.
 - The country comes from a CDN header (Cloudflare, Vercel) or, without a CDN, from an ipinfo.io token the administrator saves in Admin > Security (or `GEOIP_TOKEN` in the environment). Unknown country = normal destination.
+- Limits (admin can change them site-wide or per account): 10 countries per link and 20 links with country routes by default; 20 manual checks per hour. `POST /links` also accepts `geo_routes` (same list). Over a limit: 422 (routes) or 429 (checks) naming it.
+- `GET /account/limits` returns your limits with usage: request limits, links, keys, `country_routes_per_link`, `links_with_country_routes`, `manual_checks_per_hour` (`null` = no limit).
 - Health: every active link is checked about once a day; two failed checks in a row mark it `broken` and email the owner once. 401/403/405/429 count as working. Link JSON has `health: {status, code, checked_at}`; `GET /links?status=broken` filters; `POST /links/{id}/check` checks now (20/hour) and returns `{status, code}`.
 - `GET/PATCH /account/notifications`: `weekly_report` (Monday summary, off by default) and `health_alerts` (on by default).
 - Without migration 017 these endpoints return 503 with a hint.

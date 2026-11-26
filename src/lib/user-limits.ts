@@ -21,20 +21,17 @@ export async function saveSiteLimits(values: Record<LimitKey, number | null>): P
   await setSettings(rows);
 }
 
-type UserLimitRow = { role: "super_admin" | "user"; limit_api_per_minute: number | null; limit_api_per_day: number | null; limit_max_links: number | null; limit_max_api_keys: number | null };
+/** The override columns of a users row as a map. A column that does not exist yet (migration 013 or 018 not applied) reads as no override. */
+export function overridesFromRow(r: Record<string, unknown> | null | undefined): Record<LimitKey, number | null> {
+  const out = {} as Record<LimitKey, number | null>;
+  for (const k of LIMIT_KEYS) { const v = Number(r?.[`limit_${k}`]); out[k] = Number.isFinite(v) && v > 0 ? v : null; }
+  return out;
+}
 
-/** Per-user overrides (NULL = none). Falls back to no overrides when migration 013 has not been applied yet. */
+/** Per-user overrides (NULL = none). */
 export async function userOverrides(userId: number): Promise<{ role: "super_admin" | "user"; values: Record<LimitKey, number | null> }> {
-  try {
-    const r = await queryOne<UserLimitRow>("SELECT role, limit_api_per_minute, limit_api_per_day, limit_max_links, limit_max_api_keys FROM users WHERE id = ?", [userId]);
-    return {
-      role: r?.role ?? "user",
-      values: { api_per_minute: r?.limit_api_per_minute ?? null, api_per_day: r?.limit_api_per_day ?? null, max_links: r?.limit_max_links ?? null, max_api_keys: r?.limit_max_api_keys ?? null },
-    };
-  } catch {
-    const r = await queryOne<{ role: "super_admin" | "user" }>("SELECT role FROM users WHERE id = ?", [userId]).catch(() => null);
-    return { role: r?.role ?? "user", values: { api_per_minute: null, api_per_day: null, max_links: null, max_api_keys: null } };
-  }
+  const r = await queryOne<Record<string, unknown> & { role: "super_admin" | "user" }>("SELECT * FROM users WHERE id = ?", [userId]).catch(() => null);
+  return { role: r?.role ?? "user", values: overridesFromRow(r) };
 }
 
 export interface UserLimits { values: Record<LimitKey, number>; unlimited: boolean }
@@ -58,10 +55,15 @@ export async function limitsFor(userId: number): Promise<UserLimits> {
 export const forgetLimits = (userId?: number) => { if (userId === undefined) cache.clear(); else cache.delete(userId); };
 
 export async function saveUserOverrides(userId: number, values: Record<LimitKey, number | null>): Promise<void> {
-  await exec(
-    "UPDATE users SET limit_api_per_minute = ?, limit_api_per_day = ?, limit_max_links = ?, limit_max_api_keys = ? WHERE id = ?",
-    [values.api_per_minute, values.api_per_day, values.max_links, values.max_api_keys, userId],
-  );
+  try {
+    await exec(
+      "UPDATE users SET limit_api_per_minute = ?, limit_api_per_day = ?, limit_max_links = ?, limit_max_api_keys = ?, limit_geo_per_link = ?, limit_geo_links = ?, limit_health_checks_per_hour = ? WHERE id = ?",
+      [values.api_per_minute, values.api_per_day, values.max_links, values.max_api_keys, values.geo_per_link, values.geo_links, values.health_checks_per_hour, userId],
+    );
+  } catch {
+    // Migration 018 has not run yet: save the original four so nothing is lost.
+    await exec("UPDATE users SET limit_api_per_minute = ?, limit_api_per_day = ?, limit_max_links = ?, limit_max_api_keys = ? WHERE id = ?", [values.api_per_minute, values.api_per_day, values.max_links, values.max_api_keys, userId]);
+  }
   forgetLimits(userId);
 }
 

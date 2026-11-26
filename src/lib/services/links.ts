@@ -15,6 +15,7 @@ import { resolveSchedule } from "../duration";
 import { clicksExhausted, MAX_CLICK_LIMIT } from "../click-limit";
 import { firstDeviceUrl } from "../smart-link";
 import { countLinks, limitsFor } from "../user-limits";
+import { storeGeoRoutes, validateGeoRoutes } from "./linkops";
 import { addTag, cleanTagFilter, parseTags, removeTag, tagsFromColumn, tagsToColumn } from "../tags";
 
 export type Result<T> = { ok: true; data: T } | { ok: false; errors: Record<string, string> };
@@ -179,6 +180,16 @@ export async function createLink(userId: number, ownHost: string, raw: unknown):
   if (!dom.ok) return { ok: false, errors: { domain_id: dom.error } };
   const extras = await checkExtras(v, ownHost);
   if (!extras.ok) return { ok: false, errors: extras.errors };
+  // Country routes are checked before anything is created, so a bad route does not leave a half-made link behind.
+  const wantsGeo = raw && typeof raw === "object" && "geo_routes" in raw && !(Array.isArray((raw as { geo_routes: unknown }).geo_routes) && (raw as { geo_routes: unknown[] }).geo_routes.length === 0) && (raw as { geo_routes: unknown }).geo_routes !== "";
+  let geoClean: { country: string; url: string }[] = [];
+  if (wantsGeo) {
+    try {
+      const g = await validateGeoRoutes(userId, ownHost, (raw as { geo_routes: unknown }).geo_routes);
+      if (!g.ok) return { ok: false, errors: { geo_routes: g.errors.routes } };
+      geoClean = g.data;
+    } catch { return { ok: false, errors: { geo_routes: "Country routes need a database update. The administrator can press Run database updates in Admin > Domains." } }; }
+  }
   // Universal link: no destination of its own, only device URLs. The first device URL is stored as the base destination.
   const deviceUrl = firstDeviceUrl(extras.urls as never);
   const universal = !v.target_url && !!deviceUrl;
@@ -222,6 +233,7 @@ export async function createLink(userId: number, ownHost: string, raw: unknown):
     }
   }
   invalidateSlug(slug);
+  if (geoClean.length) await storeGeoRoutes(res.insertId, geoClean).catch(() => undefined);
   const row = await queryOne<LinkRow>("SELECT * FROM links WHERE id = ?", [res.insertId]);
   return { ok: true, data: row! };
 }

@@ -286,6 +286,7 @@ export default async function Docs() {
           <a href="#subscribers">Signups, polls, copies</a>
           <a href="#templates">Templates and icons</a>
           <span className="nav-group">Account and extras</span>
+          <a href="#account-limits">Your limits</a>
           <a href="#notifications">Report and alerts</a>
           <a href="#domains">Domains</a>
           <a href="#keys-qr-export">Keys, QR and export</a>
@@ -798,7 +799,7 @@ curl -X POST ${base}/page/snapshots/3/restore -H "Authorization: Bearer ob_your_
 
           <section id="geo">
             <h2>Country routes</h2>
-            <p>Send visitors from a country to their own page and everyone else to the normal destination. <code>GET /links/{"{id}"}/geo</code> returns <code>[{"{ \"country\": \"PK\", \"url\": ... }"}]</code>. <code>PUT /links/{"{id}"}/geo</code> replaces the whole list: <code>{"{ \"routes\": [{ \"country\": \"PK\", \"url\": \"https://example.com/pk\" }] }"}</code>. Two-letter codes, up to 10 countries, each address checked like a destination. An empty list removes all. The link object has <code>geo: true</code> when it has routes. A country route wins over a device destination.</p>
+            <p>Send visitors from a country to their own page and everyone else to the normal destination. <code>GET /links/{"{id}"}/geo</code> returns <code>[{"{ \"country\": \"PK\", \"url\": ... }"}]</code>. <code>PUT /links/{"{id}"}/geo</code> replaces the whole list: <code>{"{ \"routes\": [{ \"country\": \"PK\", \"url\": \"https://example.com/pk\" }] }"}</code>. Two-letter codes, up to 10 countries per link by default (your limit), on up to 20 links by default; each address is checked like a destination. You can also send <code>geo_routes</code> (the same list) when you create a link with <code>POST /links</code>. An empty list removes all. The link object has <code>geo: true</code> when it has routes. A country route wins over a device destination.</p>
             <Code>{`curl -X PUT ${base}/links/12/geo -H "Authorization: Bearer ob_your_key" -H "Content-Type: application/json" \\
   -d '{ "routes": [{ "country": "PK", "url": "https://example.com/pk" }, { "country": "US", "url": "https://example.com/us" }] }'`}</Code>
             <p className="small muted">The visitor's country comes from a CDN header (Cloudflare, Vercel) or, on a server without a CDN, from a free ipinfo.io token the administrator saves in Admin &gt; Security (or sets as <code>GEOIP_TOKEN</code>): the visitor's address is then sent to ipinfo.io once and remembered for a day. When the country is unknown the normal destination is used. Needs migration 017.</p>
@@ -806,7 +807,13 @@ curl -X POST ${base}/page/snapshots/3/restore -H "Authorization: Bearer ob_your_
 
           <section id="health">
             <h2>Destination health</h2>
-            <p>Every active link is checked about once a day. A destination that answers with 404, 410 or a server error, or that no longer exists, is marked <code>broken</code> after <strong>two failed checks in a row</strong>, and the owner gets one email. Sites that only refuse automated visits (401, 403, 405, 429) count as working. The link object has <code>health</code>: <code>{"{ \"status\": \"ok\" | \"broken\" | null, \"code\": 404, \"checked_at\": ... }"}</code>. Filter with <code>GET /links?status=broken</code>. <code>POST /links/{"{id}"}/check</code> checks now (20 per hour) and returns <code>status</code> and <code>code</code>. Changing the destination resets the record. Private and internal addresses are never visited. Needs migration 017.</p>
+            <p>Every active link is checked about once a day. A destination that answers with 404, 410 or a server error, or that no longer exists, is marked <code>broken</code> after <strong>two failed checks in a row</strong>, and the owner gets one email. Sites that only refuse automated visits (401, 403, 405, 429) count as working. The link object has <code>health</code>: <code>{"{ \"status\": \"ok\" | \"broken\" | null, \"code\": 404, \"checked_at\": ... }"}</code>. Filter with <code>GET /links?status=broken</code>. <code>POST /links/{"{id}"}/check</code> checks now (20 per hour by default) and returns <code>status</code> and <code>code</code>. Changing the destination resets the record. Private and internal addresses are never visited. Needs migration 017.</p>
+          </section>
+
+          <section id="account-limits">
+            <h2>Your limits</h2>
+            <p><code>GET /account/limits</code> shows what your account may do and how much it uses: API requests per minute (per key) and per day, links, active keys, country routes per link and links with country routes, and manual destination checks per hour. Bulk create takes 50 links, bulk actions 200. A limit of <code>null</code> means no limit. Going over one answers <code>422</code> or <code>429</code> with a message that names it. The administrator sets site-wide values and can override them per account (Admin &gt; Security, Admin &gt; Users).</p>
+            <Code>{`curl ${base}/account/limits -H "Authorization: Bearer ob_your_key"`}</Code>
           </section>
 
           <section id="notifications">

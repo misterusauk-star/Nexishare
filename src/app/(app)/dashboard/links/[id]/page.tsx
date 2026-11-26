@@ -9,7 +9,7 @@ import { deviceRoutes } from "@/lib/smart-link";
 import { BarList, StatRow, TimeSeries } from "@/components/charts";
 import { QrPanel } from "@/components/qr-panel";
 import { checkHealthAction, duplicateLinkAction, saveGeoAction, updateLinkAction } from "@/app/actions/app";
-import { getGeoRoutes } from "@/lib/services/linkops";
+import { geoUsage, getGeoRoutes } from "@/lib/services/linkops";
 import { geoToText } from "@/lib/geo-routes.ts";
 import { timeAgo } from "@/lib/time-ago";
 import { geoipToken } from "@/lib/geoip";
@@ -30,6 +30,7 @@ export default async function LinkDetail({ params, searchParams }: { params: Pro
   const short = linkUrl(st, link.domain_id, link.slug);
   const geo = link.has_geo ? await getGeoRoutes(link.id).catch(() => []) : [];
   const geoOn = !!(await geoipToken());
+  const geoUse = await geoUsage(link.user_id).catch(() => null);
   const geoSource = geoOn ? "the visitor's address (looked up at ipinfo.io, or taken from a CDN header when there is one)" : "a CDN header such as Cloudflare's";
   return (
     <>
@@ -117,7 +118,7 @@ export default async function LinkDetail({ params, searchParams }: { params: Pro
             </>
           )}
           <div className="section-title" style={{ marginTop: 32 }}><h2>Country routes</h2></div>
-          <p className="small muted">Send visitors from a country to their own page, for example a local shop. Everyone else goes to the normal destination. A country route wins over a device destination. The country comes from {geoSource}. When it cannot be found, visitors get the normal destination.{!geoOn && " Country detection is not set up on this server yet: the administrator can add a token in Admin > Security."}</p>
+          <p className="small muted">Send visitors from a country to their own page, for example a local shop. Everyone else goes to the normal destination. A country route wins over a device destination. The country comes from {geoSource}. When it cannot be found, visitors get the normal destination.{!geoOn && " Country detection is not set up on this server yet: the administrator can add a token in Admin > Security."}{geoUse && ` Your limits: ${geoUse.routes_per_link_limit} countries per link${geoUse.links_with_routes_limit != null ? `, country routes on ${geoUse.links_with_routes_limit.toLocaleString("en-US")} links (${geoUse.links_with_routes.toLocaleString("en-US")} used)` : ""}.`}</p>
           <ActionForm action={saveGeoAction.bind(null, link.id)} submit="Save country routes" pendingLabel="Saving...">
             <Field label="Routes" name="routes" textarea rows={4} defaultValue={geoToText(geo)} placeholder={"PK https://example.com/pk\nUS https://example.com/us"} hint="One per line: a two-letter country code, a space, a web address. Up to 10. Leave empty to remove all." />
           </ActionForm>

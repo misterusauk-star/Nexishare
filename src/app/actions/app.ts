@@ -74,6 +74,7 @@ export async function createLinkAction(_: FormState, fd: FormData): Promise<Form
     max_clicks: s(fd, "max_clicks") || null,
     ios_url: s(fd, "ios_url"), android_url: s(fd, "android_url"), windows_url: s(fd, "windows_url"), mac_url: s(fd, "mac_url"), linux_url: s(fd, "linux_url"), expired_url: s(fd, "expired_url"),
     utm_source: s(fd, "utm_source"), utm_medium: s(fd, "utm_medium"), utm_campaign: s(fd, "utm_campaign"),
+    geo_routes: s(fd, "geo_routes"),
   });
   if (!r.ok) return fail(r.errors);
   revalidatePath("/dashboard/links");
@@ -107,7 +108,7 @@ export async function saveGeoAction(id: number, _: FormState, fd: FormData): Pro
   const link = await getLinkForUser(u.id, id, u.role === "super_admin");
   if (!link) return fail({ form: "Link not found." });
   try {
-    const r = await setGeoRoutes(id, b.host, s(fd, "routes"));
+    const r = await setGeoRoutes(u.id, id, b.host, s(fd, "routes"));
     if (!r.ok) return fail(r.errors);
     invalidateSlug(link.slug);
     revalidatePath(`/dashboard/links/${id}`);
@@ -118,7 +119,8 @@ export async function saveGeoAction(id: number, _: FormState, fd: FormData): Pro
 /** "Check now" for the destination of a link. */
 export async function checkHealthAction(id: number): Promise<void> {
   const u = await requireUser();
-  if (!(await rateLimit(`health:${u.id}`, 20, 3600))) return;
+  const cap = await limitsFor(u.id);
+  if (!cap.unlimited && !(await rateLimit(`health:${u.id}`, cap.values.health_checks_per_hour, 3600))) return;
   const link = await getLinkForUser(u.id, id, u.role === "super_admin");
   if (link) await checkOneLink(id).catch(() => null);
   revalidatePath(`/dashboard/links/${id}`);

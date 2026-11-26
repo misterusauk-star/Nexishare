@@ -34,7 +34,7 @@ export async function PUT(req: Request, ctx: Ctx) {
   const body = await jsonBody(req);
   if (!body || !("routes" in body)) return apiError(400, 'Send {"routes": [{"country": "PK", "url": "https://..."}]}.');
   try {
-    const r = await setGeoRoutes(l.link.id, (await getBrand()).host, body.routes);
+    const r = await setGeoRoutes(l.link.user_id, l.link.id, (await getBrand()).host, body.routes);
     if (!r.ok) return apiError(422, "Validation failed.", { fields: r.errors });
     invalidateSlug(l.link.slug);
     return NextResponse.json({ data: r.data });

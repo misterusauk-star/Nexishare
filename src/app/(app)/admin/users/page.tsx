@@ -4,7 +4,7 @@ import { query, queryOne } from "@/lib/db";
 import { bioUrl, getDomainState } from "@/lib/domains";
 import { ActionButton, ActionForm, ConfirmButton, Field } from "@/components/client";
 import { DEFAULT_LIMITS, LIMIT_KEYS, LIMIT_LABELS, type LimitKey } from "@/lib/limits";
-import { siteLimits } from "@/lib/user-limits";
+import { overridesFromRow, siteLimits } from "@/lib/user-limits";
 import { deleteUserAction, setUserRoleAction, setUserStatusAction } from "@/app/actions/admin";
 import { saveUserLimitsAction } from "@/app/actions/security-admin";
 
@@ -37,10 +37,8 @@ export default async function Users({ searchParams }: { searchParams: Promise<{ 
   if (rows.length) {
     try {
       const ids = rows.map((r) => r.id);
-      const got = await query<{ id: number; a: number | null; b: number | null; c: number | null; d: number | null }>(
-        `SELECT id, limit_api_per_minute AS a, limit_api_per_day AS b, limit_max_links AS c, limit_max_api_keys AS d FROM users WHERE id IN (${ids.map(() => "?").join(",")})`, ids,
-      );
-      for (const g of got) own.set(g.id, { api_per_minute: g.a, api_per_day: g.b, max_links: g.c, max_api_keys: g.d });
+      const got = await query<Record<string, unknown> & { id: number }>(`SELECT * FROM users WHERE id IN (${ids.map(() => "?").join(",")})`, ids);
+      for (const g of got) own.set(g.id, overridesFromRow(g));
     } catch { /* migration 013 not applied */ }
   }
   const q = encodeURIComponent(sp.q ?? "");

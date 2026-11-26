@@ -12,8 +12,11 @@ test("parseGeoRoutes reads text and arrays", () => {
   assert.equal(parseGeoRoutes("PK https://a.com\nPK https://b.com").ok, false);
   assert.equal(parseGeoRoutes("PK").ok, false);
   assert.equal(parseGeoRoutes(5).ok, false);
-  const many = Array.from({ length: GEO_MAX + 1 }, (_, i) => ({ country: "A" + String.fromCharCode(65 + i), url: "https://a.com" }));
+  const many = Array.from({ length: GEO_MAX + 1 }, (_, i) => ({ country: String.fromCharCode(65 + Math.floor(i / 26)) + String.fromCharCode(65 + (i % 26)), url: "https://a.com" }));
   assert.equal(parseGeoRoutes(many).ok, false);
+  assert.ok(parseGeoRoutes(many.slice(0, GEO_MAX)).ok);
+  const three = parseGeoRoutes(many.slice(0, 3), 2);
+  assert.ok(!three.ok && three.error.includes("limit is 2 countries"));
   assert.ok(parseGeoRoutes("").ok);
 });
 test("pickGeo and geoToText", () => {
@@ -68,4 +71,18 @@ test("report text", () => {
   assert.ok(r.paragraphs.some((p) => p.includes("1 link points to a page")));
   assert.equal(isQuietWeek({ ...d, clicks: 0, previousClicks: 0 }), true);
   assert.equal(isQuietWeek(d), false);
+});
+
+import { DEFAULT_LIMITS, LIMIT_KEYS, LIMIT_BOUNDS, LIMIT_LABELS, effectiveLimit, parseLimit } from "../src/lib/limits.ts";
+test("new limits have defaults, bounds, labels and parse like the others", () => {
+  for (const k of ["geo_per_link", "geo_links", "health_checks_per_hour"] as const) {
+    assert.ok(LIMIT_KEYS.includes(k));
+    assert.ok(LIMIT_LABELS[k].length > 5);
+    assert.ok(DEFAULT_LIMITS[k] >= LIMIT_BOUNDS[k][0] && DEFAULT_LIMITS[k] <= LIMIT_BOUNDS[k][1]);
+    assert.equal(parseLimit(k, "").ok, true);
+    assert.equal(parseLimit(k, String(LIMIT_BOUNDS[k][1] + 1)).ok, false);
+  }
+  assert.equal(effectiveLimit("geo_per_link", null, null), 10);
+  assert.equal(effectiveLimit("geo_per_link", 3, 5), 3);
+  assert.equal(effectiveLimit("geo_links", null, 7), 7);
 });

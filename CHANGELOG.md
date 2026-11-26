@@ -8,6 +8,8 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 - The bio page editor is split into tabs (Content, Profile and look, Social icons, Saved copies) instead of one long page. The preview sits beside the editor on wide screens and is a collapsed panel at the top on phones and tablets (before, it ended up at the bottom). Templates moved into Profile and look.
 
 ### Added
+- Limits for the new features, set by the administrator site-wide (Admin > Security) or per account (Admin > Users): country routes per link (10), links with country routes (20) and manual destination checks per hour (20). `GET /account/limits` shows your limits and usage; the API keys page lists them too. Migration 018 adds the per-account columns.
+- Country routes can be set when a link is created (a field in the create form and `geo_routes` in `POST /links`).
 - Country routes: send visitors from a country to their own page (link page, `GET/PUT /links/{id}/geo`). The country comes from a CDN header or, on servers without a CDN, from an ipinfo.io token saved in Admin > Security (stored encrypted; `GEOIP_TOKEN` also works).
 - Destination health: links are checked daily, two failures in a row mark a link as not working and email the owner once. Badge in the Links list, filter, Overview "Needs attention", `POST /links/{id}/check`, `health` in the link object.
 - Weekly email report every Monday (opt-in) and broken-link alerts, in Account and `GET/PATCH /account/notifications`.
