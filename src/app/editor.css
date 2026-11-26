@@ -1,8 +1,9 @@
 /* Dashboard editors: bio blocks, theme picker, QR panel. Ruled lists, no card shadows. */
-.editor { grid-template-columns: minmax(0, 6fr) minmax(0, 5fr) 320px; }
-.editor .preview-col { order: 3; position: sticky; top: 16px; }
-@media (max-width: 1200px) { .editor { grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); } .editor .preview-col { grid-column: 1 / -1; position: static; } }
-@media (max-width: 960px) { .editor { grid-template-columns: 1fr; } }
+.editor { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 48px; align-items: start; }
+.editor .editor-main { min-width: 0; }
+.editor .preview-col { position: sticky; top: 16px; }
+.stack-lg { display: grid; gap: 48px; }
+@media (max-width: 1100px) { .editor { grid-template-columns: minmax(0, 1fr); gap: 16px; } .editor .preview-col { order: -1; position: static; } }
 
 /* Live preview of the public page inside a phone-sized frame */
 .preview-box > summary { cursor: pointer; font: 650 20px var(--font-display); letter-spacing: -0.025em; min-height: 44px; display: flex; align-items: center; gap: 12px; }
