@@ -362,9 +362,10 @@ export async function changeEmailAction(_: FormState, fd: FormData): Promise<For
   if (!e.success) return fail({ email: e.error.issues[0].message });
   const row = await queryOne<{ password_hash: string | null }>("SELECT password_hash FROM users WHERE id = ?", [u.id]);
   if (row?.password_hash && !(await verifyPassword(s(fd, "password"), row.password_hash))) return fail({ password: "That password is not right." });
+  if (e.data.toLowerCase() === u.email.toLowerCase()) return fail({ email: "This is already your email. Enter a different one." });
   const domainError = await emailDomainError(e.data);
   if (domainError) return fail({ email: domainError });
-  if (await queryOne("SELECT id FROM users WHERE email = ? AND id <> ?", [e.data, u.id])) return fail({ email: "That email is already in use." });
+  if (await queryOne("SELECT id FROM users WHERE email = ? AND id <> ?", [e.data, u.id])) return fail({ email: "This email already has another account. Delete that account first (sign in to it, Account > Delete account), then use the email here." });
   // A linked Google account belongs to the old address, so it is disconnected when the email changes.
   await exec("UPDATE users SET email = ?, email_verified_at = NULL, google_id = IF(email = ?, google_id, NULL) WHERE id = ?", [e.data, e.data, u.id]);
   await sendVerification({ id: u.id, email: e.data });
