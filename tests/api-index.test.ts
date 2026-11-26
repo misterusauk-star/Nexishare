@@ -21,7 +21,7 @@ test("every route handler in the API is listed", () => {
   for (const f of walk(root).filter((x) => x.endsWith("route.ts"))) {
     const rel = path.relative(root, f).split(path.sep).join("/");
     if (rel === "route.ts") continue; // the index itself
-    for (const m of fs.readFileSync(f, "utf8").matchAll(/export async function (GET|POST|PATCH|DELETE)\b/g)) assert.ok(listed.has(`${m[1]} ${rel}`), `not in API_ENDPOINTS: ${m[1]} ${rel}`);
+    for (const m of fs.readFileSync(f, "utf8").matchAll(/export async function (GET|POST|PUT|PATCH|DELETE)\b/g)) assert.ok(listed.has(`${m[1]} ${rel}`), `not in API_ENDPOINTS: ${m[1]} ${rel}`);
   }
 });
 

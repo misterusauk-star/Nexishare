@@ -270,6 +270,8 @@ export default async function Docs() {
           <a href="#more-links">Duplicate and bulk</a>
           <span className="nav-group">Link features</span>
           <a href="#schedule">Scheduling</a>
+          <a href="#geo">Country routes</a>
+          <a href="#health">Destination health</a>
           <a href="#devices">Device destinations</a>
           <a href="#universal">Universal links</a>
           <a href="#limit">Click limit</a>
@@ -284,6 +286,7 @@ export default async function Docs() {
           <a href="#subscribers">Signups, polls, copies</a>
           <a href="#templates">Templates and icons</a>
           <span className="nav-group">Account and extras</span>
+          <a href="#notifications">Report and alerts</a>
           <a href="#domains">Domains</a>
           <a href="#keys-qr-export">Keys, QR and export</a>
           <a href="#search">Search engines</a>
@@ -791,6 +794,25 @@ curl "${base}/links/31/stats?days=7" -H "Authorization: Bearer $KEY"`}</Code>
 curl -X POST ${base}/page/snapshots/3/restore -H "Authorization: Bearer ob_your_key"
 # { "data": { "restored": 8, "skipped": 0, "removed": 1 } }`}</Code>
             <p className="small muted">These need migration 016 (Admin &gt; Domains &gt; Run database updates). Until it runs, the endpoints answer 503 with that hint. Signups and polls follow the Phase 2 switch.</p>
+          </section>
+
+          <section id="geo">
+            <h2>Country routes</h2>
+            <p>Send visitors from a country to their own page and everyone else to the normal destination. <code>GET /links/{"{id}"}/geo</code> returns <code>[{"{ \"country\": \"PK\", \"url\": ... }"}]</code>. <code>PUT /links/{"{id}"}/geo</code> replaces the whole list: <code>{"{ \"routes\": [{ \"country\": \"PK\", \"url\": \"https://example.com/pk\" }] }"}</code>. Two-letter codes, up to 10 countries, each address checked like a destination. An empty list removes all. The link object has <code>geo: true</code> when it has routes. A country route wins over a device destination.</p>
+            <Code>{`curl -X PUT ${base}/links/12/geo -H "Authorization: Bearer ob_your_key" -H "Content-Type: application/json" \\
+  -d '{ "routes": [{ "country": "PK", "url": "https://example.com/pk" }, { "country": "US", "url": "https://example.com/us" }] }'`}</Code>
+            <p className="small muted">The visitor's country comes from a CDN header (Cloudflare, Vercel) or, on a server without a CDN, from the server's <code>GEOIP_TOKEN</code> (a free ipinfo.io token): the visitor's address is then sent to ipinfo.io once and remembered for a day. When the country is unknown the normal destination is used. Needs migration 017.</p>
+          </section>
+
+          <section id="health">
+            <h2>Destination health</h2>
+            <p>Every active link is checked about once a day. A destination that answers with 404, 410 or a server error, or that no longer exists, is marked <code>broken</code> after <strong>two failed checks in a row</strong>, and the owner gets one email. Sites that only refuse automated visits (401, 403, 405, 429) count as working. The link object has <code>health</code>: <code>{"{ \"status\": \"ok\" | \"broken\" | null, \"code\": 404, \"checked_at\": ... }"}</code>. Filter with <code>GET /links?status=broken</code>. <code>POST /links/{"{id}"}/check</code> checks now (20 per hour) and returns <code>status</code> and <code>code</code>. Changing the destination resets the record. Private and internal addresses are never visited. Needs migration 017.</p>
+          </section>
+
+          <section id="notifications">
+            <h2>Weekly report and alerts</h2>
+            <p>A summary every Monday (UTC): clicks and unique visitors against the week before, bio page views, your three most clicked links, the busiest hour, new signups and links that stopped working. A quiet week sends nothing. It is off until you turn it on; broken-link alerts are on by default. <code>GET /account/notifications</code> returns <code>weekly_report</code> and <code>health_alerts</code>; <code>PATCH</code> changes either with true or false. The same switches are on the Account page, with a button that emails you this week's report now.</p>
+            <Code>{`curl -X PATCH ${base}/account/notifications -H "Authorization: Bearer ob_your_key" -H "Content-Type: application/json" -d '{ "weekly_report": true }'`}</Code>
           </section>
 
           <section id="templates">

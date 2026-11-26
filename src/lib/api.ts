@@ -66,6 +66,10 @@ export function linkJson(l: LinkRow, st: DomainState, lastClick?: Date | null) {
     target_url: l.target_url,
     // tags: up to 5 labels you put on a link to group and filter it.
     tags: l.tags ? l.tags.split(",").filter(Boolean) : [],
+    // health: is the destination working? status is "ok", "broken" (two failed checks in a row) or null (not checked yet).
+    health: { status: l.health_status ?? null, code: l.health_code ?? null, checked_at: l.health_checked_at ? new Date(l.health_checked_at).toISOString() : null },
+    // geo: true when the link has country routes (see GET /links/{id}/geo).
+    geo: !!l.has_geo,
     // universal: true when the link has no destination of its own, only device URLs (other devices see a chooser page).
     universal: !!l.universal,
     ios_url: l.ios_url ?? null,

@@ -31,15 +31,17 @@ export default async function Overview() {
   // not run yet) just hides that row instead of breaking the page.
   const count = async (where: string) =>
     queryOne<{ n: number }>(`SELECT COUNT(*) AS n FROM links WHERE user_id = ? AND ${where}`, [user.id]).then((r) => Number(r?.n ?? 0)).catch(() => 0);
-  const [expiring, nearLimit, review] = await Promise.all([
+  const [expiring, nearLimit, review, broken] = await Promise.all([
     count("expires_at IS NOT NULL AND expires_at > UTC_TIMESTAMP() AND expires_at <= DATE_ADD(UTC_TIMESTAMP(), INTERVAL 7 DAY)"),
     count("max_clicks IS NOT NULL AND click_count < max_clicks AND click_count >= max_clicks * 0.8"),
     count("review_status = 'pending'"),
+    count("health_status = 'broken' AND enabled = 1"),
   ]);
   const attention = [
     { n: expiring, text: "expire within 7 days", href: "/dashboard/links?status=expiring" },
     { n: nearLimit, text: "near their click limit", href: "/dashboard/links?status=limit_near" },
     { n: review, text: "held for review", href: "/dashboard/links?status=review" },
+    { n: broken, text: "point to a page that is not working", href: "/dashboard/links?status=broken" },
   ].filter((x) => x.n > 0);
   const page = user.username ? bioUrl(st, user.username) : null;
   const steps = [

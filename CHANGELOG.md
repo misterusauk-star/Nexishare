@@ -5,6 +5,10 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 ## [Unreleased]
 
 ### Added
+- Country routes: send visitors from a country to their own page (link page, `GET/PUT /links/{id}/geo`). The country comes from a CDN header or from `GEOIP_TOKEN` (ipinfo.io) on servers without a CDN.
+- Destination health: links are checked daily, two failures in a row mark a link as not working and email the owner once. Badge in the Links list, filter, Overview "Needs attention", `POST /links/{id}/check`, `health` in the link object.
+- Weekly email report every Monday (opt-in) and broken-link alerts, in Account and `GET/PATCH /account/notifications`.
+- Migration 017 adds `link_geo_routes` and health and report columns.
 - API: `GET /api/v1` returns a map of every endpoint (method, path, summary), no key needed. A test keeps this list, the route files and the docs in step.
 - API docs: an "All endpoints" table at the top and a "How it works" section with the shared rules (format, sign-in, lists, times, changes, mistakes). The API keys page has a "Try your key" snippet and shortcuts to the docs.
 - Email signup block with a Subscribers page (list, delete, CSV export) and `GET /page/subscribers`, `DELETE /page/subscribers/{id}`.

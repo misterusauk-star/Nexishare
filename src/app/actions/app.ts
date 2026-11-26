@@ -13,8 +13,10 @@ import { phase2Enabled } from "@/lib/features";
 import { emailSchema, passwordSchema } from "@/lib/validation";
 import { countActiveKeys, limitsFor } from "@/lib/user-limits";
 import { emailDomainError } from "@/lib/security";
+import { invalidateSlug } from "@/lib/slug-cache";
+import { checkOneLink, sendReportTo, setGeoRoutes, setPrefs } from "@/lib/services/linkops";
 import { createSnapshot, deleteSnapshot, restoreSnapshot } from "@/lib/services/engage";
-import { bulkLinkAction, bulkTagLinks, createLink, deleteLink, duplicateLink, updateLink } from "@/lib/services/links";
+import { bulkLinkAction, bulkTagLinks, createLink, deleteLink, duplicateLink, getLinkForUser, updateLink } from "@/lib/services/links";
 import { sendVerification, verificationRequired } from "@/lib/services/users";
 import { validateNewSlug, slugRateOk, SLUG_RATE_MESSAGE } from "@/lib/slug-service";
 import { reqInfo } from "@/lib/request";
@@ -96,6 +98,46 @@ export async function createUniversalAction(_: FormState, fd: FormData): Promise
   }
   revalidatePath("/dashboard/universal");
   return { ok: true, message: `Created ${linkHost(st, r.data.domain_id)}/${r.data.slug}` };
+}
+
+/** Country routes of a link, from a text box with one "PK https://..." per line. */
+export async function saveGeoAction(id: number, _: FormState, fd: FormData): Promise<FormState> {
+  const u = await requireUser();
+  const b = await getBrand();
+  const link = await getLinkForUser(u.id, id, u.role === "super_admin");
+  if (!link) return fail({ form: "Link not found." });
+  try {
+    const r = await setGeoRoutes(id, b.host, s(fd, "routes"));
+    if (!r.ok) return fail(r.errors);
+    invalidateSlug(link.slug);
+    revalidatePath(`/dashboard/links/${id}`);
+    return { ok: true, message: r.data.length ? `Saved ${r.data.length} country route${r.data.length === 1 ? "" : "s"}.` : "Country routes removed." };
+  } catch { return fail({ form: "Country routes need a database update. The administrator can press Run database updates in Admin > Domains." }); }
+}
+
+/** "Check now" for the destination of a link. */
+export async function checkHealthAction(id: number): Promise<void> {
+  const u = await requireUser();
+  if (!(await rateLimit(`health:${u.id}`, 20, 3600))) return;
+  const link = await getLinkForUser(u.id, id, u.role === "super_admin");
+  if (link) await checkOneLink(id).catch(() => null);
+  revalidatePath(`/dashboard/links/${id}`);
+}
+
+/** Weekly report and broken-link alerts. */
+export async function saveEmailPrefsAction(_: FormState, fd: FormData): Promise<FormState> {
+  const u = await requireUser();
+  try { await setPrefs(u.id, { weekly_report: fd.get("weekly_report") === "on", health_alerts: fd.get("health_alerts") === "on" }); }
+  catch { return fail({ form: "These settings need a database update. The administrator can press Run database updates in Admin > Domains." }); }
+  revalidatePath("/dashboard/account");
+  return { ok: true, message: "Saved." };
+}
+
+export async function sendSampleReportAction(_: FormState, __: FormData): Promise<FormState> {
+  const u = await requireUser();
+  if (!(await rateLimit(`sample-report:${u.id}`, 3, 3600))) return fail({ form: "You asked for a few already. Try again in an hour." });
+  const sent = await sendReportTo(u.id, u.email, true).catch(() => false);
+  return sent ? { ok: true, message: "Sent. It should arrive in a minute." } : fail({ form: "Email is not set up on this server, so the report could not be sent." });
 }
 
 export async function updateLinkAction(id: number, _: FormState, fd: FormData): Promise<FormState> {

@@ -75,6 +75,9 @@ Limits are low by default: **20 requests per minute per key**, **1,000 requests 
 | GET | `/page` | Your bio page and blocks |
 | PATCH | `/page` | `display_name`, `bio`, `theme`, `published`, `socials` |
 | GET | `/page/templates` | The ready-made templates and the social platforms you can set |
+| GET, PUT | `/links/{id}/geo` | Country routes of a link |
+| POST | `/links/{id}/check` | Check the destination now |
+| GET, PATCH | `/account/notifications` | Weekly report and broken-link alerts |
 | GET | `/page/subscribers` | Emails from signup blocks (`?format=csv` for a file) |
 | DELETE | `/page/subscribers/{id}` | Remove one address |
 | GET | `/page/blocks/{id}/votes` | Results of a poll block |
@@ -184,6 +187,14 @@ Status `201` if at least one link was created, `422` if none. The daily limit co
 - `GET /links` and `GET /links/{id}` include `last_click_at` (ISO time, or `null` when never clicked).
 - `GET /stats` also returns `top` (clicks only: your 5 most clicked links and bio buttons as `{type, id, label, n}`), `hours_utc` (24 counts, index = hour of day in UTC) and `busiest_hour_utc` (0-23 or `null`).
 - `GET /stats` and `GET /links/{id}/stats` include `previous` (`total`, `unique` of the same number of days just before this period) and `previous.change_percent` (`total`, `unique`: whole percent, `null` when the earlier period had no clicks).
+
+## Country routes, destination health, weekly report (migration 017)
+
+- `GET /links/{id}/geo` lists `[{country, url}]`; `PUT /links/{id}/geo` with `{"routes": [...]}` replaces them (2-letter codes, up to 10, each address checked like a destination; `[]` removes all). Link JSON has `geo`. A country route wins over a device URL.
+- The country comes from a CDN header (Cloudflare, Vercel) or, without a CDN, from `GEOIP_TOKEN` (an ipinfo.io token set on the server). Unknown country = normal destination.
+- Health: every active link is checked about once a day; two failed checks in a row mark it `broken` and email the owner once. 401/403/405/429 count as working. Link JSON has `health: {status, code, checked_at}`; `GET /links?status=broken` filters; `POST /links/{id}/check` checks now (20/hour) and returns `{status, code}`.
+- `GET/PATCH /account/notifications`: `weekly_report` (Monday summary, off by default) and `health_alerts` (on by default).
+- Without migration 017 these endpoints return 503 with a hint.
 
 ## Signups, polls and saved copies (migration 016)
 

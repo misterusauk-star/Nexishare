@@ -101,6 +101,7 @@ Everything is in `.env`. After install, an admin can override the branding value
 | `FEATURE_PHASE2` | `false` or `0` turns off the Phase 2 features |
 | `UPLOAD_DIR` | Where uploads are stored. Must survive deploys. |
 | `TRUST_PROXY` | `true` makes the app trust `X-Forwarded-Host` and `X-Forwarded-Proto` (and the client IP headers). Keep `true` behind Hostinger or Cloudflare. Any other value ignores those headers. |
+| `GEOIP_TOKEN` | Optional. An ipinfo.io token. Country routes need the visitor's country: it comes from a CDN header (Cloudflare, Vercel) or, on a host without a CDN such as plain Hostinger, from this token. Visitor addresses are sent to ipinfo.io only for links that have country routes. |
 | `GOOGLE_SAFE_BROWSING_KEY` | Optional. Adds a Google Safe Browsing check on destinations. Everything works without it. |
 | `DB_POOL` | MySQL connections per process. Default 5, which suits shared hosting. |
 | `CLICK_BATCH`, `CLICK_FLUSH_MS` | Analytics batching: flush after this many clicks (default 50) or this many ms (default 5000). |

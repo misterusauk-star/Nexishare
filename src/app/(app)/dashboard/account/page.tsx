@@ -1,12 +1,14 @@
 import { requireUser } from "@/lib/auth";
 import { ActionForm, Field } from "@/components/client";
 import { LANGUAGES } from "@/lib/i18n";
-import { changeEmailAction, changePasswordAction, deleteAccountAction, saveLanguageAction } from "@/app/actions/app";
+import { getPrefs } from "@/lib/services/linkops";
+import { saveEmailPrefsAction, sendSampleReportAction, changeEmailAction, changePasswordAction, deleteAccountAction, saveLanguageAction } from "@/app/actions/app";
 
 export const metadata = { title: "Account" };
 
 export default async function Account() {
   const user = await requireUser();
+  const prefs = await getPrefs(user.id).catch(() => ({ weekly_report: false, health_alerts: true }));
   return (
     <>
       <div className="page-head">
@@ -22,6 +24,14 @@ export default async function Account() {
             <Field label="Email address" name="email" type="email" defaultValue={user.email} autoComplete="email" required />
             <Field label="Current password" name="password" type="password" autoComplete="current-password" required />
           </ActionForm>
+        </section>
+        <section>
+          <h2 className="section-title">Emails from us</h2>
+          <ActionForm action={saveEmailPrefsAction} submit="Save" pendingLabel="Saving...">
+            <label className="check"><input type="checkbox" name="weekly_report" defaultChecked={prefs.weekly_report} /> Send me a weekly report every Monday: clicks, top links and what changed</label>
+            <label className="check"><input type="checkbox" name="health_alerts" defaultChecked={prefs.health_alerts} /> Tell me when a link points to a page that stopped working</label>
+          </ActionForm>
+          <ActionForm action={sendSampleReportAction} submit="Email me this week's report now" submitClass="btn btn-sm" pendingLabel="Sending..."><p className="small muted">The sample covers the last 7 days.</p></ActionForm>
         </section>
         <section>
           <h2 className="section-title">Password</h2>

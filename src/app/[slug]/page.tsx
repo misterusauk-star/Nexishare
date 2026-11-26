@@ -15,6 +15,9 @@ import { JsonLd } from "@/components/json-ld";
 import { profileLd } from "@/lib/seo-profile.ts";
 import { ActionForm, Field } from "@/components/client";
 import { unlockLinkAction } from "@/app/actions/public";
+import { countryFor } from "@/lib/geoip";
+import { pickGeo } from "@/lib/geo-routes.ts";
+import { getGeoRoutes } from "@/lib/services/linkops";
 import "../bio.css";
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
@@ -92,7 +95,10 @@ export default async function SlugPage({ params, searchParams }: Props) {
     );
   }
 
-  const info = await reqInfo();
+  const info0 = await reqInfo();
+  // Links with country routes need the visitor's country; it is also saved with the click.
+  const hasGeo = !!(link as { has_geo?: number }).has_geo;
+  const info = hasGeo ? { ...info0, country: await countryFor(info0) } : info0;
   // A link with a click limit takes one of its visits first; when none are left it behaves like an expired link.
   if (link.max_clicks != null && !(await takeClick(link.id))) {
     if (link.expired_url && link.owner_active && !(await isBlocked(link.expired_url))) redirect(link.expired_url);
@@ -103,6 +109,11 @@ export default async function SlugPage({ params, searchParams }: Props) {
     utm: { source: first(sp.utm_source), medium: first(sp.utm_medium), campaign: first(sp.utm_campaign) },
   });
   // Visitors on a platform with its own URL go there. A universal link has no destination of its own, so other devices get a chooser.
+  // A country route comes first: it applies only to links that have one (has_geo), so other links pay nothing for it.
+  if (hasGeo) {
+    const geo = pickGeo(await getGeoRoutes(link.id).catch(() => []), info.country);
+    if (geo && !(await isBlocked(geo))) redirect(geo);
+  }
   const res = resolveDestination(link, info.ua);
   if (res.kind === "choose") {
     const open: DeviceChoice[] = [];

@@ -1,5 +1,5 @@
 // One list of every API endpoint. The docs page and GET /api/v1 both read it, and a test checks each entry has a route file.
-export type ApiMethod = "GET" | "POST" | "PATCH" | "DELETE";
+export type ApiMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 export interface ApiEndpoint { group: string; method: ApiMethod; path: string; summary: string; doc: string }
 
 export const API_GROUPS = ["Links", "Stats", "Bio page", "Account"] as const;
@@ -13,6 +13,9 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
   { group: "Links", method: "POST", path: "/links/{id}/duplicate", summary: "Copy a link with a new short name", doc: "more-links" },
   { group: "Links", method: "GET", path: "/links/{id}/routes", summary: "Where each device ends up", doc: "more-links" },
   { group: "Links", method: "GET", path: "/links/{id}/qr", summary: "QR code as SVG or PNG", doc: "keys-qr-export" },
+  { group: "Links", method: "GET", path: "/links/{id}/geo", summary: "Country routes of a link", doc: "geo" },
+  { group: "Links", method: "PUT", path: "/links/{id}/geo", summary: "Replace the country routes of a link", doc: "geo" },
+  { group: "Links", method: "POST", path: "/links/{id}/check", summary: "Check the destination now", doc: "health" },
   { group: "Links", method: "POST", path: "/links/bulk", summary: "Create up to 50 links", doc: "bulk" },
   { group: "Links", method: "POST", path: "/links/bulk/action", summary: "Enable, disable or delete up to 200 links", doc: "more-links" },
   { group: "Links", method: "POST", path: "/links/bulk/tag", summary: "Add or remove one tag on up to 200 links", doc: "filters" },
@@ -36,6 +39,8 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
   { group: "Bio page", method: "DELETE", path: "/page/snapshots/{id}", summary: "Delete a saved copy", doc: "subscribers" },
   { group: "Bio page", method: "GET", path: "/page/templates", summary: "Ready-made templates and social platforms", doc: "templates" },
   { group: "Bio page", method: "POST", path: "/page/template", summary: "Apply a template to your page", doc: "templates" },
+  { group: "Account", method: "GET", path: "/account/notifications", summary: "Weekly report and broken-link alert settings", doc: "notifications" },
+  { group: "Account", method: "PATCH", path: "/account/notifications", summary: "Turn the weekly report or alerts on or off", doc: "notifications" },
   { group: "Account", method: "GET", path: "/domains", summary: "The domains you can put links on", doc: "domains" },
 ];
 

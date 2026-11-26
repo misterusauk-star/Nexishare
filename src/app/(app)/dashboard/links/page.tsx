@@ -30,7 +30,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
   const totals = await totalsFor("link", rows.map((r) => r.id));
   const last = await lastClicks("link", rows.map((r) => r.id)).catch(() => ({} as Record<number, Date>));
   const items = rows.map((r) => ({
-    id: r.id, slug: r.slug, title: r.title, target: r.target_url, short: linkUrl(st, r.domain_id, r.slug), state: linkState(r),
+    id: r.id, slug: r.slug, title: r.title, target: r.target_url, short: linkUrl(st, r.domain_id, r.slug), state: linkState(r), health: r.health_status ?? undefined,
     tags: r.tags ? r.tags.split(",").filter(Boolean) : [], locked: !!r.password_hash, clicks: totals[r.id]?.total ?? 0, unique: totals[r.id]?.unique ?? 0,
     lastClick: last[r.id] ? timeAgo(last[r.id]) : "No clicks yet",
     created: new Date(r.created_at).toISOString(), expires: r.expires_at ? new Date(r.expires_at).toISOString() : null,
@@ -90,7 +90,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
           <option value="expired">Expired</option><option value="protected">Password protected</option>
           <option value="scheduled">Scheduled (not live yet)</option><option value="expiring">Expiring within 7 days</option>
           <option value="limited">Has a click limit</option><option value="limit_near">Near its click limit</option>
-          <option value="stale">No clicks in 30 days</option><option value="universal">Universal links</option><option value="review">Held for review</option>
+          <option value="stale">No clicks in 30 days</option><option value="universal">Universal links</option><option value="review">Held for review</option><option value="broken">Destination not working</option>
         </select>
         {sp.tag && <input type="hidden" name="tag" value={sp.tag} />}
         <button className="btn">Filter</button>

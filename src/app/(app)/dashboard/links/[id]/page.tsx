@@ -8,7 +8,10 @@ import { ActionForm, ActionButton, DomainSelect, Field, CopyButton } from "@/com
 import { deviceRoutes } from "@/lib/smart-link";
 import { BarList, StatRow, TimeSeries } from "@/components/charts";
 import { QrPanel } from "@/components/qr-panel";
-import { duplicateLinkAction, updateLinkAction } from "@/app/actions/app";
+import { checkHealthAction, duplicateLinkAction, saveGeoAction, updateLinkAction } from "@/app/actions/app";
+import { getGeoRoutes } from "@/lib/services/linkops";
+import { geoToText } from "@/lib/geo-routes.ts";
+import { timeAgo } from "@/lib/time-ago";
 
 export const metadata = { title: "Link" };
 const iso = (d: Date | null) => (d ? new Date(d).toISOString().slice(0, 16) : "");
@@ -24,13 +27,15 @@ export default async function LinkDetail({ params, searchParams }: { params: Pro
   const host = linkHost(st, link.domain_id);
   const stats = await getStats({ entityType: "link", entityId: link.id, days });
   const short = linkUrl(st, link.domain_id, link.slug);
+  const geo = link.has_geo ? await getGeoRoutes(link.id).catch(() => []) : [];
+  const geoSource = process.env.GEOIP_TOKEN ? "the visitor's address (looked up at ipinfo.io, or taken from a CDN header when there is one)" : "a CDN header such as Cloudflare's";
   return (
     <>
       <div className="page-head">
         <div>
           <p><Link href="/dashboard/links">Links</Link> /</p>
           <h1>{link.title || link.slug}</h1>
-          <div className="row"><span className="slug">{host}<b>/</b>{link.slug}</span><CopyButton value={short} /><span className="badge">{linkState(link)}</span>{!!link.universal && <span className="badge">universal</span>}</div>
+          <div className="row"><span className="slug">{host}<b>/</b>{link.slug}</span><CopyButton value={short} /><span className="badge">{linkState(link)}</span>{link.health_status === "broken" && <span className="badge bad">Destination not working</span>}{!!link.universal && <span className="badge">universal</span>}</div>
         </div>
         <div className="row small">
           <ActionButton action={duplicateLinkAction.bind(null, link.id)} label="Duplicate this link">Duplicate</ActionButton>
@@ -99,6 +104,21 @@ export default async function LinkDetail({ params, searchParams }: { params: Pro
             </table>
           </div>
           {link.expired_url && <p className="small muted">After it expires: <span className="mono">{link.expired_url}</span></p>}
+          <div className="section-title" style={{ marginTop: 32 }}><h2>Destination health</h2></div>
+          {link.universal ? <p className="small muted">Universal links have no destination of their own, so there is nothing to check.</p> : (
+            <>
+              <p className="small">
+                {link.health_status === "broken" ? <><span className="badge bad">Not working</span> {link.health_code ? `The page answers with error ${link.health_code}.` : "The page cannot be reached."}</> : link.health_status === "ok" ? <><span className="badge good">Working</span> The page answers normally.</> : <span className="muted">Not checked yet. Links are checked about once a day.</span>}
+                {link.health_checked_at ? <span className="muted"> Last checked {timeAgo(new Date(link.health_checked_at))}.</span> : null}
+              </p>
+              <ActionButton action={checkHealthAction.bind(null, link.id)} label="Check now">Check now</ActionButton>
+            </>
+          )}
+          <div className="section-title" style={{ marginTop: 32 }}><h2>Country routes</h2></div>
+          <p className="small muted">Send visitors from a country to their own page, for example a local shop. Everyone else goes to the normal destination. A country route wins over a device destination. The country comes from {geoSource}. When it cannot be found, visitors get the normal destination.{!process.env.GEOIP_TOKEN && " Without a CDN, the administrator must set GEOIP_TOKEN on the server for this to work."}</p>
+          <ActionForm action={saveGeoAction.bind(null, link.id)} submit="Save country routes" pendingLabel="Saving...">
+            <Field label="Routes" name="routes" textarea rows={4} defaultValue={geoToText(geo)} placeholder={"PK https://example.com/pk\nUS https://example.com/us"} hint="One per line: a two-letter country code, a space, a web address. Up to 10. Leave empty to remove all." />
+          </ActionForm>
           <div className="section-title" style={{ marginTop: 32 }}><h2>QR code</h2></div>
           <QrPanel slug={link.slug} />
         </section>

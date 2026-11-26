@@ -39,6 +39,10 @@ export interface LinkRow {
   click_count?: number;
   universal?: number;
   tags?: string | null;
+  has_geo?: number;
+  health_status?: "ok" | "broken" | null;
+  health_code?: number | null;
+  health_checked_at?: Date | null;
   expires_at: Date | null;
   starts_at: Date | null;
   enabled: number;
@@ -293,6 +297,8 @@ export async function updateLink(userId: number, id: number, ownHost: string, ra
   }
   if (raw && typeof raw === "object" && "group_id" in raw) { sets.push("group_id = ?"); vals.push(v.group_id ?? null); }
   if (sets.length) await exec(`UPDATE links SET ${sets.join(", ")} WHERE id = ?`, [...vals, id]);
+  // A new destination starts with a clean health record (the columns exist from migration 017).
+  if (sets.some((x) => x.startsWith("target_url"))) await exec("UPDATE links SET health_status = NULL, health_code = NULL, health_fails = 0, health_checked_at = NULL WHERE id = ?", [id]).catch(() => undefined);
   invalidateSlug(cur.slug, v.slug);
   return { ok: true, data: (await queryOne<LinkRow>("SELECT * FROM links WHERE id = ?", [id]))! };
 }
@@ -341,6 +347,7 @@ export async function listLinks(o: ListOpts): Promise<{ rows: LinkRow[]; total: 
   if (o.status === "limited") where.push("max_clicks IS NOT NULL");
   if (o.status === "limit_near") where.push("max_clicks IS NOT NULL AND click_count < max_clicks AND click_count >= max_clicks * 0.8");
   if (o.status === "universal") where.push("universal = 1");
+  if (o.status === "broken") where.push("health_status = 'broken' AND enabled = 1");
   if (o.status === "review") where.push("review_status = 'pending'");
   // stale: older than a week and not clicked once in the last 30 days (candidates to clean up)
   if (o.status === "stale") where.push("created_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 7 DAY) AND NOT EXISTS (SELECT 1 FROM clicks c WHERE c.entity_type = 'link' AND c.entity_id = links.id AND c.created_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY))");

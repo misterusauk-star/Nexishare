@@ -6,7 +6,7 @@ import { Check, Copy, CopyPlus, Lock, Trash2, Power } from "lucide-react";
 import { bulkLinksAction, bulkTagAction, deleteLinkAction, duplicateLinkAction, toggleLinkAction } from "@/app/actions/app";
 
 export interface LinkItem {
-  id: number; slug: string; title: string | null; tags?: string[]; target: string; short: string; state: string; locked: boolean;
+  id: number; slug: string; title: string | null; tags?: string[]; target: string; short: string; state: string; locked: boolean; health?: string;
   clicks: number; unique: number; lastClick?: string; created: string; expires: string | null;
 }
 
@@ -63,7 +63,7 @@ export function LinksTable({ rows }: { rows: LinkItem[] }) {
                   {!!r.tags?.length && <div className="tag-row">{r.tags.map((t) => <Link key={t} className="tag-pill" href={`/dashboard/links?tag=${encodeURIComponent(t)}`}>{t}</Link>)}</div>}
                 </td>
                 <td className="dest c-dest" title={r.target}>{r.target}</td>
-                <td className="c-state"><span className={`badge ${BADGE[r.state] ?? ""}`}>{r.state}</span></td>
+                <td className="c-state"><span className={`badge ${BADGE[r.state] ?? ""}`}>{r.state}</span>{r.health === "broken" && <span className="badge bad" title="The destination did not answer on two checks in a row" style={{ marginLeft: 6 }}>destination down</span>}</td>
                 <td className="r num c-num" data-label="Clicks">{r.clicks.toLocaleString("en-US")}{r.lastClick && <span className="last-click">{r.lastClick === "No clicks yet" ? r.lastClick : `Last click ${r.lastClick}`}</span>}</td>
                 <td className="r num c-num" data-label="Unique">{r.unique.toLocaleString("en-US")}</td>
                 <td className="r c-act">
