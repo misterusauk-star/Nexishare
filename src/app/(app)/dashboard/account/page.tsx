@@ -2,12 +2,25 @@ import { requireUser } from "@/lib/auth";
 import { ActionForm, Field } from "@/components/client";
 import { LANGUAGES } from "@/lib/i18n";
 import { getPrefs } from "@/lib/services/linkops";
-import { saveEmailPrefsAction, sendSampleReportAction, changeEmailAction, changePasswordAction, deleteAccountAction, saveLanguageAction } from "@/app/actions/app";
+import { queryOne } from "@/lib/db";
+import { getSetting } from "@/lib/settings";
+import { saveEmailPrefsAction, sendSampleReportAction, changeEmailAction, changePasswordAction, deleteAccountAction, saveLanguageAction, disconnectGoogleAction } from "@/app/actions/app";
 
 export const metadata = { title: "Account" };
 
-export default async function Account() {
+const GOOGLE_NOTES: Record<string, [string, string]> = {
+  linked: ["good", "Google is connected. You can now sign in with Google or with your password."],
+  mismatch: ["bad", "That Google account uses a different email. Pick the Google account with the same email as this account."],
+  taken: ["bad", "That Google account is already connected to another account."],
+  google: ["bad", "Google did not complete. Try again."],
+};
+
+export default async function Account({ searchParams }: { searchParams: Promise<{ google?: string }> }) {
   const user = await requireUser();
+  const sp = await searchParams;
+  const googleOn = Boolean(await getSetting("google_client_id"));
+  const g = await queryOne<{ google_id: string | null; password_hash: string | null }>("SELECT google_id, password_hash FROM users WHERE id = ?", [user.id]);
+  const note = sp.google ? GOOGLE_NOTES[sp.google] : undefined;
   const prefs = await getPrefs(user.id).catch(() => ({ weekly_report: false, health_alerts: true }));
   return (
     <>
@@ -25,6 +38,20 @@ export default async function Account() {
             <Field label="Current password" name="password" type="password" autoComplete="current-password" required />
           </ActionForm>
         </section>
+        {googleOn && (
+          <section>
+            <h2 className="section-title">Google sign-in</h2>
+            {note && <div className={`notice ${note[0]}`} role="status">{note[1]}</div>}
+            <p className="small muted">One email is one account. Connect Google to sign in with either Google or your password. Google must use <strong>{user.email}</strong>.</p>
+            {g?.google_id ? (
+              <ActionForm action={disconnectGoogleAction} submit="Disconnect Google" submitClass="btn" pendingLabel="Saving...">
+                <p className="small"><span className="badge good">Connected</span></p>
+              </ActionForm>
+            ) : (
+              <p><a className="btn" href="/api/auth/google?link=1">Connect Google</a></p>
+            )}
+          </section>
+        )}
         <section>
           <h2 className="section-title">Emails from us</h2>
           <ActionForm action={saveEmailPrefsAction} submit="Save" pendingLabel="Saving...">

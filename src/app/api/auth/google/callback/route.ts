@@ -4,7 +4,7 @@ import { getBrand } from "@/lib/brand";
 import { emailDomainError } from "@/lib/security";
 import { getSetting } from "@/lib/settings";
 import { decrypt, safeEqual } from "@/lib/crypto";
-import { createSession } from "@/lib/auth";
+import { createSession, currentUser, audit } from "@/lib/auth";
 import { safeNext } from "@/lib/validation";
 import { rateLimit } from "@/lib/ratelimit";
 import { fromHeaders } from "@/lib/request";
@@ -17,9 +17,14 @@ interface GoogleUser { sub?: string; email?: string; email_verified?: boolean; n
 export async function GET(req: Request) {
   { const blocked = await guardApi(); if (blocked) return blocked; } // domain rules: API only on the main and API domains
   const brand = await getBrand();
-  const bad = (code: string) => NextResponse.redirect(`${brand.appUrl}/login?error=${code}`);
   const url = new URL(req.url);
   const cookies = Object.fromEntries((req.headers.get("cookie") ?? "").split(/;\s*/).map((c) => c.split("=") as [string, string]));
+  const linking = cookies.g_link === "1";
+  const clear = (r: NextResponse) => {
+    for (const n of ["g_state", "g_next", "g_link"]) r.cookies.delete({ name: n, path: "/api/auth/google" });
+    return r;
+  };
+  const bad = (code: string) => clear(NextResponse.redirect(linking ? `${brand.appUrl}/dashboard/account?google=${code}` : `${brand.appUrl}/login?error=${code}`));
   const state = url.searchParams.get("state") ?? "";
   const code = url.searchParams.get("code");
   if (!code || !cookies.g_state || !safeEqual(state, cookies.g_state)) return bad("google");
@@ -56,13 +61,24 @@ export async function GET(req: Request) {
   const email = (profile.email ?? "").toLowerCase();
   if (!profile.sub || !email || !profile.email_verified) return bad("google");
 
+  // Manual linking: connecting Google to an existing account happens only from the signed-in Account page.
+  if (linking) {
+    const me = await currentUser();
+    if (!me) return bad("google");
+    if (me.email.toLowerCase() !== email) return bad("mismatch");
+    const used = await queryOne<{ id: number }>("SELECT id FROM users WHERE google_id = ? AND id <> ?", [profile.sub, me.id]);
+    if (used) return bad("taken");
+    await exec("UPDATE users SET google_id = ?, email_verified_at = COALESCE(email_verified_at, UTC_TIMESTAMP()) WHERE id = ?", [profile.sub, me.id]);
+    await audit(me.id, "user.google_link");
+    return clear(NextResponse.redirect(`${brand.appUrl}/dashboard/account?google=linked`));
+  }
+
   let user = await queryOne<{ id: number; status: string }>("SELECT id, status FROM users WHERE google_id = ?", [profile.sub]);
   if (!user) {
-    const byEmail = await queryOne<{ id: number; status: string }>("SELECT id, status FROM users WHERE email = ?", [email]);
+    const byEmail = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = ?", [email]);
     if (byEmail) {
-      // Google has verified this address, so it is safe to link to the existing account.
-      await exec("UPDATE users SET google_id = ?, email_verified_at = COALESCE(email_verified_at, UTC_TIMESTAMP()) WHERE id = ?", [profile.sub, byEmail.id]);
-      user = byEmail;
+      // One email is one account. It is not merged silently: sign in with the password, then connect Google in Account.
+      return bad("exists");
     } else {
       const reg = await getSetting("registration_enabled");
       if (reg === "0") return bad("closed");
@@ -77,8 +93,5 @@ export async function GET(req: Request) {
   if (user.status !== "active") return bad("suspended");
   await exec("UPDATE users SET last_login_at = UTC_TIMESTAMP() WHERE id = ?", [user.id]);
   await createSession(user.id);
-  const res = NextResponse.redirect(`${brand.appUrl}${safeNext(cookies.g_next ? decodeURIComponent(cookies.g_next) : null)}`);
-  res.cookies.delete({ name: "g_state", path: "/api/auth/google" });
-  res.cookies.delete({ name: "g_next", path: "/api/auth/google" });
-  return res;
+  return clear(NextResponse.redirect(`${brand.appUrl}${safeNext(cookies.g_next ? decodeURIComponent(cookies.g_next) : null)}`));
 }

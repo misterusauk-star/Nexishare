@@ -5,6 +5,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 ## [Unreleased]
 
 ### Changed
+- One email is one account. Signing in with Google no longer merges into an existing account by itself: if the email already has an account, the person is asked to sign in with the password and connect Google from Account > Google sign-in (the Google email must match). Accounts that were already linked keep working. Disconnect needs a password set; changing the account email disconnects Google.
 - The bio page editor is split into tabs (Content, Profile and look, Social icons, Saved copies) instead of one long page. The preview sits beside the editor on wide screens and is a collapsed panel at the top on phones and tablets (before, it ended up at the bottom). Templates moved into Profile and look.
 
 ### Added

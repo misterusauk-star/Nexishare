@@ -365,10 +365,21 @@ export async function changeEmailAction(_: FormState, fd: FormData): Promise<For
   const domainError = await emailDomainError(e.data);
   if (domainError) return fail({ email: domainError });
   if (await queryOne("SELECT id FROM users WHERE email = ? AND id <> ?", [e.data, u.id])) return fail({ email: "That email is already in use." });
-  await exec("UPDATE users SET email = ?, email_verified_at = NULL WHERE id = ?", [e.data, u.id]);
+  // A linked Google account belongs to the old address, so it is disconnected when the email changes.
+  await exec("UPDATE users SET email = ?, email_verified_at = NULL, google_id = IF(email = ?, google_id, NULL) WHERE id = ?", [e.data, e.data, u.id]);
   await sendVerification({ id: u.id, email: e.data });
   revalidatePath("/dashboard/account");
   return { ok: true, message: "Email updated. Check your inbox if verification is enabled." };
+}
+
+export async function disconnectGoogleAction(_: FormState, __: FormData): Promise<FormState> {
+  const u = await requireUser();
+  const row = await queryOne<{ password_hash: string | null }>("SELECT password_hash FROM users WHERE id = ?", [u.id]);
+  if (!row?.password_hash) return fail({ form: "Set a password first, otherwise you could not sign in." });
+  await exec("UPDATE users SET google_id = NULL WHERE id = ?", [u.id]);
+  await audit(u.id, "user.google_unlink");
+  revalidatePath("/dashboard/account");
+  return { ok: true, message: "Google disconnected. Sign in with your email and password." };
 }
 
 export async function changePasswordAction(_: FormState, fd: FormData): Promise<FormState> {

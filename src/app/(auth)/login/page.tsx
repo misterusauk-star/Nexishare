@@ -24,7 +24,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       {sp.reset && <div className="notice good" role="status">Password updated. Sign in with the new one.</div>}
       {sp.error && (
         <div className="notice bad" role="alert">
-          {{ google: "Google sign-in did not complete. Try again.", closed: "Registration is closed on this site.", domain: "Sign-up is limited to certain email providers. Use an allowed address.", suspended: "This account is suspended." }[sp.error] ?? "Sign-in failed."}
+          {{ google: "Google sign-in did not complete. Try again.", closed: "Registration is closed on this site.", domain: "Sign-up is limited to certain email providers. Use an allowed address.", suspended: "This account is suspended.", exists: "An account with this email already exists. Sign in with your password, then connect Google in Account settings. To get a password, use Forgot password." }[sp.error] ?? "Sign-in failed."}
         </div>
       )}
       <ActionForm turnstile={await turnstileSiteKey()} action={loginAction} submit={t("auth.login.submit")} pendingLabel="Signing in...">
