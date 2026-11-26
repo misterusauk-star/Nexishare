@@ -61,7 +61,7 @@ export async function GET(req: Request) {
   const email = (profile.email ?? "").toLowerCase();
   if (!profile.sub || !email || !profile.email_verified) return bad("google");
 
-  // Manual linking: connecting Google to an existing account happens only from the signed-in Account page.
+  // Connecting from the signed-in Account page (optional; login with the same email also links automatically).
   if (linking) {
     const me = await currentUser();
     if (!me) return bad("google");
@@ -75,10 +75,11 @@ export async function GET(req: Request) {
 
   let user = await queryOne<{ id: number; status: string }>("SELECT id, status FROM users WHERE google_id = ?", [profile.sub]);
   if (!user) {
-    const byEmail = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = ?", [email]);
+    const byEmail = await queryOne<{ id: number; status: string }>("SELECT id, status FROM users WHERE email = ?", [email]);
     if (byEmail) {
-      // One email is one account. It is not merged silently: sign in with the password, then connect Google in Account.
-      return bad("exists");
+      // One email is one account. Google has verified this address, so it joins the existing account.
+      await exec("UPDATE users SET google_id = ?, email_verified_at = COALESCE(email_verified_at, UTC_TIMESTAMP()) WHERE id = ?", [profile.sub, byEmail.id]);
+      user = byEmail;
     } else {
       const reg = await getSetting("registration_enabled");
       if (reg === "0") return bad("closed");

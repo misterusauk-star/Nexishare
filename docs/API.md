@@ -232,7 +232,7 @@ No API call is needed; this is built in.
 
 ## Sign-up and sign-in protection
 
-- One email is one account. Google sign-in does not merge into an existing email by itself; connect Google manually in Account > Google sign-in while signed in.
+- One email is one account. Google sign-in with an existing email joins that account; Google can also be connected or disconnected in Account > Google sign-in.
 - Sign-up (email or Google) is limited to allowed email domains: Gmail and Outlook by default (`gmail.com`, `googlemail.com`, `outlook.com`, `hotmail.com`, `live.com`, `msn.com`). A super admin edits the list in **Admin > Security**. Existing accounts are not affected.
 - Cloudflare Turnstile can be switched on in **Admin > Security** (site key and secret key). It appears on sign-in, sign-up and password reset.
 - Brute force: only failed sign-ins count. 5 failures for one email or 20 from one connection lock sign-in for 15 minutes; 100 from one connection lock it for a day.
