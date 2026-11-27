@@ -1,12 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { exec, queryOne } from "@/lib/db";
 import { audit, destroyAllSessions, hashPassword, requireAdmin } from "@/lib/auth";
 import { emailSchema, passwordSchema } from "@/lib/validation";
 import { emailDomainError } from "@/lib/security";
 import { getBrand } from "@/lib/brand";
+import { clearSlugCache } from "@/lib/slug-cache";
 import { createUser, issueToken, sendVerification } from "@/lib/services/users";
 import { emailAvailable, sendEmail } from "@/lib/email/mailer";
 import type { FormState } from "@/components/client";
@@ -96,6 +98,41 @@ export async function saveUserNoteAction(id: number, _: FormState, fd: FormData)
   await audit(me.id, "user.note", String(id));
   refresh();
   return ok("Note saved. Only admins can see it.");
+}
+
+/** Revokes every API key the account has. Their apps stop working until they create a new key. */
+export async function revokeUserKeysAction(id: number, _: FormState, __: FormData): Promise<FormState> {
+  const me = await requireAdmin();
+  if (!(await target(me, id))) return fail({ form: "Use the API page for your own keys." });
+  const r = await exec("UPDATE api_keys SET revoked_at = UTC_TIMESTAMP() WHERE user_id = ? AND revoked_at IS NULL", [id]);
+  await audit(me.id, "user.revoke_keys", String(id), { count: r.affectedRows });
+  refresh();
+  return ok(r.affectedRows ? `${r.affectedRows} key${r.affectedRows === 1 ? "" : "s"} revoked.` : "They had no active keys.");
+}
+
+const BULK_OPS = ["suspend", "reinstate", "signout", "verify"] as const;
+
+/** Runs one operation on the ticked accounts (up to 200). Your own account and, for suspend, other super admins are skipped. */
+export async function bulkUsersAction(fd: FormData): Promise<void> {
+  const me = await requireAdmin();
+  const op = String(fd.get("op") ?? "");
+  const ids = [...new Set(fd.getAll("ids").map(Number))].filter((n) => Number.isInteger(n) && n > 0 && n !== me.id).slice(0, 200);
+  if (!(BULK_OPS as readonly string[]).includes(op) || !ids.length) redirect("/admin/users?bulk=none");
+  const ph = ids.map(() => "?").join(",");
+  let n = 0;
+  if (op === "suspend") {
+    n = (await exec(`UPDATE users SET status = 'suspended' WHERE id IN (${ph}) AND role <> 'super_admin' AND status = 'active'`, ids)).affectedRows;
+    await exec(`DELETE FROM sessions WHERE user_id IN (${ph}) AND user_id IN (SELECT id FROM users WHERE status = 'suspended')`, ids);
+  } else if (op === "reinstate") {
+    n = (await exec(`UPDATE users SET status = 'active' WHERE id IN (${ph}) AND status = 'suspended'`, ids)).affectedRows;
+  } else if (op === "signout") {
+    n = (await exec(`DELETE FROM sessions WHERE user_id IN (${ph})`, ids)).affectedRows;
+  } else {
+    n = (await exec(`UPDATE users SET email_verified_at = UTC_TIMESTAMP() WHERE id IN (${ph}) AND email_verified_at IS NULL`, ids)).affectedRows;
+  }
+  await audit(me.id, `user.bulk_${op}`, `${ids.length} accounts`, { ids, changed: n });
+  clearSlugCache();
+  redirect(`/admin/users?bulk=${op}:${n}`);
 }
 
 export async function signOutUserAction(id: number, _: FormState, __: FormData): Promise<FormState> {

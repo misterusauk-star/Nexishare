@@ -9,7 +9,7 @@ import { deleteUserAction, setUserRoleAction, setUserStatusAction } from "@/app/
 import { saveUserLimitsAction } from "@/app/actions/security-admin";
 import {
   changeUserEmailAction, createUserAdminAction, markVerifiedAction, resendVerificationAdminAction,
-  saveUserNoteAction, sendResetLinkAction, setUserPasswordAction, signOutUserAction, suspendWithReasonAction,
+  bulkUsersAction, revokeUserKeysAction, saveUserNoteAction, sendResetLinkAction, setUserPasswordAction, signOutUserAction, suspendWithReasonAction,
 } from "@/app/actions/users-admin";
 
 export const metadata = { title: "Users" };
@@ -19,7 +19,7 @@ const PER = 30;
 interface U { id: number; email: string; username: string | null; role: string; status: string; email_verified_at: Date | null; created_at: Date; last_login_at: Date | null; links: number }
 const day = (d: Date | null) => (d ? new Date(d).toISOString().slice(0, 10) : "Never");
 
-export default async function Users({ searchParams }: { searchParams: Promise<{ q?: string; page?: string; filter?: string }> }) {
+export default async function Users({ searchParams }: { searchParams: Promise<{ q?: string; page?: string; filter?: string; bulk?: string }> }) {
   const st = await getDomainState();
   const me = await requireAdmin();
   const sp = await searchParams;
@@ -52,6 +52,19 @@ export default async function Users({ searchParams }: { searchParams: Promise<{ 
       for (const g of got) { own.set(g.id, overridesFromRow(g)); extra.set(g.id, { reason: (g.suspend_reason as string) ?? null, note: (g.admin_note as string) ?? null, has: "admin_note" in g }); }
     } catch { /* migration 013 not applied */ }
   }
+  // Per-account overview: active API keys and signed-in sessions.
+  const usage = new Map<number, { keys: number; sessions: number }>();
+  if (rows.length) {
+    const ids = rows.map((r) => r.id);
+    const ph = ids.map(() => "?").join(",");
+    const keys = await query<{ user_id: number; n: number }>(`SELECT user_id, COUNT(*) AS n FROM api_keys WHERE revoked_at IS NULL AND user_id IN (${ph}) GROUP BY user_id`, ids);
+    const sess = await query<{ user_id: number; n: number }>(`SELECT user_id, COUNT(*) AS n FROM sessions WHERE expires_at > UTC_TIMESTAMP() AND user_id IN (${ph}) GROUP BY user_id`, ids);
+    for (const id of ids) usage.set(id, { keys: 0, sessions: 0 });
+    for (const k of keys) usage.get(k.user_id)!.keys = Number(k.n);
+    for (const x of sess) usage.get(x.user_id)!.sessions = Number(x.n);
+  }
+  const [bulkOp, bulkN] = (sp.bulk ?? "").split(":");
+  const BULK_DONE: Record<string, string> = { suspend: "suspended", reinstate: "reinstated", signout: "signed out", verify: "marked verified" };
   const q = encodeURIComponent(sp.q ?? "") + (filter ? `&filter=${filter}` : "");
   return (
     <>
@@ -65,6 +78,8 @@ export default async function Users({ searchParams }: { searchParams: Promise<{ 
         </select>
         <button className="btn">Search</button>
       </form>
+      {sp.bulk === "none" && <div className="notice warn" role="status">Tick at least one account and choose what to do.</div>}
+      {BULK_DONE[bulkOp] && <div className="notice good" role="status">{Number(bulkN) || 0} account{Number(bulkN) === 1 ? "" : "s"} {BULK_DONE[bulkOp]}.</div>}
       <details className="panel" style={{ marginBottom: 16 }}>
         <summary className="small link-like">Create an account</summary>
         <p className="small muted">Adds the account right away, without the sign-up limits. Tell the person their password, or send them a reset link afterwards.</p>
@@ -83,12 +98,24 @@ export default async function Users({ searchParams }: { searchParams: Promise<{ 
       {rows.length === 0 ? (
         <div className="empty"><h3>No users match</h3><p>Try a shorter search.</p></div>
       ) : (
+        <>
+        <form id="bulk-users" action={bulkUsersAction} className="row" style={{ marginBottom: 12 }}>
+          <label className="small muted" htmlFor="bulk-op">With the ticked accounts:</label>
+          <select id="bulk-op" name="op" className="input" defaultValue="" style={{ maxWidth: 220 }} required>
+            <option value="" disabled>Choose an action</option>
+            <option value="suspend">Suspend</option><option value="reinstate">Reinstate</option>
+            <option value="signout">Sign out everywhere</option><option value="verify">Mark email verified</option>
+          </select>
+          <button className="btn btn-sm">Apply</button>
+          <span className="small muted">Your own account and other super admins are never suspended in bulk.</span>
+        </form>
         <table className="table">
           <thead><tr><th>User</th><th>Role</th><th>Links</th><th>Joined</th><th>Last login</th><th /></tr></thead>
           <tbody>
             {rows.map((u) => (
               <tr key={u.id}>
                 <td>
+                  {u.id !== me.id && <label className="small row" style={{ marginBottom: 4 }}><input type="checkbox" name="ids" value={u.id} form="bulk-users" aria-label={`Select ${u.email}`} /> Select</label>}
                   {u.username ? <a href={bioUrl(st, u.username)} target="_blank" rel="noopener">{u.username}</a> : <span className="muted">No bio page</span>}
                   {u.status === "suspended" && <> <span className="badge bad">Suspended</span></>}
                   {!u.email_verified_at && <> <span className="badge">Unverified</span></>}
@@ -97,6 +124,10 @@ export default async function Users({ searchParams }: { searchParams: Promise<{ 
                     <details className="utm" style={{ marginTop: 8, maxWidth: 420 }}>
                       <summary>Manage account</summary>
                       <div className="stack-sm">
+                        <p className="small muted">{Number(u.links)} link{Number(u.links) === 1 ? "" : "s"}, {usage.get(u.id)?.keys ?? 0} active API key{usage.get(u.id)?.keys === 1 ? "" : "s"}, {usage.get(u.id)?.sessions ?? 0} signed-in session{usage.get(u.id)?.sessions === 1 ? "" : "s"}.</p>
+                        {(usage.get(u.id)?.keys ?? 0) > 0 && (
+                          <ActionForm action={revokeUserKeysAction.bind(null, u.id)} submit="Revoke all API keys" pendingLabel="Working..." submitClass="btn btn-sm"><span /></ActionForm>
+                        )}
                         <ActionForm action={setUserPasswordAction.bind(null, u.id)} submit="Set password" pendingLabel="Saving..." submitClass="btn btn-sm btn-primary">
                           <Field label="New password" name="password" type="text" autoComplete="off" hint="Signs them out everywhere." />
                           <label className="row small"><input type="checkbox" name="notify" defaultChecked /> Email them that it changed</label>
@@ -159,6 +190,7 @@ export default async function Users({ searchParams }: { searchParams: Promise<{ 
             ))}
           </tbody>
         </table>
+        </>
       )}
       {pages > 1 && (
         <div className="row small" style={{ marginTop: 16 }}>
