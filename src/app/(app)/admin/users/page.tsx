@@ -9,7 +9,7 @@ import { deleteUserAction, setUserRoleAction, setUserStatusAction } from "@/app/
 import { saveUserLimitsAction } from "@/app/actions/security-admin";
 import {
   changeUserEmailAction, createUserAdminAction, markVerifiedAction, resendVerificationAdminAction,
-  sendResetLinkAction, setUserPasswordAction, signOutUserAction,
+  saveUserNoteAction, sendResetLinkAction, setUserPasswordAction, signOutUserAction, suspendWithReasonAction,
 } from "@/app/actions/users-admin";
 
 export const metadata = { title: "Users" };
@@ -43,18 +43,19 @@ export default async function Users({ searchParams }: { searchParams: Promise<{ 
   const pages = Math.max(1, Math.ceil(total / PER));
   // Per-account limit overrides. Skipped quietly when the database update that adds them has not been run yet.
   const own = new Map<number, Record<LimitKey, number | null>>();
+  const extra = new Map<number, { reason: string | null; note: string | null; has: boolean }>();
   const site = await siteLimits();
   if (rows.length) {
     try {
       const ids = rows.map((r) => r.id);
       const got = await query<Record<string, unknown> & { id: number }>(`SELECT * FROM users WHERE id IN (${ids.map(() => "?").join(",")})`, ids);
-      for (const g of got) own.set(g.id, overridesFromRow(g));
+      for (const g of got) { own.set(g.id, overridesFromRow(g)); extra.set(g.id, { reason: (g.suspend_reason as string) ?? null, note: (g.admin_note as string) ?? null, has: "admin_note" in g }); }
     } catch { /* migration 013 not applied */ }
   }
   const q = encodeURIComponent(sp.q ?? "") + (filter ? `&filter=${filter}` : "");
   return (
     <>
-      <div className="page-head"><div><h1>Users</h1><p>{total} account{total === 1 ? "" : "s"}.</p></div></div>
+      <div className="page-head"><div><h1>Users</h1><p>{total} account{total === 1 ? "" : "s"}.</p></div><a className="btn btn-sm" href="/api/admin/users/export">Download CSV</a></div>
       <form className="row" style={{ marginBottom: 16 }} role="search">
         <input className="input" name="q" defaultValue={sp.q} placeholder="Search email or username" aria-label="Search users" style={{ maxWidth: 320 }} />
         <select className="input" name="filter" defaultValue={filter} aria-label="Filter users" style={{ maxWidth: 220 }}>
@@ -115,6 +116,16 @@ export default async function Users({ searchParams }: { searchParams: Promise<{ 
                             <ActionForm action={markVerifiedAction.bind(null, u.id)} submit="Mark email verified" submitClass="btn btn-sm"><span /></ActionForm>
                             <ActionForm action={resendVerificationAdminAction.bind(null, u.id)} submit="Resend confirmation" submitClass="btn btn-sm"><span /></ActionForm>
                           </div>
+                        )}
+                        {u.status === "active" ? (
+                          <ActionForm action={suspendWithReasonAction.bind(null, u.id)} submit="Suspend account" pendingLabel="Working..." submitClass="btn btn-sm btn-danger">
+                            <Field label="Reason (shown when they try to sign in)" name="reason" maxLength={190} hint="Optional." />
+                          </ActionForm>
+                        ) : extra.get(u.id)?.reason ? <p className="small muted">Suspended: {extra.get(u.id)!.reason}</p> : null}
+                        {extra.get(u.id)?.has && (
+                          <ActionForm action={saveUserNoteAction.bind(null, u.id)} submit="Save note" pendingLabel="Saving..." submitClass="btn btn-sm">
+                            <Field label="Private note (admins only)" name="note" textarea rows={2} maxLength={500} defaultValue={extra.get(u.id)?.note ?? ""} />
+                          </ActionForm>
                         )}
                         <ActionForm action={signOutUserAction.bind(null, u.id)} submit="Sign out everywhere" pendingLabel="Working..." submitClass="btn btn-sm"><span /></ActionForm>
                       </div>

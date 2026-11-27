@@ -69,6 +69,35 @@ export async function sendResetLinkAction(id: number, mode: "email" | "show", _:
   return ok(`Reset link emailed to ${u.email}.`);
 }
 
+/** Suspends with an optional reason that the person sees at sign-in. Works before migration 019 too (without the reason). */
+export async function suspendWithReasonAction(id: number, _: FormState, fd: FormData): Promise<FormState> {
+  const me = await requireAdmin();
+  if (!(await target(me, id))) return fail({ form: "You cannot suspend your own account." });
+  const reason = s(fd, "reason").slice(0, 190);
+  try {
+    await exec("UPDATE users SET status = 'suspended', suspend_reason = ? WHERE id = ?", [reason || null, id]);
+  } catch {
+    await exec("UPDATE users SET status = 'suspended' WHERE id = ?", [id]);
+  }
+  await destroyAllSessions(id);
+  await audit(me.id, "user.suspend", String(id), { reason });
+  refresh();
+  return ok("Account suspended. They were signed out everywhere.");
+}
+
+export async function saveUserNoteAction(id: number, _: FormState, fd: FormData): Promise<FormState> {
+  const me = await requireAdmin();
+  const note = s(fd, "note").slice(0, 500);
+  try {
+    await exec("UPDATE users SET admin_note = ? WHERE id = ?", [note || null, id]);
+  } catch {
+    return fail({ note: "Run the database updates first (Admin > Domains)." });
+  }
+  await audit(me.id, "user.note", String(id));
+  refresh();
+  return ok("Note saved. Only admins can see it.");
+}
+
 export async function signOutUserAction(id: number, _: FormState, __: FormData): Promise<FormState> {
   const me = await requireAdmin();
   if (!(await target(me, id))) return fail({ form: "Use Account for your own sessions." });

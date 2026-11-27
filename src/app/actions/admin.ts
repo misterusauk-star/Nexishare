@@ -39,6 +39,7 @@ export async function setUserStatusAction(id: number, status: "active" | "suspen
   const me = await requireAdmin();
   if (id === me.id) return;
   await exec("UPDATE users SET status = ? WHERE id = ?", [status, id]);
+  if (status === "active") await exec("UPDATE users SET suspend_reason = NULL WHERE id = ?", [id]).catch(() => {}); // column exists after migration 019
   if (status === "suspended") await destroyAllSessions(id);
   await audit(me.id, `user.${status === "active" ? "reinstate" : "suspend"}`, String(id));
   clearSlugCache();

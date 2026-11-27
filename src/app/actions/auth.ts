@@ -51,7 +51,11 @@ export async function loginAction(_: FormState, fd: FormData): Promise<FormState
     await Promise.all([rateLimitHit(`login:fail:em:${email}`, FAIL.email[1]), rateLimitHit(`login:fail:ip:${ip}`, FAIL.ip[1]), rateLimitHit(`login:fail:ipd:${ip}`, FAIL.ipDay[1])]);
     return { errors: { form: t("auth.login.invalid") } };
   }
-  if (user.status !== "active") return { errors: { form: t("auth.login.suspended") } };
+  if (user.status !== "active") {
+    // Only someone who knows the password sees the reason, so this reveals nothing about other accounts.
+    const why = await queryOne<{ suspend_reason: string | null }>("SELECT suspend_reason FROM users WHERE id = ?", [user.id]).catch(() => null);
+    return { errors: { form: why?.suspend_reason ? `${t("auth.login.suspended")} Reason: ${why.suspend_reason}` : t("auth.login.suspended") } };
+  }
   await createSession(user.id);
   redirect(safeNext(str(fd, "next")));
 }
