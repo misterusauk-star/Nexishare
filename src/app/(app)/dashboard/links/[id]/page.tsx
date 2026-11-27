@@ -22,6 +22,8 @@ export default async function LinkDetail({ params, searchParams }: { params: Pro
   const { id } = await params;
   const link = await getLinkForUser(user.id, Number(id), user.role === "super_admin");
   if (!link) notFound();
+  // Device destinations are no longer offered on normal links. They stay visible, and removable, where a link already has them (universal links included).
+  const showDevice = !!(link.universal || link.ios_url || link.android_url || link.windows_url || link.mac_url || link.linux_url);
   const dq = Number((await searchParams).days);
   const days = [7, 30, 90].includes(dq) ? dq : 30;
   const st = await getDomainState();
@@ -73,22 +75,26 @@ export default async function LinkDetail({ params, searchParams }: { params: Pro
               <Field label="Expires (UTC)" name="expires_at" type="datetime-local" defaultValue={iso(link.expires_at)} />
             </div>
             <Field label="Click limit" name="max_clicks" type="number" min={1} max={1000000000} inputMode="numeric" placeholder="Unlimited" defaultValue={link.max_clicks ?? ""} hint={link.max_clicks != null ? `${Number(link.click_count ?? 0)} of ${link.max_clicks} used. Empty = unlimited.` : "Optional. After this many visits the link behaves as expired."} />
-            <details className="utm" open={!!(link.universal || link.ios_url || link.android_url || link.windows_url || link.mac_url || link.linux_url || link.expired_url)}>
-              <summary className="small link-like">Different destinations by device (optional)</summary>
-              <p className="small muted">Send visitors on iPhone, Android, Windows, Mac or Linux to their own page, for example an app store listing or a download page, and choose where an expired link goes instead of the expired notice.</p>
+            {showDevice && (
+              <details className="utm" open>
+                <summary className="small link-like">Different destinations by device</summary>
+                <p className="small muted">Visitors on these devices go to their own page. Clear a field to stop sending that device elsewhere.</p>
               <Field label="iPhone and iPad destination" name="ios_url" type="url" placeholder="https://apps.apple.com/app/..." defaultValue={link.ios_url ?? ""} maxLength={2048} />
               <Field label="Android destination" name="android_url" type="url" placeholder="https://play.google.com/store/apps/..." defaultValue={link.android_url ?? ""} maxLength={2048} />
               <Field label="Windows destination" name="windows_url" type="url" placeholder="https://example.com/download/windows" defaultValue={link.windows_url ?? ""} maxLength={2048} />
               <Field label="Mac destination" name="mac_url" type="url" placeholder="https://example.com/download/mac" defaultValue={link.mac_url ?? ""} maxLength={2048} />
               <Field label="Linux destination" name="linux_url" type="url" placeholder="https://example.com/download/linux" defaultValue={link.linux_url ?? ""} maxLength={2048} />
-              <Field label="After it expires, go to" name="expired_url" type="url" placeholder="https://example.com/offer-ended" defaultValue={link.expired_url ?? ""} maxLength={2048} />
-            </details>
+              </details>
+            )}
+            <Field label="After it expires, go to" name="expired_url" type="url" placeholder="https://example.com/offer-ended" defaultValue={link.expired_url ?? ""} maxLength={2048} />
             <Field label={link.password_hash ? "New password" : "Password"} name="password" autoComplete="off" hint={link.password_hash ? "Leave empty to keep the current password." : "Optional."} />
             {link.password_hash && <label className="check"><input type="checkbox" name="remove_password" /> Remove password protection</label>}
             <label className="check"><input type="checkbox" name="enabled" defaultChecked={!!link.enabled} /> Link is enabled</label>
           </ActionForm>
         </section>
         <section>
+          {showDevice && (
+            <>
           <div className="section-title"><h2>Where each device goes</h2></div>
           <div className="tbl-wrap">
             <table className="tbl">
@@ -106,6 +112,8 @@ export default async function LinkDetail({ params, searchParams }: { params: Pro
               </tbody>
             </table>
           </div>
+            </>
+          )}
           {link.expired_url && <p className="small muted">After it expires: <span className="mono">{link.expired_url}</span></p>}
           <div className="section-title" style={{ marginTop: 32 }}><h2>Destination health</h2></div>
           {link.universal ? <p className="small muted">Universal links have no destination of their own, so there is nothing to check.</p> : (

@@ -66,16 +66,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
               <p className="small muted">Send visitors from a country to their own page. Everyone else goes to the destination above.{geoUse ? ` Up to ${geoUse.routes_per_link_limit} countries per link${geoUse.links_with_routes_limit != null ? `, on up to ${geoUse.links_with_routes_limit.toLocaleString("en-US")} links (${geoUse.links_with_routes.toLocaleString("en-US")} used)` : ""}.` : ""}</p>
               <Field label="Routes" name="geo_routes" textarea rows={3} placeholder={"PK https://example.com/pk\nUS https://example.com/us"} hint="One per line: a two-letter country code, a space, a web address." />
             </details>
-            <details className="utm">
-              <summary className="small link-like">Different destinations by device (optional)</summary>
-              <p className="small muted">Send visitors on iPhone, Android, Windows, Mac or Linux to their own page, for example an app store listing or a download page, and choose where an expired link goes instead of the expired notice.</p>
-              <Field label="iPhone and iPad destination" name="ios_url" type="url" placeholder="https://apps.apple.com/app/..." maxLength={2048} />
-              <Field label="Android destination" name="android_url" type="url" placeholder="https://play.google.com/store/apps/..." maxLength={2048} />
-              <Field label="Windows destination" name="windows_url" type="url" placeholder="https://example.com/download/windows" maxLength={2048} />
-              <Field label="Mac destination" name="mac_url" type="url" placeholder="https://example.com/download/mac" maxLength={2048} />
-              <Field label="Linux destination" name="linux_url" type="url" placeholder="https://example.com/download/linux" maxLength={2048} />
-              <Field label="After it expires, go to" name="expired_url" type="url" placeholder="https://example.com/offer-ended" maxLength={2048} />
-            </details>
+            <Field label="After it expires, go to" name="expired_url" type="url" placeholder="https://example.com/offer-ended" hint="Optional. Shown instead of the expired notice." maxLength={2048} />
           <details className="utm">
             <summary className="small link-like">Campaign tags (optional)</summary>
             <p className="small muted">Added to the destination as utm_source, utm_medium and utm_campaign so your analytics can tell where visits came from.</p>

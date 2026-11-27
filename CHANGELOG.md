@@ -5,6 +5,8 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 ## [Unreleased]
 
 ### Changed
+- Links: the "Different destinations by device" fields are gone from the create form, and from the link page unless that link already uses device destinations (universal links keep them). The expired-link redirect stays as its own field. Links that already have device destinations keep working, and the API still accepts the device fields.
+- Docs on phones: fixed the page growing wider than the screen (a long code sample stretched the whole layout), doubled side padding, and a header that did not fit.
 - Phones and tablets: the menu drawer has a Close button, closes on a tap outside, on Escape and after choosing a page, and the page behind no longer scrolls. Docs get a scrolling section strip at the top. In the bio editor, block rows wrap so titles stay readable and every button stays tappable.
 - Account > Email: entering your current email is rejected (no more pointless re-verification), and an email that already belongs to another account says to delete that account first.
 - One email is one account. Signing in with Google with an email that already has an account joins that account (Google verifies the email), so Google and password share one account. Google can also be connected or disconnected from Account > Google sign-in. Disconnect needs a password set; changing the account email disconnects Google.

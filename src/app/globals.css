@@ -691,3 +691,22 @@ a.tag-pill:hover { background: var(--sunken); }
 .site-theme-sw span { flex: 1; height: 100%; border: 1px solid; opacity: 0.9; }
 .site-theme-sw i { width: 22px; height: 22px; flex: none; }
 .site-theme-name { font-weight: 600; font-size: 14px; }
+
+/* ---- Docs on phones: the real cause of sideways overflow was a plain 1fr track (it grows to its widest code block) ---- */
+@media (max-width: 860px) {
+  .docs { grid-template-columns: minmax(0, 1fr); padding: 0 0 48px; width: 100%; max-width: 100%; }
+  .docs > * { min-width: 0; max-width: 100%; }
+  .site-main.wide { padding-inline: max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-right)); padding-top: 8px; }
+  .docs nav { margin-inline: calc(-1 * max(16px, env(safe-area-inset-left))) calc(-1 * max(16px, env(safe-area-inset-right))); padding-inline: max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-right)); }
+  .docs .table-wrap, .docs .codebox, .docs .lang-samples, .docs details { max-width: 100%; min-width: 0; }
+  .docs .table { max-width: 100%; }
+  .docs section { padding: 24px 0; }
+  .docs h2 { font-size: 22px; }
+  .site-head { flex-wrap: wrap; gap: 8px 12px; padding-inline: max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-right)); }
+  .site-head nav { flex-wrap: wrap; gap: 8px; }
+}
+@media (max-width: 420px) {
+  .site-head nav .btn { padding-inline: 10px; font-size: 13px; }
+  .docs .method { margin-right: 4px; }
+  .docs h2 code, .docs h3 code { overflow-wrap: anywhere; font-size: 0.85em; }
+}
