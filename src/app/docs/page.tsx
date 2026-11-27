@@ -379,7 +379,7 @@ curl -X POST ${base}/links \\
                   <tr><td><code>200</code>, <code>201</code>, <code>204</code></td><td>Done. <code>201</code> after a create, <code>204</code> (no body) after a delete.</td><td></td></tr>
                   <tr><td><code>400</code></td><td>The body is not a JSON object.</td><td>Send <code>Content-Type: application/json</code> and an object.</td></tr>
                   <tr><td><code>401</code></td><td>No key, or the key is wrong or revoked.</td><td>Send <code>Authorization: Bearer ob_...</code>. Create a new key if needed.</td></tr>
-                  <tr><td><code>403</code></td><td>A read-only key tried to change something.</td><td>Use a normal key for writes.</td></tr>
+                  <tr><td><code>403</code></td><td>A read-only key tried to change something, or the administrator paused the API or blocked your account (the error has a <code>code</code> of <code>api_paused</code> or <code>api_blocked</code>).</td><td>Use a normal key for writes. For a pause or block, wait or contact the administrator.</td></tr>
                   <tr><td><code>404</code></td><td>That link does not exist or is not yours.</td><td>Check the id.</td></tr>
                   <tr><td><code>422</code></td><td>A field is not valid. <code>error.fields</code> says which one and why.</td><td>Fix the named field and send again.</td></tr>
                   <tr><td><code>429</code></td><td>A limit was reached. <code>error.window</code> is <code>minute</code> or <code>day</code>.</td><td>Wait for the <code>Retry-After</code> seconds.</td></tr>

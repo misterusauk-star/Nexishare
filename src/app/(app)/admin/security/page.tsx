@@ -4,7 +4,9 @@ import { siteLimits } from "@/lib/user-limits";
 import { DEFAULT_LIMITS, LIMIT_KEYS, LIMIT_LABELS } from "@/lib/limits";
 import { DEFAULT_ALLOWED_DOMAINS } from "@/lib/email-domains";
 import { ActionForm, Field } from "@/components/client";
-import { saveEmailPolicyAction, saveGeoipAction, saveSiteLimitsAction, saveTurnstileAction } from "@/app/actions/security-admin";
+import { apiPolicy } from "@/lib/services/api-policy";
+import { CREATE_MODES } from "@/lib/api-access.ts";
+import { saveApiPolicyAction, saveEmailPolicyAction, saveGeoipAction, saveSiteLimitsAction, saveTurnstileAction } from "@/app/actions/security-admin";
 
 export const metadata = { title: "Security" };
 export const dynamic = "force-dynamic";
@@ -12,6 +14,7 @@ export const dynamic = "force-dynamic";
 export default async function SecurityPage() {
   const [site, policy, ts] = await Promise.all([siteLimits(), emailPolicy(), turnstileKeys()]);
   const geoOn = !!(await geoipToken());
+  const api = await apiPolicy();
   const tsOn = !!(ts.siteKey && ts.secret);
   return (
     <>
@@ -45,6 +48,25 @@ export default async function SecurityPage() {
         </div>
 
         <div className="stack">
+          <section className="panel">
+            <h2 className="section-title">API access</h2>
+            <p className="small muted">Decide who can create API keys, and pause every key at any time. Super admins are never affected. You can also allow or block one account in Admin &gt; Users. Status: <strong>{api.paused ? "Paused" : "Running"}</strong>.</p>
+            <ActionForm action={saveApiPolicyAction} submit="Save API access" pendingLabel="Saving...">
+              <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
+                <legend className="small">Who can create new keys</legend>
+                {CREATE_MODES.map((m) => (
+                  <label key={m.id} className="check" style={{ alignItems: "flex-start" }}>
+                    <input type="radio" name="mode" value={m.id} defaultChecked={api.mode === m.id} />
+                    <span><strong>{m.label}</strong><br /><span className="small muted">{m.note}</span></span>
+                  </label>
+                ))}
+              </fieldset>
+              <label className="check" style={{ alignItems: "flex-start" }}>
+                <input type="checkbox" name="paused" defaultChecked={api.paused} />
+                <span><strong>Pause the API for everyone</strong><br /><span className="small muted">Every key returns 403 with code api_paused until you untick this. Nothing is deleted.</span></span>
+              </label>
+            </ActionForm>
+          </section>
           <section className="panel">
             <h2 className="section-title">Cloudflare Turnstile</h2>
             <p className="small muted">A bot check shown on sign-in, sign-up and password reset. Create a widget in the Cloudflare dashboard under Turnstile, add your domain, then paste both keys here. Status: <strong>{tsOn ? "On" : "Off"}</strong>.</p>

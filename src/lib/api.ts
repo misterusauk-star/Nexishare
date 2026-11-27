@@ -3,6 +3,8 @@ import { exec, queryOne } from "./db";
 import { ipHash, sha256 } from "./crypto";
 import { rateLimit } from "./ratelimit";
 import { limitsFor } from "./user-limits";
+import { apiOverride, apiPolicy } from "./services/api-policy";
+import { canUseApi } from "./api-access.ts";
 import { READ_ONLY_MESSAGE, methodAllowed } from "./key-access";
 import { fromHeaders } from "./request";
 import { linkState, type LinkRow } from "./services/links";
@@ -39,6 +41,9 @@ export async function authApi(req: Request): Promise<{ user: ApiUser } | { res: 
     if (!(await rateLimit(`api:bad:${ipHash(info.ip)}`, 30, 600))) return { res: apiError(429, "Too many failed attempts.", undefined, { "Retry-After": "600" }) };
     return { res: apiError(401, "That key is invalid or has been revoked.") };
   }
+  // Administrator switches: the whole API paused, or this account blocked.
+  const verdict = canUseApi(row.role, await apiOverride(row.user_id), (await apiPolicy()).paused);
+  if (!verdict.ok) return { res: apiError(403, verdict.message, { code: verdict.code }) };
   if (!methodAllowed(!!row.read_only, req.method)) return { res: apiError(403, READ_ONLY_MESSAGE) };
   // Limits are low by default; an administrator raises them for everyone or for one account (Admin > Security, Admin > Users).
   const lim = await limitsFor(row.user_id);

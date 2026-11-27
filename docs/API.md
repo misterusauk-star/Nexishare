@@ -52,7 +52,7 @@ Failures return a non-2xx status and:
 | 200, 201, 204 | Done (201 after create, 204 with no body after delete) |
 | 400 | Body is not a JSON object |
 | 401 | Missing, wrong or revoked key |
-| 403 | A read-only key tried to change something |
+| 403 | A read-only key tried to change something, or the administrator paused the API or blocked the account (`error.code` is `api_paused` or `api_blocked`) |
 | 404 | Link not found, or not yours |
 | 422 | A field is invalid: see `error.fields` |
 | 429 | A limit was reached: `error.window` is `minute` or `day`, wait `Retry-After` seconds |

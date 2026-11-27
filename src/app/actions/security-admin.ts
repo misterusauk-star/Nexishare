@@ -9,6 +9,7 @@ import { parseDomainList } from "@/lib/email-domains";
 import { isSecretKey, isSiteKey } from "@/lib/turnstile-rules";
 import { saveEmailPolicy } from "@/lib/security";
 import { forgetLimits, saveSiteLimits, saveUserOverrides } from "@/lib/user-limits";
+import { parseMode } from "@/lib/api-access.ts";
 import type { FormState } from "@/components/client";
 
 const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
@@ -33,6 +34,17 @@ export async function saveSiteLimitsAction(_: FormState, fd: FormData): Promise<
   await audit(me.id, "limits.site", undefined, r.values);
   revalidatePath("/admin/security");
   return { ok: true, message: "Limits saved. They apply to every account without its own limit." };
+}
+
+/** Who can create API keys, and the pause switch for every key. */
+export async function saveApiPolicyAction(_: FormState, fd: FormData): Promise<FormState> {
+  const me = await requireAdmin();
+  const mode = parseMode(s(fd, "mode"));
+  const paused = fd.get("paused") ? "1" : "0";
+  await setSettings({ api_create_mode: mode, api_paused: paused });
+  await audit(me.id, "api.policy", undefined, { mode, paused: paused === "1" });
+  revalidatePath("/admin/security");
+  return { ok: true, message: paused === "1" ? "API paused. Every key returns 403 until you turn this off." : "Saved." };
 }
 
 /** Limits for one account. An empty box means "use the site-wide value". */

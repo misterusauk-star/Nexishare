@@ -9,6 +9,7 @@ import { emailSchema, passwordSchema } from "@/lib/validation";
 import { emailDomainError } from "@/lib/security";
 import { getBrand } from "@/lib/brand";
 import { clearSlugCache } from "@/lib/slug-cache";
+import { overrideToDb } from "@/lib/api-access.ts";
 import { createUser, issueToken, sendVerification } from "@/lib/services/users";
 import { emailAvailable, sendEmail } from "@/lib/email/mailer";
 import type { FormState } from "@/components/client";
@@ -98,6 +99,22 @@ export async function saveUserNoteAction(id: number, _: FormState, fd: FormData)
   await audit(me.id, "user.note", String(id));
   refresh();
   return ok("Note saved. Only admins can see it.");
+}
+
+/** Sets API access for one account: default (site policy), allowed or blocked. Needs migration 020. */
+export async function setUserApiAccessAction(id: number, _: FormState, fd: FormData): Promise<FormState> {
+  const me = await requireAdmin();
+  const v = s(fd, "access");
+  if (v !== "default" && v !== "allow" && v !== "block") return fail({ form: "Choose an option." });
+  if (!(await target(me, id))) return fail({ form: "Not available for your own account." });
+  try {
+    await exec("UPDATE users SET api_access = ? WHERE id = ?", [overrideToDb(v), id]);
+  } catch {
+    return fail({ form: "Run the database updates first (Admin > Domains)." });
+  }
+  await audit(me.id, "user.api_access", String(id), { access: v });
+  refresh();
+  return ok(v === "block" ? "API blocked. Their keys stop working now." : v === "allow" ? "API allowed." : "API follows the site policy.");
 }
 
 /** Revokes every API key the account has. Their apps stop working until they create a new key. */

@@ -12,6 +12,8 @@ import { rateLimit } from "@/lib/ratelimit";
 import { phase2Enabled } from "@/lib/features";
 import { emailSchema, passwordSchema } from "@/lib/validation";
 import { countActiveKeys, limitsFor } from "@/lib/user-limits";
+import { apiOverride, apiPolicy } from "@/lib/services/api-policy";
+import { canCreateKey } from "@/lib/api-access.ts";
 import { emailDomainError } from "@/lib/security";
 import { invalidateSlug } from "@/lib/slug-cache";
 import { checkOneLink, sendReportTo, setGeoRoutes, setPrefs } from "@/lib/services/linkops";
@@ -333,6 +335,8 @@ export async function createApiKeyAction(_: FormState, fd: FormData): Promise<Fo
   if (!name) return fail({ name: "Give the key a name so you can recognise it later." });
   if (!(await rateLimit(`apikey:create:${u.id}`, 5, 3600))) return fail({ form: "You are creating keys too fast. Try again in an hour." });
   if (await verificationRequired() && !u.email_verified_at) return fail({ form: "Confirm your email before creating an API key." });
+  const verdict = canCreateKey(u.role, await apiOverride(u.id), (await apiPolicy()).mode);
+  if (!verdict.ok) return fail({ form: verdict.message });
   const cap = await limitsFor(u.id);
   if (!cap.unlimited && (await countActiveKeys(u.id)) >= cap.values.max_api_keys) return fail({ form: `You can have ${cap.values.max_api_keys} active key${cap.values.max_api_keys === 1 ? "" : "s"}. Revoke one first, or ask the administrator to raise the limit.` });
   const secret = `ob_${randomToken(24)}`;

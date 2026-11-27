@@ -9,7 +9,7 @@ import { deleteUserAction, setUserRoleAction, setUserStatusAction } from "@/app/
 import { saveUserLimitsAction } from "@/app/actions/security-admin";
 import {
   changeUserEmailAction, createUserAdminAction, markVerifiedAction, resendVerificationAdminAction,
-  bulkUsersAction, revokeUserKeysAction, saveUserNoteAction, sendResetLinkAction, setUserPasswordAction, signOutUserAction, suspendWithReasonAction,
+  bulkUsersAction, revokeUserKeysAction, saveUserNoteAction, sendResetLinkAction, setUserApiAccessAction, setUserPasswordAction, signOutUserAction, suspendWithReasonAction,
 } from "@/app/actions/users-admin";
 
 export const metadata = { title: "Users" };
@@ -43,13 +43,13 @@ export default async function Users({ searchParams }: { searchParams: Promise<{ 
   const pages = Math.max(1, Math.ceil(total / PER));
   // Per-account limit overrides. Skipped quietly when the database update that adds them has not been run yet.
   const own = new Map<number, Record<LimitKey, number | null>>();
-  const extra = new Map<number, { reason: string | null; note: string | null; has: boolean }>();
+  const extra = new Map<number, { reason: string | null; note: string | null; has: boolean; api: number | null }>();
   const site = await siteLimits();
   if (rows.length) {
     try {
       const ids = rows.map((r) => r.id);
       const got = await query<Record<string, unknown> & { id: number }>(`SELECT * FROM users WHERE id IN (${ids.map(() => "?").join(",")})`, ids);
-      for (const g of got) { own.set(g.id, overridesFromRow(g)); extra.set(g.id, { reason: (g.suspend_reason as string) ?? null, note: (g.admin_note as string) ?? null, has: "admin_note" in g }); }
+      for (const g of got) { own.set(g.id, overridesFromRow(g)); extra.set(g.id, { reason: (g.suspend_reason as string) ?? null, note: (g.admin_note as string) ?? null, has: "admin_note" in g, api: g.api_access == null ? null : Number(g.api_access) }); }
     } catch { /* migration 013 not applied */ }
   }
   // Per-account overview: active API keys and signed-in sessions.
@@ -118,6 +118,7 @@ export default async function Users({ searchParams }: { searchParams: Promise<{ 
                   {u.id !== me.id && <label className="small row" style={{ marginBottom: 4 }}><input type="checkbox" name="ids" value={u.id} form="bulk-users" aria-label={`Select ${u.email}`} /> Select</label>}
                   {u.username ? <a href={bioUrl(st, u.username)} target="_blank" rel="noopener">{u.username}</a> : <span className="muted">No bio page</span>}
                   {u.status === "suspended" && <> <span className="badge bad">Suspended</span></>}
+                  {extra.get(u.id)?.api === 0 && <> <span className="badge warn">API blocked</span></>}
                   {!u.email_verified_at && <> <span className="badge">Unverified</span></>}
                   <div className="small muted">{u.email}</div>
                   {u.id !== me.id && (
@@ -125,6 +126,14 @@ export default async function Users({ searchParams }: { searchParams: Promise<{ 
                       <summary>Manage account</summary>
                       <div className="stack-sm">
                         <p className="small muted">{Number(u.links)} link{Number(u.links) === 1 ? "" : "s"}, {usage.get(u.id)?.keys ?? 0} active API key{usage.get(u.id)?.keys === 1 ? "" : "s"}, {usage.get(u.id)?.sessions ?? 0} signed-in session{usage.get(u.id)?.sessions === 1 ? "" : "s"}.</p>
+                        <ActionForm action={setUserApiAccessAction.bind(null, u.id)} submit="Save API access" pendingLabel="Saving..." submitClass="btn btn-sm">
+                          <div className="field">
+                            <label htmlFor={`api-${u.id}`}>API access</label>
+                            <select id={`api-${u.id}`} name="access" className="input" defaultValue={extra.get(u.id)?.api === 1 ? "allow" : extra.get(u.id)?.api === 0 ? "block" : "default"}>
+                              <option value="default">Follow the site policy</option><option value="allow">Allowed</option><option value="block">Blocked (keys stop working)</option>
+                            </select>
+                          </div>
+                        </ActionForm>
                         {(usage.get(u.id)?.keys ?? 0) > 0 && (
                           <ActionForm action={revokeUserKeysAction.bind(null, u.id)} submit="Revoke all API keys" pendingLabel="Working..." submitClass="btn btn-sm"><span /></ActionForm>
                         )}
